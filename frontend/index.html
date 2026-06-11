@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Nompyr is a fast, mobile-first anime discovery and watching prototype with search, watch history, favorites, schedule, and admin views."
+    />
+    <meta property="og:title" content="Nompyr | Your Gateway To Infinite Anime" />
+    <meta property="og:description" content="A polished anime streaming platform prototype inspired by modern discovery and watch experiences." />
+    <meta property="og:type" content="website" />
+    <title>Nompyr | Your Gateway To Infinite Anime</title>
+    <link rel="stylesheet" href="./src/styles/styles.css" />
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
+  </head>
+  <body>
+    <div class="app-shell">
+      <main style="margin-left:0;width:100%;">
+        <header class="topbar">
+          <div class="topbar-left" style="display:flex;align-items:center;gap:0.75rem;position:relative;">
+            <button class="icon-button" id="menuToggle" aria-label="Open navigation">☰</button>
+            <a class="brand" href="#/">
+              <span class="brand-nom">Nom</span><span class="brand-pyr">pyr</span>
+            </a>
+            <div id="popupNav" class="popup-nav hidden">
+              <a href="#/" data-nav="home" class="popup-nav-item">⌂<span>Home</span></a>
+              <a href="#/search" data-nav="search" class="popup-nav-item">⌕<span>Search</span></a>
+              <a href="#/trending" data-nav="trending" class="popup-nav-item">↗<span>Trending</span></a>
+              <a href="#/latest" data-nav="latest" class="popup-nav-item">◴<span>Latest</span></a>
+              <a href="#/schedule" data-nav="schedule" class="popup-nav-item">▦<span>Schedule</span></a>
+              <a href="#/recommender" data-nav="recommender" class="popup-nav-item">✦<span>Recommender</span></a>
+              <a href="#/favorites" data-nav="favorites" class="popup-nav-item">♡<span>Favorites</span></a>
+              <a href="#/history" data-nav="history" class="popup-nav-item">↺<span>History</span></a>
+              <a href="#/admin" data-nav="admin" class="popup-nav-item">⚙<span>Admin</span></a>
+            </div>
+          </div>
+          <form class="searchbar" id="globalSearch">
+            <span>⌕</span>
+            <div class="search-input-wrap" style="position:relative;flex:1;display:flex;align-items:center;">
+              <input id="searchInput" type="search" placeholder="Search anime, genres, studios..." autocomplete="off" style="width:100%;" />
+              <div id="searchSuggestions" class="search-suggestions-dropdown hidden"></div>
+            </div>
+            <button type="button" class="search-filter-btn" id="searchFilterBtn">FILTER</button>
+          </form>
+          <div class="topbar-actions">
+            <button type="button" class="icon-button" id="randomAnimeBtn" title="Random Anime">⇆</button>
+            <div class="lang-toggle-wrap">
+              <button type="button" class="lang-btn active">EN</button>
+              <button type="button" class="lang-btn">JP</button>
+            </div>
+            <a class="profile-chip" href="#/profile" style="padding:0;width:2.65rem;height:2.65rem;border-radius:50%;overflow:hidden;display:grid;place-items:center;">
+              <span class="avatar" style="width:100%;height:100%;border-radius:0;font-size:0.75rem;">AK</span>
+            </a>
+          </div>
+        </header>
+
+        <section id="view" class="view" aria-live="polite"></section>
+      </main>
+    </div>
+
+    <div id="toast" class="toast" role="status"></div>
+
+    <script type="module" src="./src/app/main.js?v=3"></script>
+  </body>
+</html>
