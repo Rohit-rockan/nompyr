@@ -1,5 +1,5 @@
 import { animeCatalog } from "../data/anime.js?v=3";
-import { sourceManager, normalizeAnime } from "../services/sourceManager.js?v=3";
+import { sourceManager, normalizeAnime, mapJikanToNompyr } from "../services/sourceManager.js?v=3";
 import { store } from "../services/store.js?v=3";
 
 const view = document.querySelector("#view");
@@ -1512,15 +1512,40 @@ const setupAutocomplete = (input, dropdown, isRecommenderPage = false) => {
 
   const timeoutId = setTimeout(async () => {
     try {
-      const api = store.getState().api || {};
-      const baseUrl = api.baseUrl || "http://127.0.0.1:5000";
-      const res = await fetch(`${baseUrl}/api/search-predictions?q=${encodeURIComponent(input.value.trim())}`);
-      if (!res.ok) return;
-      const suggestions = await res.json();
+      let suggestions = [];
+      try {
+        const api = store.getState().api || {};
+        const baseUrl = api.baseUrl || "http://127.0.0.1:5000";
+        const res = await fetch(`${baseUrl}/api/search-predictions?q=${encodeURIComponent(input.value.trim())}`);
+        if (res.ok) {
+          suggestions = await res.json();
+        } else {
+          throw new Error("Backend responded with error status");
+        }
+      } catch (err) {
+        console.warn("Backend autocomplete query failed, trying direct Jikan fetch:", err);
+        const res = await fetch(`https://api.jikan.moe/v4/anime?q=${encodeURIComponent(input.value.trim())}&limit=6`);
+        if (res.ok) {
+          const payload = await res.json();
+          suggestions = (payload.data || []).map(item => ({
+            title: item.title,
+            poster: item.images?.jpg?.small_image_url || item.images?.jpg?.image_url || "",
+            id: `jikan:${item.mal_id}`
+          }));
+        }
+      }
+
       if (suggestions && suggestions.length > 0) {
-        dropdown.innerHTML = suggestions.map((title, idx) => `
-          <div class="suggestion-item" data-index="${idx}" data-val="${title.replace(/"/g, '&quot;')}">${title}</div>
-        `).join("");
+        dropdown.innerHTML = suggestions.map((item, idx) => {
+          const title = typeof item === 'string' ? item : item.title;
+          const poster = typeof item === 'object' && item.poster ? item.poster : '';
+          return `
+            <div class="suggestion-item" data-index="${idx}" data-val="${title.replace(/"/g, '&quot;')}" style="display:flex;align-items:center;gap:0.75rem;padding:0.5rem 0.75rem;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.03);">
+              ${poster ? `<img src="${poster}" style="width:1.8rem;height:2.5rem;object-fit:cover;border-radius:0.2rem;flex-shrink:0;" />` : ''}
+              <span style="font-weight:600;font-size:0.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${title}</span>
+            </div>
+          `;
+        }).join("");
         dropdown.classList.remove("hidden");
       } else {
         dropdown.innerHTML = "";
@@ -1681,10 +1706,40 @@ const renderRecommendations = async () => {
       state.recTriggered = true;
       renderRecommendations();
       try {
-        const api = store.getState().api || {};
-        const baseUrl = api.baseUrl || "http://127.0.0.1:5000";
-        const res = await fetch(`${baseUrl}/api/recommendations/description?description=${encodeURIComponent(state.recommenderQuery)}`);
-        const data = await res.json();
+        let data = { results: [] };
+        try {
+          const api = store.getState().api || {};
+          const baseUrl = api.baseUrl || "http://127.0.0.1:5000";
+          const res = await fetch(`${baseUrl}/api/recommendations/description?description=${encodeURIComponent(state.recommenderQuery)}`);
+          if (res.ok) {
+            data = await res.json();
+          } else {
+            throw new Error("Backend description recommender failed");
+          }
+        } catch (err) {
+          console.warn("Backend recommendations by description failed, running direct browser fallback:", err);
+          const res = await fetch(`https://api.jikan.moe/v4/top/anime?limit=25`);
+          if (res.ok) {
+            const payload = await res.json();
+            const topList = (payload.data || []).map(item => mapJikanToNompyr(item, "Completed"));
+            const queryWords = state.recommenderQuery.toLowerCase().split(/\s+/).filter(w => w.length > 3);
+            const scored = topList.map(anime => {
+              let score = 0;
+              const text = `${anime.title} ${anime.genres.join(" ")} ${anime.description}`.toLowerCase();
+              queryWords.forEach(word => {
+                if (text.includes(word)) score += 1;
+              });
+              return { anime, score };
+            });
+            scored.sort((a, b) => b.score - a.score);
+            data = {
+              results: scored.filter(s => s.score > 0).map(s => s.anime).slice(0, 12)
+            };
+            if (data.results.length === 0) {
+              data.results = topList.slice(0, 12);
+            }
+          }
+        }
         state.recommenderResults = (data.results || []).map(item => normalizeAnime(item));
       } catch (err) {
         showToast("Error retrieving recommendations.");
@@ -1702,10 +1757,46 @@ const renderRecommendations = async () => {
       state.recTriggered = true;
       renderRecommendations();
       try {
-        const api = store.getState().api || {};
-        const baseUrl = api.baseUrl || "http://127.0.0.1:5000";
-        const res = await fetch(`${baseUrl}/api/recommendations/anime?title=${encodeURIComponent(state.recommenderAnimeTitle)}`);
-        const data = await res.json();
+        let data = { results: [] };
+        try {
+          const api = store.getState().api || {};
+          const baseUrl = api.baseUrl || "http://127.0.0.1:5000";
+          const res = await fetch(`${baseUrl}/api/recommendations/anime?title=${encodeURIComponent(state.recommenderAnimeTitle)}`);
+          if (res.ok) {
+            data = await res.json();
+          } else {
+            throw new Error("Backend anime recommendations failed");
+          }
+        } catch (err) {
+          console.warn("Backend recommendations by anime failed, running direct browser fallback:", err);
+          const searchRes = await fetch(`https://api.jikan.moe/v4/anime?q=${encodeURIComponent(state.recommenderAnimeTitle)}&limit=1`);
+          if (searchRes.ok) {
+            const searchData = await searchRes.json();
+            if (searchData.data && searchData.data.length > 0) {
+              const malId = searchData.data[0].mal_id;
+              const recsRes = await fetch(`https://api.jikan.moe/v4/anime/${malId}/recommendations`);
+              if (recsRes.ok) {
+                const recsData = await recsRes.json();
+                const list = recsData.data || [];
+                data = {
+                  results: list.slice(0, 12).map(rec => {
+                    const entry = rec.entry;
+                    return {
+                      id: `jikan:${entry.mal_id}`,
+                      title: entry.title,
+                      poster: entry.images?.jpg?.large_image_url || entry.images?.jpg?.image_url || "",
+                      type: "TV",
+                      score: "N/A",
+                      episodes: 12,
+                      latestEpisode: 1,
+                      language: ["Sub", "Dub"]
+                    };
+                  })
+                };
+              }
+            }
+          }
+        }
         state.recommenderResults = (data.results || []).map(item => normalizeAnime(item));
       } catch (err) {
         showToast("Error retrieving recommendations.");

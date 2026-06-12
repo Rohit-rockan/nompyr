@@ -556,11 +556,77 @@ def proxy_image():
 
 @app.route("/api/search-predictions", methods=["GET"])
 def api_search_predictions():
+    q = request.args.get("q", "").strip()
+    if not q or len(q) < 2:
+        return jsonify([])
+        
+    cache_key = f"predictions:{q.lower()}"
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return jsonify(cached)
+        
+    import requests as _requests
+    headers = {"User-Agent": "Mozilla/5.0"}
+    
+    try:
+        url = "https://api.jikan.moe/v4/anime"
+        r = _requests.get(url, params={"q": q, "limit": 6}, headers=headers, timeout=5)
+        if r.status_code == 200:
+            results = []
+            for item in r.json().get("data", []):
+                title = item.get("title")
+                poster = item.get("images", {}).get("jpg", {}).get("small_image_url") or item.get("images", {}).get("jpg", {}).get("image_url") or ""
+                results.append({
+                    "title": title,
+                    "poster": poster,
+                    "id": f"jikan:{item.get('mal_id')}"
+                })
+            if results:
+                cache.set(cache_key, results, timeout=1800)
+                return jsonify(results)
+    except Exception as e:
+        print("Error fetching predictions from Jikan:", e)
+        
     return jsonify([])
 
 @app.route("/api/recommendations/description", methods=["GET"])
 def api_recommend_description():
-    return jsonify({"success": True, "results": []})
+    desc = request.args.get("description", "").strip()
+    if not desc or len(desc) < 3:
+        return jsonify({"success": True, "results": []})
+        
+    cache_key = f"recs_desc:{desc.lower()}"
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return jsonify(cached)
+        
+    import requests as _requests
+    import time
+    headers = {"User-Agent": "Mozilla/5.0"}
+    
+    try:
+        anime_data = []
+        for page in (1, 2):
+            r = _requests.get(f"https://api.jikan.moe/v4/top/anime?page={page}&limit=25", headers=headers, timeout=10)
+            if r.status_code == 200:
+                data = r.json().get("data", [])
+                for item in data:
+                    mapped = map_jikan_to_nompyr(item)
+                    anime_data.append(mapped)
+            time.sleep(0.3)
+            
+        if not anime_data:
+            raise Exception("No anime data available for recommendations")
+            
+        results = anime_recommender.recommend_by_description(desc, anime_data, top_n=12)
+        
+        res = {"success": True, "results": results}
+        cache.set(cache_key, res, timeout=1800)
+        return jsonify(res)
+        
+    except Exception as e:
+        print("Error in description recommender:", e)
+        return jsonify({"success": False, "error": str(e)}), 500
 
 @app.route("/api/recommendations/anime", methods=["GET"])
 def api_recommend_anime():
