@@ -805,6 +805,73 @@ const renderAnime = async (slug) => {
   `;
 };
 
+const getMockComments = (animeTitle) => {
+  const templates = [
+    { user: "AnimeFan99", text: `This episode of ${animeTitle} was absolutely amazing! The animation quality is top-tier.`, date: "2 hours ago" },
+    { user: "OtakuSakura", text: `I've been waiting for this episode all week! Can't wait to see what happens next.`, date: "5 hours ago" },
+    { user: "LuffyGamer", text: `The soundtrack during the climax scene gave me goosebumps. 10/10!`, date: "1 day ago" },
+    { user: "Sora_No_Kiseki", text: `Is it just me or is the pacing getting much better? Really enjoying this adaptation.`, date: "1 day ago" },
+    { user: "MysteryWatcher", text: `Such a cliffhanger at the end! Anyone know when the next episode drops?`, date: "2 days ago" }
+  ];
+  return templates.sort(() => 0.5 - Math.random()).slice(0, 3);
+};
+
+const getCommentsForAnime = (animeId, animeTitle) => {
+  const key = `nompyr-comments-${animeId}`;
+  const saved = localStorage.getItem(key);
+  if (saved) return JSON.parse(saved);
+  const mock = getMockComments(animeTitle);
+  localStorage.setItem(key, JSON.stringify(mock));
+  return mock;
+};
+
+const saveComment = (animeId, comment) => {
+  const key = `nompyr-comments-${animeId}`;
+  const list = getCommentsForAnime(animeId, "");
+  list.unshift(comment);
+  localStorage.setItem(key, JSON.stringify(list));
+};
+
+const loadWatchRecommendations = async (anime, container) => {
+  let related = [];
+  try {
+    const jikanRecs = await sourceManager.recommendations(anime.title);
+    if (jikanRecs && jikanRecs.length > 0) {
+      related.push(...jikanRecs);
+    }
+  } catch (err) {
+    console.warn("Jikan recommendations failed:", err);
+  }
+
+  if (related.length < 4 && anime.genres && anime.genres.length > 0) {
+    try {
+      const activeGenre = anime.genres[0];
+      const searchRes = await sourceManager.search({
+        query: "",
+        genre: activeGenre.toLowerCase(),
+        type: (anime.type || "TV").toLowerCase()
+      });
+      const searchItems = searchRes?.results || [];
+      const filteredSearch = searchItems.filter(item => item.id !== anime.id && !related.some(r => r.id === item.id));
+      related.push(...filteredSearch);
+    } catch (err) {
+      console.warn("Genre/type search fallback failed:", err);
+    }
+  }
+
+  if (related.length === 0) {
+    related = animeCatalog.filter((item) => item.id !== anime.id && item.genres.some((genre) => anime.genres.includes(genre)));
+  }
+
+  related = related.slice(0, 6);
+
+  if (related.length > 0) {
+    container.innerHTML = row("Recommendations", related);
+  } else {
+    container.innerHTML = `<p class="muted" style="padding: 1rem 0; font-size: 0.85rem; color: var(--muted);">No similar recommendations found.</p>`;
+  }
+};
+
 const renderWatch = async (slug, episodeNo = "1") => {
   const currentEpKey = `${slug}-${episodeNo}`;
   if (state.currentEpisodeId !== currentEpKey) {
@@ -834,8 +901,6 @@ const renderWatch = async (slug, episodeNo = "1") => {
   }
 
   const progress = store.getState().progress[episode.id] || 0;
-  const related = animeCatalog.filter((item) => item.id !== anime.id && item.genres.some((genre) => anime.genres.includes(genre))).slice(0, 4);
-
   const isDirectMp4 = stream.type === "mp4" || stream.hls.split('?')[0].toLowerCase().endsWith(".mp4") || stream.hls.toLowerCase().includes(".mp4");
 
   view.innerHTML = `
@@ -880,35 +945,104 @@ const renderWatch = async (slug, episodeNo = "1") => {
         </div>
         <h2>${episode.title}</h2>
         <p class="muted">${anime.description}</p>
-        <div class="watch-recommendations" style="margin-top:2rem;">
-          ${row("Recommendations", related)}
+        <div class="watch-recommendations" id="watchRecommendationsContainer" style="margin-top:2rem;">
+          <div style="padding: 2rem; text-align: center; color: var(--muted); font-size: 0.9rem;">
+            Loading recommendations...
+          </div>
         </div>
       </section>
-      <aside class="panel watch-side">
+      <aside class="panel watch-side" style="display:flex; flex-direction:column; gap:1.5rem; max-height:85vh; overflow-y:auto;">
         <!-- Sub/Dub Selector Option (Choose Language) -->
-        <h2>Choose Language</h2>
-        <div class="sub-dub-toggle">
-          ${[...new Set(["sub", "dub", ...modes])].map(mode => `
-            <button class="toggle-tab ${state.activeLanguage === mode ? "active" : ""}" data-lang="${mode}">
-              ${mode.toUpperCase()}
-            </button>
-          `).join("")}
+        <div>
+          <h2 style="margin-bottom:0.75rem;">Choose Language</h2>
+          <div class="sub-dub-toggle">
+            ${[...new Set(["sub", "dub", ...modes])].map(mode => `
+              <button class="toggle-tab ${state.activeLanguage === mode ? "active" : ""}" data-lang="${mode}">
+                ${mode.toUpperCase()}
+              </button>
+            `).join("")}
+          </div>
         </div>
 
-        <h2>Servers</h2>
-        <div style="margin-bottom:1.5rem;">
-          ${filteredServers.map((server) => `
-            <button class="server ${state.activeServerId === server.id ? "active" : ""}" data-server-id="${server.id}" style="width:100%;margin-bottom:0.5rem;display:flex;justify-content:space-between;align-items:center;">
-              ${server.label}
-              <span>${server.quality.at(-1)}</span>
-            </button>
-          `).join("") || `<p class="muted" style="padding:0.5rem;font-size:0.85rem;color:var(--muted);">No ${state.activeLanguage.toUpperCase()} servers available for this episode.</p>`}
+        <div>
+          <h2 style="margin-bottom:0.75rem;">Servers</h2>
+          <div>
+            ${filteredServers.map((server) => `
+              <button class="server ${state.activeServerId === server.id ? "active" : ""}" data-server-id="${server.id}" style="width:100%;margin-bottom:0.5rem;display:flex;justify-content:space-between;align-items:center;">
+                ${server.label}
+                <span>${server.quality.at(-1)}</span>
+              </button>
+            `).join("") || `<p class="muted" style="padding:0.5rem;font-size:0.85rem;color:var(--muted);">No ${state.activeLanguage.toUpperCase()} servers available for this episode.</p>`}
+          </div>
         </div>
-        <h2>Episodes</h2>
-        <div class="episode-list compact-list">${episodes.map((item) => `<a class="${String(item.number) === String(episodeNo) ? "active" : ""} ${item.released ? "" : "disabled"}" href="${item.released ? `#/watch/${anime.id}/${item.number}` : "#"}">Episode ${item.number}</a>`).join("")}</div>
+
+        <div>
+          <h2 style="margin-bottom:0.75rem;">Episodes</h2>
+          <div class="episode-list compact-list">${episodes.map((item) => `<a class="${String(item.number) === String(episodeNo) ? "active" : ""} ${item.released ? "" : "disabled"}" href="${item.released ? `#/watch/${anime.id}/${item.number}` : "#"}">Episode ${item.number}</a>`).join("")}</div>
+        </div>
+
+        <div style="border-top:1px solid rgba(255,255,255,0.05); padding-top:1.5rem;">
+          <h2 style="margin-bottom:0.75rem;">Comments</h2>
+          <form id="commentForm" style="display:flex; flex-direction:column; gap:0.5rem; margin-bottom:1.25rem;">
+            <input type="text" id="commentUser" placeholder="Your name..." required style="padding: 0.5rem; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 0.25rem; color: #fff; font-size: 0.85rem;" />
+            <textarea id="commentText" placeholder="Join the discussion..." required style="padding: 0.5rem; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 0.25rem; color: #fff; font-size: 0.85rem; height: 3.5rem; resize: none;"></textarea>
+            <button type="submit" class="search-submit-btn" style="height: auto; padding: 0.4rem 1rem; font-size: 0.8rem; align-self: flex-end; width: auto; font-weight:600;">Post</button>
+          </form>
+          <div id="commentsList" style="display:flex; flex-direction:column; gap:0.75rem; max-height: 18rem; overflow-y: auto; padding-right: 0.25rem;">
+             <!-- Comments dynamically loaded -->
+          </div>
+        </div>
       </aside>
     </div>
   `;
+
+  // Start loading recommendations in background
+  const recsContainer = document.getElementById("watchRecommendationsContainer");
+  if (recsContainer) {
+    loadWatchRecommendations(anime, recsContainer);
+  }
+
+  // Setup comments list & form
+  const renderComments = () => {
+    const commentsList = document.getElementById("commentsList");
+    if (!commentsList) return;
+
+    const list = getCommentsForAnime(anime.id, anime.title);
+    if (list.length === 0) {
+      commentsList.innerHTML = `<p class="muted" style="font-size:0.85rem; text-align:center; padding:1rem 0;">No comments yet. Be the first to post!</p>`;
+      return;
+    }
+
+    commentsList.innerHTML = list.map(c => `
+      <div class="comment-item" style="padding: 0.6rem 0.8rem; background: rgba(255,255,255,0.01); border: 1px solid rgba(255,255,255,0.04); border-radius: 0.4rem;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.25rem;">
+          <strong style="color:#e76f51; font-size:0.82rem;">${c.user}</strong>
+          <span style="font-size:0.72rem; color:var(--muted);">${c.date || "Just now"}</span>
+        </div>
+        <p style="margin:0; font-size:0.82rem; line-height:1.4; color:rgba(255,255,255,0.8);">${c.text}</p>
+      </div>
+    `).join("");
+  };
+
+  renderComments();
+
+  document.getElementById("commentForm")?.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const userEl = document.getElementById("commentUser");
+    const textEl = document.getElementById("commentText");
+    if (!userEl || !textEl) return;
+
+    const newComment = {
+      user: userEl.value.trim(),
+      text: textEl.value.trim(),
+      date: "Just now"
+    };
+
+    saveComment(anime.id, newComment);
+    textEl.value = "";
+    showToast("Comment posted!");
+    renderComments();
+  });
 
   document.querySelector("#simulateProgress")?.addEventListener("click", () => {
     const next = Math.min(100, progress + 18 || 18);

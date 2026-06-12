@@ -348,6 +348,15 @@ class RemoteApiSource {
     return Array.isArray(payload) ? payload : payload?.schedule || [];
   }
 
+  async recommendations(title) {
+    try {
+      const payload = await this.request("/api/recommendations/anime", { title });
+      return Array.isArray(payload) ? payload.map(item => normalizeAnime(item)) : (payload?.results || []).map(item => normalizeAnime(item));
+    } catch {
+      return [];
+    }
+  }
+
   async jikanLists() {
     try {
       return await this.request("/api/jikan-lists");
@@ -541,6 +550,22 @@ class DemoSource {
     }
   }
 
+  async recommendations(title) {
+    try {
+      const searchRes = await fetch(`https://api.jikan.moe/v4/anime?q=${encodeURIComponent(title)}&limit=1`);
+      const searchData = await searchRes.json();
+      const malId = searchData?.data?.[0]?.mal_id;
+      if (!malId) return [];
+
+      const recsRes = await fetch(`https://api.jikan.moe/v4/anime/${malId}/recommendations`);
+      const recsData = await recsRes.json();
+      return (recsData?.data || []).map(r => mapJikanToNompyr(r.entry)).filter(Boolean);
+    } catch (e) {
+      console.warn("Direct Jikan recommendations failed in DemoSource:", e);
+      return [];
+    }
+  }
+
   staticListsFallback() {
     const generateSimulated = (prefix, status, count = 20) => {
       return Array.from({ length: count }, (_, i) => ({
@@ -668,6 +693,10 @@ export class SourceManager {
 
   jikanLists() {
     return this.trySources("jikanLists");
+  }
+
+  recommendations(title) {
+    return this.trySources("recommendations", title);
   }
 
   apiStatus() {
