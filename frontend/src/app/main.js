@@ -1220,6 +1220,7 @@ const render = async () => {
     else if (page === "recommender") await renderRecommendations();
     else await renderHome();
   } catch (error) {
+    const api = sourceManager.apiStatus();
     view.innerHTML = `
       <div class="empty-state" style="max-width: 36rem; margin: 5rem auto; text-align: center; padding: 3rem 2rem; border: 1px solid var(--border); border-radius: 1rem; background: rgba(255, 255, 255, 0.02); backdrop-filter: blur(10px); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);">
         <div class="empty-icon" style="font-size: 3.5rem; margin-bottom: 1.5rem; color: #E76F51; filter: drop-shadow(0 4px 10px rgba(231, 111, 81, 0.2));">⚠️</div>
@@ -1227,15 +1228,31 @@ const render = async () => {
         <p style="color: var(--muted); margin-bottom: 2rem; font-size: 0.95rem; line-height: 1.6; max-width: 28rem; margin-left: auto; margin-right: auto;">
           ${error.message.replace(/;/g, '<br>')}
         </p>
-        <a href="#/" class="search-submit-btn" style="display: inline-flex; text-decoration: none; font-size: 0.85rem; padding: 0.75rem 2rem; height: auto;">
-          RETURN TO HOME
-        </a>
+        <div style="display: flex; flex-direction: column; gap: 0.75rem; align-items: center; justify-content: center;">
+          <a href="#/" class="search-submit-btn" style="display: inline-flex; text-decoration: none; font-size: 0.85rem; padding: 0.75rem 2rem; height: auto;">
+            RETURN TO HOME
+          </a>
+          ${api.contentReady ? `
+            <button id="errorResetApiBtn" class="search-submit-btn" style="display: inline-flex; height: auto; padding: 0.75rem 2rem; font-size: 0.85rem; background: rgba(255, 255, 255, 0.08); color: #fff; border: 1px solid var(--border); box-shadow: none;">
+              RESET API TO DEFAULT
+            </button>
+          ` : ''}
+        </div>
       </div>
     `;
   }
 };
 
 document.addEventListener("click", async (event) => {
+  const errorResetBtn = event.target.closest("#errorResetApiBtn");
+  if (errorResetBtn) {
+    store.clearApiConfig();
+    showToast("API configuration reset to default!");
+    location.hash = "#/";
+    render();
+    return;
+  }
+
   const resetApiBtn = event.target.closest("#resetApiConfigBtn");
   if (resetApiBtn) {
     store.clearApiConfig();
