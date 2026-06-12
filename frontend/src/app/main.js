@@ -1,6 +1,6 @@
-import { animeCatalog } from "../data/anime.js?v=3";
-import { sourceManager, normalizeAnime, mapJikanToNompyr } from "../services/sourceManager.js?v=3";
-import { store } from "../services/store.js?v=3";
+import { animeCatalog } from "../data/anime.js?v=4";
+import { sourceManager, normalizeAnime, mapJikanToNompyr } from "../services/sourceManager.js?v=4";
+import { store } from "../services/store.js?v=4";
 
 const view = document.querySelector("#view");
 const navLinks = [...document.querySelectorAll("[data-nav]")];
