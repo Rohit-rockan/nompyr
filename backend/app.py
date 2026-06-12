@@ -1322,6 +1322,45 @@ def proxy_hls():
     except Exception as e:
         return f"Proxy exception: {e}", 500
 
+@app.route("/api/proxy-media", methods=["GET"])
+def proxy_media():
+    url = request.args.get("url")
+    referer = request.args.get("referer")
+    if not url:
+        return "Missing url parameter", 400
+        
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    }
+    if referer:
+        base_ref = get_base_origin(referer)
+        if base_ref:
+            headers["Referer"] = base_ref
+            
+    range_header = request.headers.get("Range")
+    if range_header:
+        headers["Range"] = range_header
+        
+    try:
+        import requests as _requests
+        r = _requests.get(url, headers=headers, stream=True, timeout=20)
+        
+        from flask import Response
+        def generate():
+            for chunk in r.iter_content(chunk_size=40960):
+                yield chunk
+                
+        response = Response(generate(), status=r.status_code, mimetype=r.headers.get("Content-Type"))
+        
+        for h in ["Content-Range", "Content-Length", "Accept-Ranges"]:
+            if h in r.headers:
+                response.headers[h] = r.headers[h]
+                
+        response.headers["Access-Control-Allow-Origin"] = "*"
+        return response
+    except Exception as e:
+        return f"Proxy error: {e}", 500
+
 @app.route("/api/proxy-player", methods=["GET"])
 def proxy_player():
     headers = {
@@ -1357,6 +1396,8 @@ def proxy_player():
 
 @app.route("/api/source/<path:link_id>", methods=["GET"])
 def api_source(link_id):
+    from urllib.parse import unquote
+    link_id = unquote(link_id)
     cache_key = f"source:{link_id}"
     cached = cache.get(cache_key)
     if cached is not None:
@@ -1417,6 +1458,12 @@ def api_source(link_id):
                 if s_copy.get("type") == "hls" or file_url.split("?")[0].endswith(".m3u8"):
                     cleaned_ref = get_base_origin(embed_url) if embed_url else ""
                     proxied = f"{request.host_url}api/proxy-hls/stream.m3u8?url={quote(file_url)}"
+                    if cleaned_ref:
+                        proxied += f"&referer={quote(cleaned_ref)}"
+                    s_copy["file"] = proxied
+                elif s_copy.get("type") == "mp4" or file_url.split("?")[0].endswith(".mp4") or "stream" in file_url.lower():
+                    cleaned_ref = get_base_origin(embed_url) if embed_url else ""
+                    proxied = f"{request.host_url}api/proxy-media?url={quote(file_url)}"
                     if cleaned_ref:
                         proxied += f"&referer={quote(cleaned_ref)}"
                     s_copy["file"] = proxied
