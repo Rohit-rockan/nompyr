@@ -12,7 +12,7 @@ const initialState = {
   api: {
     enabled: true,
     provider: "all",
-    baseUrl: "http://127.0.0.1:5000",
+    baseUrl: getDynamicDefaultBaseUrl(),
     key: ""
   },
   settings: {
@@ -28,7 +28,11 @@ const read = () => {
     const saved = JSON.parse(localStorage.getItem(KEY)) || {};
     const api = saved.api?.baseUrl ? { ...initialState.api, ...saved.api } : { ...initialState.api };
     
-    // Keep configured custom local backend base URLs intact even on remote domains to bypass Cloudflare IP blocks.
+    // Auto-heal base URL if we are on a remote production domain but the loaded configuration is pointing to local host
+    const isLocalDomain = window.location.origin.includes("127.0.0.1") || window.location.origin.includes("localhost") || window.location.origin.includes("4173");
+    if (!isLocalDomain && api.baseUrl === "http://127.0.0.1:5000") {
+      api.baseUrl = window.location.origin;
+    }
 
     if (api.provider === "animekai") {
       api.provider = "all";
