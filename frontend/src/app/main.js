@@ -866,7 +866,14 @@ const loadWatchRecommendations = async (anime, container) => {
   related = related.slice(0, 6);
 
   if (related.length > 0) {
-    container.innerHTML = row("Recommendations", related);
+    container.innerHTML = `
+      <section class="content-row">
+        <div class="section-head"><h2 style="color: var(--accent);">Recommended For You</h2></div>
+        <div class="grid" style="grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr)); gap: 1rem;">
+          ${related.map((item) => card(item)).join("")}
+        </div>
+      </section>
+    `;
   } else {
     container.innerHTML = `<p class="muted" style="padding: 1rem 0; font-size: 0.85rem; color: var(--muted);">No similar recommendations found.</p>`;
   }
@@ -903,96 +910,210 @@ const renderWatch = async (slug, episodeNo = "1") => {
   const progress = store.getState().progress[episode.id] || 0;
   const isDirectMp4 = stream.type === "mp4" || stream.hls.split('?')[0].toLowerCase().endsWith(".mp4") || stream.hls.toLowerCase().includes(".mp4");
 
+  // Fetch popular items for the sidebar list
+  let popularItems = [];
+  try {
+    const homeData = await sourceManager.home();
+    popularItems = homeData?.popular || [];
+  } catch (err) {
+    console.warn("Failed to fetch popular items:", err);
+  }
+  if (!popularItems || popularItems.length === 0) {
+    popularItems = animeCatalog;
+  }
+  popularItems = popularItems.slice(0, 6);
+
+  const subServers = servers.filter(s => s.mode.toLowerCase() === "sub");
+  const dubServers = servers.filter(s => s.mode.toLowerCase() === "dub");
+
   view.innerHTML = `
-    <div class="watch-layout">
-      <section class="player-panel">
-        <div class="player ${store.getState().settings.theatre ? "theatre" : ""}">
-          ${stream.hls ? `
-            <div class="player-container">
-              <video id="videoPlayer" class="video-player" controls playsinline ${isDirectMp4 ? "" : 'crossorigin="anonymous"'}>
-                ${(stream.tracks || []).map(t => `<track src="${t.file}" label="${t.label}" kind="${t.kind || 'captions'}" srclang="${t.label.toLowerCase()}" ${t.default ? 'default' : ''}>`).join('')}
-              </video>
-              <div id="playerOverlay" class="player-overlay"></div>
+    <div class="hianime-watch-container">
+      <div class="hianime-main-row">
+        <!-- 1. Left Sidebar: Episode List -->
+        <div class="hianime-episodes-sidebar">
+          <div style="padding: 0.75rem 1rem; border-bottom: 1px solid var(--border); background: rgba(255,255,255,0.02); display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;">
+            <span style="font-size: 0.85rem; font-weight: bold; color: #fff;">List of episodes:</span>
+            <div style="position: relative; flex-grow: 1; max-width: 120px;">
+              <input type="text" id="epSearchInput" placeholder="Number of Ep" style="width: 100%; padding: 0.35rem 0.5rem; font-size: 0.75rem; background: rgba(0,0,0,0.25); border: 1px solid var(--border); border-radius: 0.25rem; color: #fff; outline:none;" />
             </div>
-          ` : (stream.embed_url || stream.embedUrl) ? `
-            <div class="player-container">
-              <iframe src="${stream.embed_url || stream.embedUrl}" class="video-player" allow="autoplay; fullscreen" sandbox="allow-scripts allow-same-origin allow-forms" style="width:100%;height:100%;border:none;"></iframe>
-            </div>
-          ` : `
-            <div class="player-art" style="background-image:linear-gradient(rgba(7,10,16,.25),rgba(7,10,16,.85)),url('${anime.banner}')"></div>
-            <div class="player-message">
-              <span>Demo Player</span>
-              <h1>${anime.title}</h1>
-              <p>${stream.message || "Streaming is disabled/not resolved for this server."}</p>
-              <button class="button primary" id="simulateProgress">Simulate Watch Progress</button>
-            </div>
-            <div class="progress"><span style="width:${progress}%"></span></div>
-          `}
-        </div>
-        <div class="watch-actions" style="display:flex;justify-content:space-between;align-items:center;margin:1rem 0;flex-wrap:wrap;gap:0.75rem;">
-          <div class="watch-actions-left" style="display:flex;gap:0.5rem;">
-            <a class="button ghost" href="#/watch/${anime.id}/${Math.max(1, Number(episodeNo) - 1)}">‹ Previous</a>
-            <a class="button ghost" href="#/watch/${anime.id}/${Math.min(anime.episodes, Number(episodeNo) + 1)}">Next ›</a>
           </div>
-          <div class="watch-actions-right" style="display:flex;gap:0.5rem;">
-            ${state.activeServerId ? `<button class="button ghost" data-download="${state.activeServerId}">Download</button>` : ""}
-            <button class="button ghost" data-theatre="true" title="Theatre Mode">Theatre</button>
-            ${stream.hls ? `
-              <button class="button ghost" data-pip="true" title="Picture in Picture">PiP</button>
-              <button class="button ghost" data-fullscreen="true" title="Fullscreen">Fullscreen</button>
-            ` : ""}
-          </div>
-        </div>
-        <h2>${episode.title}</h2>
-        <p class="muted">${anime.description}</p>
-        <div class="watch-recommendations" id="watchRecommendationsContainer" style="margin-top:2rem;">
-          <div style="padding: 2rem; text-align: center; color: var(--muted); font-size: 0.9rem;">
-            Loading recommendations...
-          </div>
-        </div>
-      </section>
-      <aside class="panel watch-side" style="display:flex; flex-direction:column; gap:1.5rem; max-height:85vh; overflow-y:auto;">
-        <!-- Sub/Dub Selector Option (Choose Language) -->
-        <div>
-          <h2 style="margin-bottom:0.75rem;">Choose Language</h2>
-          <div class="sub-dub-toggle">
-            ${[...new Set(["sub", "dub", ...modes])].map(mode => `
-              <button class="toggle-tab ${state.activeLanguage === mode ? "active" : ""}" data-lang="${mode}">
-                ${mode.toUpperCase()}
-              </button>
+          <div class="hianime-ep-list" id="epListContainer">
+            ${episodes.map((item) => `
+              <a class="ep-link-item ${String(item.number) === String(episodeNo) ? "active" : ""} ${item.released ? "" : "disabled"}" data-ep-num="${item.number}" href="${item.released ? `#/watch/${anime.id}/${item.number}` : "#"}">
+                <span style="width: 20px; text-align: center; color: var(--muted); font-size: 0.8rem; font-weight: bold;">${item.number}</span>
+                <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-grow: 1;" title="${item.title}">${item.title}</span>
+                ${String(item.number) === String(episodeNo) ? `<span style="font-size: 0.8rem; color: #e76f51;">▶</span>` : ""}
+              </a>
             `).join("")}
           </div>
         </div>
 
-        <div>
-          <h2 style="margin-bottom:0.75rem;">Servers</h2>
-          <div>
-            ${filteredServers.map((server) => `
-              <button class="server ${state.activeServerId === server.id ? "active" : ""}" data-server-id="${server.id}" style="width:100%;margin-bottom:0.5rem;display:flex;justify-content:space-between;align-items:center;">
-                ${server.label}
-                <span>${server.quality.at(-1)}</span>
-              </button>
-            `).join("") || `<p class="muted" style="padding:0.5rem;font-size:0.85rem;color:var(--muted);">No ${state.activeLanguage.toUpperCase()} servers available for this episode.</p>`}
+        <!-- 2. Center: Player & Servers -->
+        <div class="hianime-player-section">
+          <div class="player ${store.getState().settings.theatre ? "theatre" : ""}" style="width:100%; border-radius: 0.65rem; overflow:hidden;">
+            ${stream.hls ? `
+              <div class="player-container" style="width:100%; height:100%;">
+                <video id="videoPlayer" class="video-player" controls playsinline ${isDirectMp4 ? "" : 'crossorigin="anonymous"'} style="width:100%; height:100%;">
+                  ${(stream.tracks || []).map(t => `<track src="${t.file}" label="${t.label}" kind="${t.kind || 'captions'}" srclang="${t.label.toLowerCase()}" ${t.default ? 'default' : ''}>`).join('')}
+                </video>
+                <div id="playerOverlay" class="player-overlay"></div>
+              </div>
+            ` : (stream.embed_url || stream.embedUrl) ? `
+              <div class="player-container" style="width:100%; height:100%;">
+                <iframe src="${stream.embed_url || stream.embedUrl}" class="video-player" allow="autoplay; fullscreen" sandbox="allow-scripts allow-same-origin allow-forms" style="width:100%;height:100%;border:none;"></iframe>
+              </div>
+            ` : `
+              <div class="player-art" style="background-image:linear-gradient(rgba(7,10,16,.25),rgba(7,10,16,.85)),url('${anime.banner}')"></div>
+              <div class="player-message">
+                <span>Demo Player</span>
+                <h1>${anime.title}</h1>
+                <p>${stream.message || "Streaming is disabled/not resolved for this server."}</p>
+                <button class="button primary" id="simulateProgress">Simulate Watch Progress</button>
+              </div>
+              <div class="progress"><span style="width:${progress}%"></span></div>
+            `}
+          </div>
+
+          <!-- Player Control Options Bar -->
+          <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(17, 22, 26, 0.85); padding: 0.75rem 1rem; border-radius: 0.5rem; border: 1px solid var(--border); font-size: 0.8rem; color: var(--muted); flex-wrap: wrap; gap: 0.5rem;">
+            <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+              <span style="cursor:pointer;" id="actionExpand">🔍 Expand</span>
+              <span style="cursor:pointer;" id="actionLight">💡 Light <strong>On</strong></span>
+              <span style="cursor:pointer;" id="actionAutoplay">🔄 Auto Play <strong>Off</strong></span>
+              <span style="cursor:pointer;" id="actionAutonext">⏭️ Auto Next <strong>Off</strong></span>
+              <span style="cursor:pointer;" id="actionAutoSkip">⏩ Auto Skip Intro <strong>Off</strong></span>
+            </div>
+            <div style="display: flex; gap: 0.75rem; align-items: center;">
+              <a href="#/watch/${anime.id}/${Math.max(1, Number(episodeNo) - 1)}" style="cursor:pointer;" title="Previous Episode">⏮️</a>
+              <a href="#/watch/${anime.id}/${Math.min(anime.episodes, Number(episodeNo) + 1)}" style="cursor:pointer;" title="Next Episode">⏭️</a>
+              ${state.activeServerId ? `<span style="cursor:pointer;" data-download="${state.activeServerId}" title="Download">➕</span>` : ""}
+              ${stream.hls ? `
+                <span style="cursor:pointer;" data-pip="true" title="Picture in Picture">📶</span>
+                <span style="cursor:pointer;" data-fullscreen="true" title="Fullscreen">⛶</span>
+              ` : ""}
+            </div>
+          </div>
+
+          <!-- Yellow Card & Server Groups -->
+          <div class="hianime-servers-box">
+            <div class="hianime-server-alert">
+              <span style="font-size: 0.8rem; color: #856404; font-weight: normal; margin-bottom: 0.15rem;">You are watching</span>
+              <strong style="font-size: 1.1rem; color: #856404; margin-bottom: 0.25rem;">Episode ${episodeNo}</strong>
+              <span style="font-size: 0.72rem; color: #9c7a1e; line-height: 1.3;">If current server doesn't work please try other servers beside.</span>
+            </div>
+            <div class="hianime-server-list-wrap">
+              <div style="display: flex; align-items: flex-start; gap: 1rem; border-bottom: 1px solid rgba(255,255,255,0.03); padding-bottom: 0.75rem;">
+                <span style="width: 50px; font-size: 0.8rem; font-weight: bold; color: var(--muted); padding-top: 0.35rem;">SUB:</span>
+                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                  ${subServers.map((server) => `
+                    <button class="server ${state.activeServerId === server.id ? "active" : ""}" data-server-id="${server.id}" data-mode="sub" style="height: auto; padding: 0.4rem 0.8rem; font-size: 0.8rem; display: inline-flex; align-items: center; justify-content: center;">
+                      ${server.label}
+                    </button>
+                  `).join("") || `<span style="font-size:0.8rem; color:var(--muted); padding-top:0.35rem;">No SUB servers</span>`}
+                </div>
+              </div>
+              <div style="display: flex; align-items: flex-start; gap: 1rem;">
+                <span style="width: 50px; font-size: 0.8rem; font-weight: bold; color: var(--muted); padding-top: 0.35rem;">DUB:</span>
+                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                  ${dubServers.map((server) => `
+                    <button class="server ${state.activeServerId === server.id ? "active" : ""}" data-server-id="${server.id}" data-mode="dub" style="height: auto; padding: 0.4rem 0.8rem; font-size: 0.8rem; display: inline-flex; align-items: center; justify-content: center;">
+                      ${server.label}
+                    </button>
+                  `).join("") || `<span style="font-size:0.8rem; color:var(--muted); padding-top:0.35rem;">No DUB servers</span>`}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
-        <div>
-          <h2 style="margin-bottom:0.75rem;">Episodes</h2>
-          <div class="episode-list compact-list">${episodes.map((item) => `<a class="${String(item.number) === String(episodeNo) ? "active" : ""} ${item.released ? "" : "disabled"}" href="${item.released ? `#/watch/${anime.id}/${item.number}` : "#"}">Episode ${item.number}</a>`).join("")}</div>
+        <!-- 3. Right Sidebar: Info Panel -->
+        <div class="hianime-info-sidebar">
+          <div style="display: flex; gap: 1rem; align-items: flex-start;">
+            <img src="${anime.poster}" style="width: 80px; height: 115px; object-fit: cover; border-radius: 0.35rem; border: 1px solid var(--border);" />
+            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+              <h1 style="font-size: 0.95rem; margin: 0; color: #fff; line-height: 1.3; font-weight: bold; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;" title="${anime.title}">${anime.title}</h1>
+              <div style="display: flex; gap: 0.3rem; flex-wrap: wrap;">
+                <span style="background: rgba(255,255,255,0.08); color: #fff; font-size: 0.65rem; padding: 0.15rem 0.35rem; border-radius: 0.2rem; font-weight: bold; border: 1px solid var(--border);">G</span>
+                <span style="background: #e76f51; color:#fff; font-size: 0.65rem; padding: 0.15rem 0.35rem; border-radius: 0.2rem; font-weight: bold;">HD</span>
+                <span style="background: #2a9d8f; color:#fff; font-size: 0.65rem; padding: 0.15rem 0.35rem; border-radius: 0.2rem; font-weight: bold;">CC ${anime.sub_episodes || 1}</span>
+                ${anime.dub_episodes ? `<span style="background: #457b9d; color:#fff; font-size: 0.65rem; padding: 0.15rem 0.35rem; border-radius: 0.2rem; font-weight: bold;">🎙️ ${anime.dub_episodes}</span>` : ""}
+                <span style="background: rgba(255,255,255,0.05); color:#fff; font-size: 0.65rem; padding: 0.15rem 0.35rem; border-radius: 0.2rem;">${anime.type}</span>
+              </div>
+            </div>
+          </div>
+          <p style="font-size: 0.8rem; line-height: 1.5; color: var(--muted); margin: 0; display: -webkit-box; -webkit-line-clamp: 6; -webkit-box-orient: vertical; overflow: hidden;" title="${anime.description}">
+            ${anime.description}
+          </p>
+          <a href="#/anime/${anime.id}" class="search-submit-btn" style="height: auto; padding: 0.5rem 1rem; font-size: 0.8rem; font-weight: bold; border: none; width: 100%; border-radius: 0.35rem; text-decoration: none; text-align: center; display: block;">
+            View detail
+          </a>
         </div>
+      </div>
 
-        <div style="border-top:1px solid rgba(255,255,255,0.05); padding-top:1.5rem;">
-          <h2 style="margin-bottom:0.75rem;">Comments</h2>
-          <form id="commentForm" style="display:flex; flex-direction:column; gap:0.5rem; margin-bottom:1.25rem;">
-            <input type="text" id="commentUser" placeholder="Your name..." required style="padding: 0.5rem; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 0.25rem; color: #fff; font-size: 0.85rem;" />
-            <textarea id="commentText" placeholder="Join the discussion..." required style="padding: 0.5rem; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 0.25rem; color: #fff; font-size: 0.85rem; height: 3.5rem; resize: none;"></textarea>
-            <button type="submit" class="search-submit-btn" style="height: auto; padding: 0.4rem 1rem; font-size: 0.8rem; align-self: flex-end; width: auto; font-weight:600;">Post</button>
-          </form>
-          <div id="commentsList" style="display:flex; flex-direction:column; gap:0.75rem; max-height: 18rem; overflow-y: auto; padding-right: 0.25rem;">
-             <!-- Comments dynamically loaded -->
+      <!-- Bottom Layout Section -->
+      <div class="hianime-bottom-row">
+        <!-- Bottom Left: Comments & Recommendations -->
+        <div style="display: flex; flex-direction: column; gap: 1.5rem; min-width: 0;">
+          <!-- Social Share Bar mimicking HiAnime -->
+          <div style="display: flex; align-items: center; gap: 1rem; background: rgba(17, 22, 26, 0.4); border: 1px solid var(--border); padding: 0.75rem 1.25rem; border-radius: 0.5rem; flex-wrap: wrap;">
+            <div style="display:flex; gap:0.5rem; align-items:center;">
+              <img src="${anime.poster}" style="width:30px; height:30px; border-radius:50%; object-fit:cover;" />
+              <span style="font-size:0.85rem; color:#fff; font-weight:bold;">Share Nompyr</span>
+              <span style="font-size:0.75rem; color:var(--muted);">to your friends</span>
+            </div>
+            <div style="display:flex; gap:0.5rem; margin-left:auto; flex-wrap:wrap;">
+              <button class="button" style="background:#0088cc; color:#fff; font-size:0.75rem; height:auto; padding:0.4rem 0.8rem; border:none; border-radius:0.25rem;">Share Telegram</button>
+              <button class="button" style="background:#1da1f2; color:#fff; font-size:0.75rem; height:auto; padding:0.4rem 0.8rem; border:none; border-radius:0.25rem;">Post Twitter</button>
+              <button class="button" style="background:#3b5998; color:#fff; font-size:0.75rem; height:auto; padding:0.4rem 0.8rem; border:none; border-radius:0.25rem;">Share Facebook</button>
+              <button class="button" style="background:#ff4500; color:#fff; font-size:0.75rem; height:auto; padding:0.4rem 0.8rem; border:none; border-radius:0.25rem;">Share Reddit</button>
+            </div>
+          </div>
+
+          <!-- Comments Panel -->
+          <div class="hianime-comments-panel">
+            <h2 style="margin-top:0; margin-bottom:1.25rem; font-size:1.15rem; color:#fff; display:flex; align-items:center; gap:0.5rem;">
+              Comments <span style="font-size: 0.75rem; font-weight: normal; background: rgba(255,255,255,0.08); padding: 0.15rem 0.5rem; border-radius: 0.2rem; color: var(--muted);">Guest Mode</span>
+            </h2>
+            <form id="commentForm" style="display:flex; flex-direction:column; gap:0.75rem; margin-bottom:1.5rem;">
+              <div style="display:flex; gap:0.5rem;">
+                <input type="text" id="commentUser" placeholder="Your name..." required style="padding: 0.6rem 0.8rem; background: rgba(0,0,0,0.25); border: 1px solid var(--border); border-radius: 0.35rem; color: #fff; font-size: 0.85rem; width: 200px; outline:none;" />
+              </div>
+              <textarea id="commentText" placeholder="Leave a comment..." required style="padding: 0.6rem 0.8rem; background: rgba(0,0,0,0.25); border: 1px solid var(--border); border-radius: 0.35rem; color: #fff; font-size: 0.85rem; height: 4.5rem; resize: none; outline:none;"></textarea>
+              <button type="submit" class="search-submit-btn" style="height: auto; padding: 0.5rem 1.5rem; font-size: 0.85rem; align-self: flex-end; width: auto; font-weight:600; border:none; border-radius:0.35rem;">Comment</button>
+            </form>
+            <div id="commentsList" style="display:flex; flex-direction:column; gap:0.75rem; padding-right: 0.25rem;">
+               <!-- Comments dynamically loaded -->
+            </div>
+          </div>
+
+          <!-- Recommendations Panel (dynamically resolved) -->
+          <div id="watchRecommendationsContainer" style="margin-top:0.5rem;">
+            <div style="padding: 2rem; text-align: center; color: var(--muted); font-size: 0.9rem; background: rgba(17, 22, 26, 0.85); border: 1px solid var(--border); border-radius: 0.65rem;">
+              Loading recommendations...
+            </div>
           </div>
         </div>
-      </aside>
+
+        <!-- Bottom Right: Most Popular -->
+        <div class="hianime-popular-sidebar">
+          <h2 style="margin: 0 0 0.5rem 0; font-size: 1.1rem; color: #fff; font-weight: bold;">Most Popular</h2>
+          <div class="hianime-popular-list">
+            ${popularItems.map((item) => `
+              <a href="#/anime/${item.id}" class="hianime-popular-item">
+                <img src="${item.poster}" />
+                <div class="hianime-popular-info">
+                  <div class="hianime-popular-title" title="${item.title}">${item.title}</div>
+                  <div class="hianime-popular-meta">
+                    <span style="background: rgba(255,255,255,0.05); color: var(--muted); font-size: 0.65rem; padding: 0.1rem 0.3rem; border-radius: 0.15rem; font-weight: bold;">CC ${item.sub_episodes || item.episodes || 1}</span>
+                    ${item.dub_episodes ? `<span style="background: rgba(124,58,237,0.15); color: #c084fc; font-size: 0.65rem; padding: 0.1rem 0.3rem; border-radius: 0.15rem; font-weight: bold;">🎙️ ${item.dub_episodes}</span>` : ""}
+                    <span style="font-size: 0.7rem; color: var(--muted); margin-left: 0.25rem;">${item.type || "TV"}</span>
+                  </div>
+                </div>
+              </a>
+            `).join("")}
+          </div>
+        </div>
+      </div>
     </div>
   `;
 
@@ -1009,17 +1130,22 @@ const renderWatch = async (slug, episodeNo = "1") => {
 
     const list = getCommentsForAnime(anime.id, anime.title);
     if (list.length === 0) {
-      commentsList.innerHTML = `<p class="muted" style="font-size:0.85rem; text-align:center; padding:1rem 0;">No comments yet. Be the first to post!</p>`;
+      commentsList.innerHTML = `<p class="muted" style="font-size:0.85rem; text-align:center; padding:1.5rem 0;">No comments yet. Be the first to post!</p>`;
       return;
     }
 
     commentsList.innerHTML = list.map(c => `
-      <div class="comment-item" style="padding: 0.6rem 0.8rem; background: rgba(255,255,255,0.01); border: 1px solid rgba(255,255,255,0.04); border-radius: 0.4rem;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.25rem;">
-          <strong style="color:#e76f51; font-size:0.82rem;">${c.user}</strong>
-          <span style="font-size:0.72rem; color:var(--muted);">${c.date || "Just now"}</span>
+      <div class="comment-item" style="padding: 0.75rem 1rem; background: rgba(255,255,255,0.015); border: 1px solid rgba(255,255,255,0.04); border-radius: 0.5rem; display: flex; gap: 0.75rem; align-items: flex-start;">
+        <div style="width: 32px; height: 32px; border-radius: 50%; background: #e76f51; color: #fff; font-size: 0.95rem; font-weight: bold; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+          ${(c.user || "G").charAt(0).toUpperCase()}
         </div>
-        <p style="margin:0; font-size:0.82rem; line-height:1.4; color:rgba(255,255,255,0.8);">${c.text}</p>
+        <div style="flex-grow: 1; min-width: 0;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.25rem;">
+            <strong style="color:#e76f51; font-size:0.85rem;">${c.user}</strong>
+            <span style="font-size:0.75rem; color:var(--muted);">${c.date || "Just now"}</span>
+          </div>
+          <p style="margin:0; font-size:0.85rem; line-height:1.4; color:rgba(255,255,255,0.8);">${c.text}</p>
+        </div>
       </div>
     `).join("");
   };
@@ -1042,6 +1168,66 @@ const renderWatch = async (slug, episodeNo = "1") => {
     textEl.value = "";
     showToast("Comment posted!");
     renderComments();
+  });
+
+  // Setup episodes search filter
+  const epSearchInput = document.getElementById("epSearchInput");
+  epSearchInput?.addEventListener("input", (e) => {
+    const term = e.target.value.trim().toLowerCase();
+    const links = document.querySelectorAll(".ep-link-item");
+    links.forEach(link => {
+      const epNum = link.getAttribute("data-ep-num") || "";
+      const epText = link.textContent.toLowerCase();
+      if (!term || epNum === term || epText.includes(term)) {
+        link.style.display = "flex";
+      } else {
+        link.style.display = "none";
+      }
+    });
+  });
+
+  // Setup micro-actions listeners in controls bar
+  document.getElementById("actionExpand")?.addEventListener("click", () => {
+    const player = document.querySelector(".player");
+    if (player) {
+      player.classList.toggle("theatre");
+      showToast("Expanded/collapsed player layout");
+    }
+  });
+
+  document.getElementById("actionLight")?.addEventListener("click", (e) => {
+    const body = document.body;
+    const isOff = body.style.background === "rgb(0, 0, 0)";
+    if (isOff) {
+      body.style.background = "";
+      e.target.innerHTML = "💡 Light <strong>On</strong>";
+      showToast("Lights turned on");
+    } else {
+      body.style.background = "#000";
+      e.target.innerHTML = "💡 Light <strong>Off</strong>";
+      showToast("Lights dimmed");
+    }
+  });
+
+  document.getElementById("actionAutoplay")?.addEventListener("click", (e) => {
+    const current = store.getState().settings.autoplay;
+    store.updateSetting("autoplay", !current);
+    e.target.innerHTML = `🔄 Auto Play <strong>${!current ? "On" : "Off"}</strong>`;
+    showToast(`Autoplay ${!current ? "enabled" : "disabled"}`);
+  });
+
+  document.getElementById("actionAutonext")?.addEventListener("click", (e) => {
+    const current = store.getState().settings.autoplay;
+    store.updateSetting("autoplay", !current);
+    e.target.innerHTML = `⏭️ Auto Next <strong>${!current ? "On" : "Off"}</strong>`;
+    showToast(`Auto Next ${!current ? "enabled" : "disabled"}`);
+  });
+
+  document.getElementById("actionAutoSkip")?.addEventListener("click", (e) => {
+    const current = store.getState().settings.skipIntro;
+    store.updateSetting("skipIntro", !current);
+    e.target.innerHTML = `⏩ Auto Skip Intro <strong>${!current ? "On" : "Off"}</strong>`;
+    showToast(`Auto skip intro ${!current ? "enabled" : "disabled"}`);
   });
 
   document.querySelector("#simulateProgress")?.addEventListener("click", () => {
@@ -1475,6 +1661,9 @@ document.addEventListener("click", async (event) => {
 
   if (serverBtn) {
     state.activeServerId = serverBtn.dataset.serverId;
+    if (serverBtn.dataset.mode) {
+      state.activeLanguage = serverBtn.dataset.mode;
+    }
     const { parts } = route();
     renderWatch(parts[0], parts[1]);
   }
