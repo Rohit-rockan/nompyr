@@ -1,5 +1,10 @@
 const KEY = "nompyr-state-v1";
 
+const getDynamicDefaultBaseUrl = () => {
+  const isLocal = window.location.origin.includes("127.0.0.1") || window.location.origin.includes("localhost") || window.location.origin.includes("4173");
+  return isLocal ? "http://127.0.0.1:5000" : window.location.origin;
+};
+
 const initialState = {
   favorites: [],
   history: [],
@@ -7,7 +12,7 @@ const initialState = {
   api: {
     enabled: true,
     provider: "all",
-    baseUrl: "http://127.0.0.1:5000",
+    baseUrl: getDynamicDefaultBaseUrl(),
     key: ""
   },
   settings: {
@@ -21,7 +26,14 @@ const initialState = {
 const read = () => {
   try {
     const saved = JSON.parse(localStorage.getItem(KEY)) || {};
-    const api = saved.api?.baseUrl ? { ...initialState.api, ...saved.api } : initialState.api;
+    const api = saved.api?.baseUrl ? { ...initialState.api, ...saved.api } : { ...initialState.api };
+    
+    const isLocal = window.location.origin.includes("127.0.0.1") || window.location.origin.includes("localhost") || window.location.origin.includes("4173");
+    const isSavedUrlLocal = api.baseUrl.includes("127.0.0.1") || api.baseUrl.includes("localhost");
+    if (!isLocal && isSavedUrlLocal) {
+      api.baseUrl = window.location.origin;
+    }
+
     if (api.provider === "animekai") {
       api.provider = "all";
     }

@@ -1,12 +1,66 @@
 import re
-import time
-import requests
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
+import math
 
 class AnimeRecommender:
     def __init__(self):
-        self.vectorizer = TfidfVectorizer(stop_words="english")
+        pass
+
+    def _tokenize(self, text):
+        if not text:
+            return []
+        text = text.lower()
+        # Keep alphanumeric and spaces
+        text = re.sub(r'[^a-z0-9\s]', '', text)
+        return [w for w in text.split() if w]
+
+    def _get_tf_idf_vectors(self, corpus):
+        # corpus is a list of strings
+        tokenized_corpus = [self._tokenize(doc) for doc in corpus]
+        
+        # Calculate DF (document frequency) for each word
+        df = {}
+        for doc in tokenized_corpus:
+            unique_words = set(doc)
+            for word in unique_words:
+                df[word] = df.get(word, 0) + 1
+                
+        # Calculate IDF (inverse document frequency)
+        num_docs = len(corpus)
+        idf = {}
+        for word, count in df.items():
+            # Standard IDF formula: ln(1 + num_docs / (1 + count))
+            idf[word] = math.log(1.0 + num_docs / (1.0 + count)) + 1.0
+            
+        # Calculate TF-IDF vectors
+        vectors = []
+        for doc in tokenized_corpus:
+            tf = {}
+            for word in doc:
+                tf[word] = tf.get(word, 0) + 1
+            # Normalize term frequency or just use raw count
+            doc_len = len(doc)
+            vector = {}
+            if doc_len > 0:
+                for word, count in tf.items():
+                    vector[word] = (count / doc_len) * idf.get(word, 0.0)
+            vectors.append(vector)
+            
+        return vectors
+
+    def _cosine_similarity(self, vec1, vec2):
+        # Compute dot product and norms
+        dot_product = 0.0
+        for word, val in vec1.items():
+            if word in vec2:
+                dot_product += val * vec2[word]
+                
+        norm1 = math.sqrt(sum(val ** 2 for val in vec1.values()))
+        norm2 = math.sqrt(sum(val ** 2 for val in vec2.values()))
+        
+        if norm1 == 0.0 or norm2 == 0.0:
+            return 0.0
+            
+        return dot_product / (norm1 * norm2)
 
     def recommend_by_description(self, description, anime_data, top_n=12):
         if not anime_data or not description:
@@ -22,13 +76,21 @@ class AnimeRecommender:
         corpus.append(description)
         
         try:
-            vectors = self.vectorizer.fit_transform(corpus)
-            scores = cosine_similarity(vectors[-1], vectors[:-1]).flatten()
-            ranked = scores.argsort()[::-1]
+            vectors = self._get_tf_idf_vectors(corpus)
+            query_vector = vectors[-1]
+            doc_vectors = vectors[:-1]
+            
+            scores = []
+            for idx, vec in enumerate(doc_vectors):
+                sim = self._cosine_similarity(query_vector, vec)
+                scores.append((sim, idx))
+                
+            # Sort by similarity descending
+            scores.sort(key=lambda x: x[0], reverse=True)
             
             results = []
-            for idx in ranked:
-                if scores[idx] <= 0:
+            for sim, idx in scores:
+                if sim <= 0:
                     continue
                 results.append(anime_data[idx])
                 if len(results) >= top_n:
@@ -47,13 +109,19 @@ class AnimeRecommender:
                 desc = anime.get("description", "") or anime.get("synopsis", "") or ""
                 corpus.append(f"{title} {genres} {desc}")
                 
-            vectors = self.vectorizer.fit_transform(corpus)
-            scores = cosine_similarity(vectors[anime_index], vectors).flatten()
-            ranked = scores.argsort()[::-1]
-            results = []
-            for idx in ranked:
+            vectors = self._get_tf_idf_vectors(corpus)
+            target_vector = vectors[anime_index]
+            
+            scores = []
+            for idx, vec in enumerate(vectors):
                 if idx == anime_index:
                     continue
+                sim = self._cosine_similarity(target_vector, vec)
+                scores.append((sim, idx))
+                
+            scores.sort(key=lambda x: x[0], reverse=True)
+            results = []
+            for sim, idx in scores:
                 results.append(anime_data[idx])
                 if len(results) >= top_n:
                     break

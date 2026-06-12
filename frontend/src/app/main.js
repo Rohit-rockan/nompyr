@@ -1500,7 +1500,9 @@ const setupAutocomplete = (input, dropdown, isRecommenderPage = false) => {
 
   const timeoutId = setTimeout(async () => {
     try {
-      const res = await fetch(`http://127.0.0.1:5000/api/search-predictions?q=${encodeURIComponent(input.value.trim())}`);
+      const api = store.getState().api || {};
+      const baseUrl = api.baseUrl || "http://127.0.0.1:5000";
+      const res = await fetch(`${baseUrl}/api/search-predictions?q=${encodeURIComponent(input.value.trim())}`);
       if (!res.ok) return;
       const suggestions = await res.json();
       if (suggestions && suggestions.length > 0) {
@@ -1667,7 +1669,9 @@ const renderRecommendations = async () => {
       state.recTriggered = true;
       renderRecommendations();
       try {
-        const res = await fetch(`http://127.0.0.1:5000/api/recommendations/description?description=${encodeURIComponent(state.recommenderQuery)}`);
+        const api = store.getState().api || {};
+        const baseUrl = api.baseUrl || "http://127.0.0.1:5000";
+        const res = await fetch(`${baseUrl}/api/recommendations/description?description=${encodeURIComponent(state.recommenderQuery)}`);
         const data = await res.json();
         state.recommenderResults = (data.results || []).map(item => normalizeAnime(item));
       } catch (err) {
@@ -1686,7 +1690,9 @@ const renderRecommendations = async () => {
       state.recTriggered = true;
       renderRecommendations();
       try {
-        const res = await fetch(`http://127.0.0.1:5000/api/recommendations/anime?title=${encodeURIComponent(state.recommenderAnimeTitle)}`);
+        const api = store.getState().api || {};
+        const baseUrl = api.baseUrl || "http://127.0.0.1:5000";
+        const res = await fetch(`${baseUrl}/api/recommendations/anime?title=${encodeURIComponent(state.recommenderAnimeTitle)}`);
         const data = await res.json();
         state.recommenderResults = (data.results || []).map(item => normalizeAnime(item));
       } catch (err) {
