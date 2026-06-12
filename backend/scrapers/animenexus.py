@@ -2,7 +2,12 @@ import re
 import requests
 import uuid
 from threading import Lock
-from playwright.sync_api import sync_playwright
+
+try:
+    from playwright.sync_api import sync_playwright
+except ImportError:
+    sync_playwright = None
+
 
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -375,6 +380,9 @@ def fetch_servers_animenexus(ep_token):
 
 def refresh_cf_cookies(show_id, episode_id, episode_slug):
     global CF_COOKIES
+    if not sync_playwright:
+        print("Playwright is not installed/available in this environment (running on serverless/cloud environment).")
+        return False
     with PLAYWRIGHT_LOCK:
         print("Refreshing Cloudflare cookies using sync Playwright...")
         try:
