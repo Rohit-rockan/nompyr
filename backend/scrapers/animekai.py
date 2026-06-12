@@ -379,6 +379,10 @@ def scrape_anime_info(slug):
             "detail": detail,
             "seasons": seasons,
         }
+    except requests.exceptions.HTTPError as he:
+        if he.response.status_code == 404:
+            return {"error": f"Anime '{slug}' not found on AnimeKai"}, 404
+        return {"error": str(he)}, 500
     except Exception as e:
         return {"error": str(e)}, 500
 
