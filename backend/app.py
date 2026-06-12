@@ -298,7 +298,18 @@ def clean_search_title(title):
 
 def get_anilist_metadata(title):
     if not title:
-        return {"poster": "", "score": "N/A"}
+        return {
+            "poster": "",
+            "score": "N/A",
+            "trailer_url": "",
+            "type": "TV",
+            "status": "Unknown",
+            "episodes": None,
+            "year": "TBA",
+            "genres": [],
+            "studio": "Unknown Studio",
+            "schedule": "TBA"
+        }
         
     cache_key = f"metadata:{title.lower()}"
     cached = cache.get(cache_key)
@@ -307,7 +318,18 @@ def get_anilist_metadata(title):
 
     variants = clean_search_title(title)
     if not variants:
-        res = {"poster": "", "score": "N/A"}
+        res = {
+            "poster": "",
+            "score": "N/A",
+            "trailer_url": "",
+            "type": "TV",
+            "status": "Unknown",
+            "episodes": None,
+            "year": "TBA",
+            "genres": [],
+            "studio": "Unknown Studio",
+            "schedule": "TBA"
+        }
         cache.set(cache_key, res, timeout=86400)
         return res
         
@@ -320,11 +342,30 @@ def get_anilist_metadata(title):
         query_body += f"""
         q{i}: Page(page: 1, perPage: 1) {{
             media(search: $s{i}, type: ANIME) {{
+                id
                 coverImage {{
                     extraLarge
                     large
                 }}
                 averageScore
+                format
+                status
+                episodes
+                seasonYear
+                genres
+                studios(isMain: true) {{
+                    nodes {{
+                        name
+                    }}
+                }}
+                nextAiringEpisode {{
+                    airingAt
+                    episode
+                }}
+                trailer {{
+                    id
+                    site
+                }}
             }}
         }}
         """
@@ -336,6 +377,21 @@ def get_anilist_metadata(title):
         url = "https://graphql.anilist.co"
         import requests as _requests
         r = _requests.post(url, json={"query": query, "variables": variables}, headers={"User-Agent": "Mozilla/5.0"}, timeout=4.0)
+        if r.status_code == 429:
+            print(f"Rate limited by AniList (429) for '{title}'. Returning default payload without caching.")
+            return {
+                "poster": "",
+                "score": "N/A",
+                "trailer_url": "",
+                "type": "TV",
+                "status": "Unknown",
+                "episodes": None,
+                "year": "TBA",
+                "genres": [],
+                "studio": "Unknown Studio",
+                "schedule": "TBA"
+            }
+            
         if r.status_code == 200:
             data = r.json().get("data", {})
             for i in range(len(variants)):
@@ -345,15 +401,93 @@ def get_anilist_metadata(title):
                     cover = media.get("coverImage", {}).get("extraLarge") or media.get("coverImage", {}).get("large") or ""
                     score = media.get("averageScore")
                     score_str = f"{score/10:.1f}" if score is not None else "N/A"
-                    res = {"poster": cover, "score": score_str}
+                    
+                    trailer_data = media.get("trailer")
+                    trailer_url = ""
+                    if trailer_data and trailer_data.get("site") == "youtube":
+                        t_id = trailer_data.get("id")
+                        if t_id:
+                            trailer_url = f"https://www.youtube.com/embed/{t_id}"
+                            
+                    format_val = media.get("format")
+                    type_val = "TV"
+                    if format_val:
+                        format_map = {
+                            "TV": "TV",
+                            "TV_SHORT": "TV Short",
+                            "MOVIE": "Movie",
+                            "SPECIAL": "Special",
+                            "OVA": "OVA",
+                            "ONA": "ONA",
+                            "MUSIC": "Music"
+                        }
+                        type_val = format_map.get(format_val, format_val)
+                        
+                    status_raw = media.get("status")
+                    status_val = "Unknown"
+                    if status_raw:
+                        status_map = {
+                            "FINISHED": "Completed",
+                            "RELEASING": "Ongoing",
+                            "NOT_YET_RELEASED": "Upcoming",
+                            "HIATUS": "Hiatus",
+                            "CANCELLED": "Cancelled"
+                        }
+                        status_val = status_map.get(status_raw, status_raw)
+                        
+                    episodes_val = media.get("episodes")
+                    year_val = media.get("seasonYear") or "TBA"
+                    genres_val = media.get("genres") or []
+                    
+                    studios_nodes = media.get("studios", {}).get("nodes", [])
+                    studio_val = studios_nodes[0].get("name") if studios_nodes else "Unknown Studio"
+                    
+                    schedule_val = "TBA"
+                    next_ep = media.get("nextAiringEpisode")
+                    if next_ep:
+                        ep_num = next_ep.get("episode")
+                        airing_at = next_ep.get("airingAt")
+                        try:
+                            import datetime
+                            dt = datetime.datetime.fromtimestamp(airing_at, tz=datetime.timezone.utc)
+                            day_name = dt.strftime("%A")
+                            time_str = dt.strftime("%I:%M %p UTC")
+                            schedule_val = f"Ep {ep_num}: {day_name} {time_str}"
+                        except Exception:
+                            schedule_val = f"Ep {ep_num} upcoming"
+
+                    res = {
+                        "poster": cover,
+                        "score": score_str,
+                        "trailer_url": trailer_url,
+                        "type": type_val,
+                        "status": status_val,
+                        "episodes": episodes_val,
+                        "year": year_val,
+                        "genres": genres_val,
+                        "studio": studio_val,
+                        "schedule": schedule_val
+                    }
                     cache.set(cache_key, res, timeout=86400 * 7) # Cache successful hit for 7 days
                     return res
     except Exception as e:
         print(f"Error fetching AniList metadata for {title}: {e}")
         
-    res = {"poster": "", "score": "N/A"}
+    res = {
+        "poster": "",
+        "score": "N/A",
+        "trailer_url": "",
+        "type": "TV",
+        "status": "Unknown",
+        "episodes": None,
+        "year": "TBA",
+        "genres": [],
+        "studio": "Unknown Studio",
+        "schedule": "TBA"
+    }
     cache.set(cache_key, res, timeout=86400) # Cache negative hit for 1 day
     return res
+
 
 
 def fetch_single_batch(batch, batch_idx):
@@ -448,24 +582,28 @@ def get_anilist_metadata_batch(titles):
     if not uncached_titles:
         return results
         
-    # 2. Query uncached titles in batches of 10 concurrently
+    # 2. Query uncached titles in batches of 10 sequentially
     batch_size = 10
     batches = [uncached_titles[i:i+batch_size] for i in range(0, len(uncached_titles), batch_size)]
+    batches = batches[:3] # Limit to max 30 items per request to conserve rate limit
     
-    # Execute batch requests concurrently using the pre-imported ThreadPoolExecutor
-    with ThreadPoolExecutor(max_workers=6) as executor:
-        futures = [executor.submit(fetch_single_batch, batch, idx) for idx, batch in enumerate(batches)]
-        for fut in futures:
-            try:
-                batch_res = fut.result()
-                if batch_res:
-                    for title, meta in batch_res.items():
-                        results[title] = meta
-                        cache_key = f"metadata:{title.lower()}"
-                        ttl = 86400 * 7 if meta.get("poster") else 86400
-                        cache.set(cache_key, meta, timeout=ttl)
-            except Exception as e:
-                print(f"Error in batch future resolution: {e}")
+    import time
+    for idx, batch in enumerate(batches):
+        if idx > 0:
+            time.sleep(0.5) # Sleep 0.5s between requests to respect rate limit
+        try:
+            batch_res = fetch_single_batch(batch, idx)
+            if batch_res:
+                for title, meta in batch_res.items():
+                    results[title] = meta
+                    cache_key = f"metadata:{title.lower()}"
+                    ttl = 86400 * 7 if meta.get("poster") else 86400
+                    cache.set(cache_key, meta, timeout=ttl)
+            else:
+                # If a batch failed or returned empty (possibly due to 429), break early to save rate limit
+                break
+        except Exception as e:
+            print(f"Error in batch resolution: {e}")
                 
     # Fill remaining uncached missing entries
     for title in uncached_titles:
@@ -1086,6 +1224,15 @@ def api_anime_info(slug):
             res["ani_id"] = f"{source}:{res['ani_id']}"
             
     if isinstance(res, dict) and "error" not in res:
+        # Clean any values that start with a pipe character
+        for key in list(res.keys()):
+            if isinstance(res[key], str):
+                res[key] = res[key].lstrip("|").strip()
+        if "detail" in res and isinstance(res["detail"], dict):
+            for k, v in list(res["detail"].items()):
+                if isinstance(v, str):
+                    res["detail"][k] = v.lstrip("|").strip()
+
         poster = res.get("poster", "")
         score = res.get("mal_score") or res.get("score") or "N/A"
         
@@ -1095,29 +1242,40 @@ def api_anime_info(slug):
         if poster and ("hanime-cdn.com" in poster or "hanime.tv" in poster or "htv-services.com" in poster):
             is_hanime = True
             
-        needs_enrich = False
-        if score == "N/A" or not score:
-            needs_enrich = True
-        if not poster or "animeverse.to/i/" in poster or "nekkoto" in poster:
-            needs_enrich = True
-        if is_hanime:
-            needs_enrich = True
+        meta = get_anilist_metadata(res.get("title", ""))
+        if meta:
+            # 1. Enrich poster/banner
+            is_orig_hanime = False
+            if poster and ("hanime-cdn.com" in poster or "hanime.tv" in poster or "htv-services.com" in poster):
+                is_orig_hanime = True
+            if meta.get("poster") and (not poster or "animeverse.to/i/" in poster or "nekkoto" in poster or is_orig_hanime):
+                res["poster"] = meta["poster"]
+                res["banner"] = meta["poster"]
+                
+            # 2. Enrich score
+            if meta.get("score") and meta["score"] != "N/A" and (score == "N/A" or not score):
+                score = meta["score"]
+                if "detail" in res and isinstance(res["detail"], dict):
+                    res["detail"]["score"] = meta["score"]
             
-        if needs_enrich:
-            meta = get_anilist_metadata(res.get("title", ""))
-            if meta:
-                is_orig_hanime = False
-                if poster and ("hanime-cdn.com" in poster or "hanime.tv" in poster or "htv-services.com" in poster):
-                    is_orig_hanime = True
-                    
-                if meta.get("poster") and (not poster or "animeverse.to/i/" in poster or "nekkoto" in poster or is_orig_hanime):
-                    res["poster"] = meta["poster"]
-                    res["banner"] = meta["poster"]
-                if meta.get("score") and meta["score"] != "N/A":
-                    score = meta["score"]
-                    if "detail" in res and isinstance(res["detail"], dict):
-                        res["detail"]["score"] = meta["score"]
-                        
+            # 3. Always enrich trailer and metadata
+            if meta.get("trailer_url") and ("trailer_url" not in res or not res["trailer_url"]):
+                res["trailer_url"] = meta["trailer_url"]
+                
+            # Enrich metadata fields at top level if not present
+            if "type" not in res or not res["type"] or res["type"] == "TV" and meta.get("type"):
+                res["type"] = meta.get("type")
+            if "status" not in res or not res["status"] or res["status"] in ("Unknown", "TBA"):
+                res["status"] = meta.get("status")
+            if "genres" not in res or not res["genres"] or len(res["genres"]) == 0:
+                res["genres"] = meta.get("genres")
+            if "studio" not in res or not res["studio"] or res["studio"] in ("Unknown Studio", "Unknown"):
+                res["studio"] = meta.get("studio")
+            if "year" not in res or not res["year"] or res["year"] in ("TBA", 2026):
+                res["year"] = meta.get("year")
+            if "schedule" not in res or not res["schedule"] or res["schedule"] == "TBA":
+                res["schedule"] = meta.get("schedule")
+
         if score and score != "N/A":
             res["score"] = score
             res["mal_score"] = score

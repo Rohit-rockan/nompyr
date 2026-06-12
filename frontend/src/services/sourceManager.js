@@ -106,7 +106,8 @@ export const normalizeAnime = (anime = {}, fallbackId = "") => ({
   banner: getProxiedImageUrl(cleanUrl(anime.banner || anime.backdrop || anime.poster || anime.image) || fallbackBanner),
   description: anime.description || anime.synopsis || "No description is available from the configured data source yet.",
   tags: anime.tags || [],
-  sourceHealth: anime.sourceHealth || "Remote"
+  sourceHealth: anime.sourceHealth || "Remote",
+  trailer_url: anime.trailer_url || anime.trailerUrl || ""
 });
 
 class RemoteApiSource {

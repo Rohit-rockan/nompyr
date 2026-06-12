@@ -785,17 +785,47 @@ const renderAnime = async (slug) => {
       </div>
     </section>
     <div class="two-column">
-      <section class="panel">
-        <div class="section-head"><h2>Episodes</h2><span>${anime.latestEpisode}/${anime.episodes} available</span></div>
-        <div class="episode-list">
-          ${episodes.map((episode) => `<a class="${episode.released ? "" : "disabled"}" href="${episode.released ? `#/watch/${anime.id}/${episode.number}` : "#"}"><span>${episode.title}</span><small>${episode.duration}</small></a>`).join("")}
+      <section class="panel" style="display:flex; flex-direction:column; gap:1.5rem;">
+        <div style="display:flex; flex-direction:column; gap:0.5rem;">
+          <div class="section-head" style="margin-bottom:0.25rem;">
+            <h2>Select Episode</h2>
+            <span style="font-size:0.85rem; color:var(--muted);">${anime.latestEpisode}/${anime.episodes} episodes available</span>
+          </div>
+          <div class="compact-episodes" style="display:flex; flex-wrap:wrap; gap:0.5rem; max-height:160px; overflow-y:auto; padding-right:0.25rem;">
+            ${episodes.map((episode) => `
+              <a class="ep-btn ${episode.released ? "" : "disabled"}" href="${episode.released ? `#/watch/${anime.id}/${episode.number}` : "#"}" 
+                 style="display:inline-grid; place-items:center; width:2.5rem; height:2.5rem; border-radius:50%; background:rgba(255,255,255,0.08); color:var(--text); font-size:0.9rem; font-weight:500; text-decoration:none; transition:all 0.2s;"
+                 onmouseover="this.style.background='var(--accent)'; this.style.color='#fff'; this.style.transform='scale(1.15)';"
+                 onmouseout="this.style.background='rgba(255,255,255,0.08)'; this.style.color='var(--text)'; this.style.transform='scale(1.0)';">
+                ${episode.number}
+              </a>
+            `).join("")}
+          </div>
+        </div>
+        
+        <div style="display:flex; flex-direction:column; gap:0.5rem;">
+          <div class="section-head"><h2>Official Trailer</h2></div>
+          ${anime.trailer_url ? `
+            <div class="trailer-container" style="position:relative; width:100%; padding-bottom:56.25%; height:0; border-radius:0.65rem; overflow:hidden; box-shadow:0 10px 25px rgba(0,0,0,0.5);">
+              <iframe src="${anime.trailer_url}" style="position:absolute; top:0; left:0; width:100%; height:100%; border:0;" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+            </div>
+          ` : `
+            <div style="padding:2.5rem 1rem; text-align:center; background:rgba(255,255,255,0.03); border-radius:0.65rem; color:var(--muted); font-size:0.9rem; border:1px dashed rgba(255,255,255,0.1);">
+              <span>No official trailer available for this anime.</span>
+            </div>
+          `}
         </div>
       </section>
       <aside class="panel">
         <h2>Metadata</h2>
         <dl class="meta-list">
+          <dt>Type</dt><dd>${anime.type}</dd>
+          <dt>Status</dt><dd>${anime.status}</dd>
+          <dt>Score</dt><dd>⭐ ${anime.score}</dd>
           <dt>Genres</dt><dd>${anime.genres.join(", ")}</dd>
           <dt>Studio</dt><dd>${anime.studio}</dd>
+          <dt>Year</dt><dd>${anime.year}</dd>
+          <dt>Rating</dt><dd>${anime.rating}</dd>
           <dt>Schedule</dt><dd>${anime.schedule}</dd>
           <dt>Source Health</dt><dd>${anime.sourceHealth}</dd>
         </dl>
