@@ -1355,11 +1355,6 @@ document.addEventListener("click", async (event) => {
     }
   }
 
-  const filterBtn = event.target.closest("#searchFilterBtn");
-  if (filterBtn) {
-    location.hash = "#/search";
-  }
-
   const shareCopy = event.target.closest("#shareCopyLinkBtn");
   if (shareCopy) {
     navigator.clipboard.writeText(location.origin + location.pathname).then(() => {
@@ -1540,9 +1535,9 @@ const setupAutocomplete = (input, dropdown, isRecommenderPage = false) => {
           const title = typeof item === 'string' ? item : item.title;
           const poster = typeof item === 'object' && item.poster ? item.poster : '';
           return `
-            <div class="suggestion-item" data-index="${idx}" data-val="${title.replace(/"/g, '&quot;')}" style="display:flex;align-items:center;gap:0.75rem;padding:0.5rem 0.75rem;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.03);">
-              ${poster ? `<img src="${poster}" style="width:1.8rem;height:2.5rem;object-fit:cover;border-radius:0.2rem;flex-shrink:0;" />` : ''}
-              <span style="font-weight:600;font-size:0.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${title}</span>
+            <div class="suggestion-item" data-index="${idx}" data-val="${title.replace(/"/g, '&quot;')}">
+              ${poster ? `<img src="${poster}" />` : ''}
+              <span>${title}</span>
             </div>
           `;
         }).join("");
