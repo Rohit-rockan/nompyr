@@ -2038,7 +2038,7 @@ h2 {
 /* 3-Column List Widget */
 .three-col-list-widget {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 1.5rem;
   background: var(--surface);
   border: 1px solid var(--border);
@@ -2054,6 +2054,7 @@ h2 {
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  min-width: 0;
 }
 .list-widget-col-title {
   font-size: 1rem;
@@ -2087,6 +2088,7 @@ h2 {
   display: flex;
   gap: 0.75rem;
   align-items: center;
+  min-width: 0;
 }
 .list-widget-thumb {
   width: 3rem;
