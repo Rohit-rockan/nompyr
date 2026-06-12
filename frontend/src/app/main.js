@@ -282,7 +282,7 @@ const renderHome = async () => {
     <div class="announcement-banner">
       <span class="announcement-banner-icon">📢</span>
       <div class="announcement-banner-text">
-        Welcome to <strong>Nompyr</strong>! Search, recommend, and discover over 40k+ anime. You can configure custom API endpoints or keys in the Admin Settings panel.
+        Welcome to <strong>Nompyr</strong>! Search, recommend, and discover over 40k+ anime.
       </div>
     </div>
 
