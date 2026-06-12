@@ -488,6 +488,7 @@ def resolve_source(link_id):
                 player_id = match_id.group(1) if match_id else ""
                 
             inner_url = ""
+            inner_soup = None
             if not player_id:
                 iframe = soup.find("iframe")
                 inner_url = iframe.get("src") if iframe else ""
@@ -506,6 +507,73 @@ def resolve_source(link_id):
                     if not player_id:
                         match_id = re.search(r'data-id=["\']([0-9]+)["\']', inner_resp.text)
                         player_id = match_id.group(1) if match_id else ""
+            
+            # Check for direct html5 video element if no player_id resolved
+            if not player_id:
+                video_el = None
+                active_soup = soup
+                if inner_soup:
+                    video_el = inner_soup.find("video")
+                    if video_el:
+                        active_soup = inner_soup
+                if not video_el:
+                    video_el = soup.find("video")
+                    if video_el:
+                        active_soup = soup
+                
+                if video_el:
+                    sources = []
+                    for src_el in video_el.find_all("source"):
+                        src_url = src_el.get("src")
+                        if src_url:
+                            if src_url.startswith("/"):
+                                from urllib.parse import urljoin
+                                src_url = urljoin(embed_url, src_url)
+                            sources.append({
+                                "file": src_url,
+                                "type": src_el.get("type", "").split("/")[-1] if "/" in src_el.get("type", "") else "mp4",
+                                "label": "HD"
+                            })
+                    if not sources and video_el.get("src"):
+                        src_url = video_el.get("src")
+                        if src_url.startswith("/"):
+                            from urllib.parse import urljoin
+                            src_url = urljoin(embed_url, src_url)
+                        sources.append({
+                            "file": src_url,
+                            "type": "mp4",
+                            "label": "HD"
+                        })
+                    
+                    if sources:
+                        tracks = []
+                        for trk_el in video_el.find_all("track"):
+                            trk_url = trk_el.get("src")
+                            if trk_url and trk_url.startswith("/"):
+                                from urllib.parse import urljoin
+                                trk_url = urljoin(embed_url, trk_url)
+                            tracks.append({
+                                "file": trk_url,
+                                "kind": trk_el.get("kind", "captions"),
+                                "label": trk_el.get("label", "English"),
+                                "default": trk_el.get("default") is not None
+                            })
+                        
+                        download_url = ""
+                        for a_el in active_soup.find_all("a"):
+                            href = a_el.get("href", "")
+                            if "download" in href.lower():
+                                from urllib.parse import urljoin
+                                download_url = urljoin(embed_url, href)
+                                break
+                                
+                        return {
+                            "embed_url": embed_url,
+                            "skip": {},
+                            "sources": sources,
+                            "tracks": tracks,
+                            "download": download_url
+                        }
             
             if player_id:
                 parsed_base = embed_url.rsplit("/stream/", 1)[0] if "/stream/" in embed_url else embed_url.rsplit("/", 1)[0]

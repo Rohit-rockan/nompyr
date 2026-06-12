@@ -31,3 +31,12 @@ from scrapers.hanime import (
     fetch_servers_hanime,
     resolve_hanime_source
 )
+from scrapers.animenexus import (
+    search_anime_animenexus,
+    scrape_home_animenexus,
+    scrape_anime_info_animenexus,
+    fetch_episodes_animenexus,
+    fetch_servers_animenexus,
+    resolve_source_animenexus
+)
+

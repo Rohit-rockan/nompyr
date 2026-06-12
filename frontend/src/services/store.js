@@ -12,7 +12,7 @@ const initialState = {
   api: {
     enabled: true,
     provider: "all",
-    baseUrl: getDynamicDefaultBaseUrl(),
+    baseUrl: "http://127.0.0.1:5000",
     key: ""
   },
   settings: {

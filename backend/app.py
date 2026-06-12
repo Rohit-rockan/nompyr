@@ -31,7 +31,13 @@ from scrapers import (
     scrape_anime_info_hanime,
     fetch_episodes_hanime,
     fetch_servers_hanime,
-    resolve_hanime_source
+    resolve_hanime_source,
+    search_anime_animenexus,
+    scrape_home_animenexus,
+    scrape_anime_info_animenexus,
+    fetch_episodes_animenexus,
+    fetch_servers_animenexus,
+    resolve_source_animenexus
 )
 
 # Import recommender
@@ -739,17 +745,21 @@ def api_search():
         res = search_anime_hanime(kw, page)
     elif source == "miruro":
         res = search_anime_miruro(kw, page)
+    elif source == "animenexus":
+        res = search_anime_animenexus(kw, page)
     elif source == "all" or not source:
-        with ThreadPoolExecutor(max_workers=4) as executor:
+        with ThreadPoolExecutor(max_workers=5) as executor:
             fut_kai = executor.submit(safe_run, search_anime, kw, page)
             fut_watch = executor.submit(safe_run, search_anime_aniwatch, kw, page)
             fut_hanime = executor.submit(safe_run, search_anime_hanime, kw, page)
             fut_miruro = executor.submit(safe_run, search_anime_miruro, kw, page)
+            fut_nexus = executor.submit(safe_run, search_anime_animenexus, kw, page)
             
             res_kai = fut_kai.result()
             res_watch = fut_watch.result()
             res_hanime = fut_hanime.result()
             res_miruro = fut_miruro.result()
+            res_nexus = fut_nexus.result()
             
         def clean_res(r):
             if isinstance(r, tuple): return {}
@@ -760,6 +770,7 @@ def api_search():
         watch = clean_res(res_watch)
         hanime = clean_res(res_hanime)
         miruro = clean_res(res_miruro)
+        nexus = clean_res(res_nexus)
         
         def prefix_list(lst, prefix):
             return [prefix_item(item, prefix) for item in lst] if lst else []
@@ -768,10 +779,11 @@ def api_search():
             prefix_list(kai.get("results", []), "animekai"),
             prefix_list(watch.get("results", []), "aniwatch"),
             prefix_list(hanime.get("results", []), "hanime"),
-            prefix_list(miruro.get("results", []), "miruro")
+            prefix_list(miruro.get("results", []), "miruro"),
+            prefix_list(nexus.get("results", []), "animenexus")
         )
         
-        total = (kai.get("total", 0) or 0) + (watch.get("total", 0) or 0) + (hanime.get("total", 0) or 0) + (miruro.get("total", 0) or 0)
+        total = (kai.get("total", 0) or 0) + (watch.get("total", 0) or 0) + (hanime.get("total", 0) or 0) + (miruro.get("total", 0) or 0) + (nexus.get("total", 0) or 0)
         
         res = {
             "results": results,
@@ -854,17 +866,21 @@ def api_home():
         res = scrape_home_hanime()
     elif source == "miruro":
         res = scrape_home_miruro()
+    elif source == "animenexus":
+        res = scrape_home_animenexus()
     elif source == "all" or not source:
-        with ThreadPoolExecutor(max_workers=4) as executor:
+        with ThreadPoolExecutor(max_workers=5) as executor:
             fut_kai = executor.submit(safe_run, scrape_home)
             fut_watch = executor.submit(safe_run, scrape_home_aniwatch)
             fut_hanime = executor.submit(safe_run, scrape_home_hanime)
             fut_miruro = executor.submit(safe_run, scrape_home_miruro)
+            fut_nexus = executor.submit(safe_run, scrape_home_animenexus)
             
             res_kai = fut_kai.result()
             res_watch = fut_watch.result()
             res_hanime = fut_hanime.result()
             res_miruro = fut_miruro.result()
+            res_nexus = fut_nexus.result()
             
         def clean_res(r):
             if isinstance(r, tuple): return {}
@@ -875,6 +891,7 @@ def api_home():
         watch = clean_res(res_watch)
         hanime = clean_res(res_hanime)
         miruro = clean_res(res_miruro)
+        nexus = clean_res(res_nexus)
         
         def prefix_list(lst, prefix):
             return [prefix_item(item, prefix) for item in lst] if lst else []
@@ -883,20 +900,23 @@ def api_home():
             prefix_list(kai.get("banner", []), "animekai"),
             prefix_list(watch.get("banner", []), "aniwatch"),
             prefix_list(hanime.get("banner", []), "hanime"),
-            prefix_list(miruro.get("banner", []), "miruro")
+            prefix_list(miruro.get("banner", []), "miruro"),
+            prefix_list(nexus.get("banner", []), "animenexus")
         )
         
         latest = merge_lists(
             prefix_list(kai.get("latest_updates", []), "animekai"),
             prefix_list(watch.get("latest_updates", []), "aniwatch"),
             prefix_list(hanime.get("latest_updates", []), "hanime"),
-            prefix_list(miruro.get("latest_updates", []), "miruro")
+            prefix_list(miruro.get("latest_updates", []), "miruro"),
+            prefix_list(nexus.get("latest_updates", []), "animenexus")
         )
         
         t_kai = kai.get("top_trending", {})
         t_watch = watch.get("top_trending", {})
         t_hanime = hanime.get("top_trending", {})
         t_miruro = miruro.get("top_trending", {})
+        t_nexus = nexus.get("top_trending", {})
         
         trending = {}
         for key in ["NOW", "DAY", "WEEK", "MONTH"]:
@@ -904,21 +924,24 @@ def api_home():
                 prefix_list(t_kai.get(key, []), "animekai"),
                 prefix_list(t_watch.get(key, []), "aniwatch"),
                 prefix_list(t_hanime.get(key, []), "hanime"),
-                prefix_list(t_miruro.get(key, []), "miruro")
+                prefix_list(t_miruro.get(key, []), "miruro"),
+                prefix_list(t_nexus.get(key, []), "animenexus")
             )
             
         popular = merge_lists(
             prefix_list(kai.get("popular", []), "animekai"),
             prefix_list(watch.get("popular", []), "aniwatch"),
             prefix_list(hanime.get("popular", []), "hanime"),
-            prefix_list(miruro.get("popular", []), "miruro")
+            prefix_list(miruro.get("popular", []), "miruro"),
+            prefix_list(nexus.get("popular", []), "animenexus")
         )
         
         upcoming = merge_lists(
             prefix_list(kai.get("upcoming", []), "animekai"),
             prefix_list(watch.get("upcoming", []), "aniwatch"),
             prefix_list(hanime.get("upcoming", []), "hanime"),
-            prefix_list(miruro.get("upcoming", []), "miruro")
+            prefix_list(miruro.get("upcoming", []), "miruro"),
+            prefix_list(nexus.get("upcoming", []), "animenexus")
         )
         
         res = {
@@ -1010,6 +1033,9 @@ def api_anime_info(slug):
     elif slug.startswith("miruro:"):
         source = "miruro"
         stripped_slug = slug.split("miruro:", 1)[1]
+    elif slug.startswith("animenexus:"):
+        source = "animenexus"
+        stripped_slug = slug.split("animenexus:", 1)[1]
     elif slug.startswith("jikan:"):
         source = "jikan"
         stripped_slug = slug.split("jikan:", 1)[1]
@@ -1024,6 +1050,8 @@ def api_anime_info(slug):
         res = scrape_anime_info_hanime(stripped_slug)
     elif source == "miruro":
         res = scrape_anime_info_miruro(stripped_slug)
+    elif source == "animenexus":
+        res = scrape_anime_info_animenexus(stripped_slug)
     elif source == "jikan":
         res = scrape_anime_info_jikan(stripped_slug)
     else:
@@ -1100,6 +1128,9 @@ def api_episodes(ani_id):
     elif ani_id.startswith("miruro:"):
         source = "miruro"
         stripped_id = ani_id.split("miruro:", 1)[1]
+    elif ani_id.startswith("animenexus:"):
+        source = "animenexus"
+        stripped_id = ani_id.split("animenexus:", 1)[1]
     elif ani_id.startswith("jikan:"):
         source = "jikan"
         stripped_id = ani_id.split("jikan:", 1)[1]
@@ -1114,6 +1145,8 @@ def api_episodes(ani_id):
         res = fetch_episodes_hanime(stripped_id)
     elif source == "miruro":
         res = fetch_episodes_miruro(stripped_id)
+    elif source == "animenexus":
+        res = fetch_episodes_animenexus(stripped_id)
     elif source == "jikan":
         res = fetch_episodes_jikan(stripped_id)
     else:
@@ -1160,6 +1193,9 @@ def api_servers(ep_token):
     elif ep_token.startswith("miruro:"):
         source = "miruro"
         stripped_token = ep_token.split("miruro:", 1)[1]
+    elif ep_token.startswith("animenexus:"):
+        source = "animenexus"
+        stripped_token = ep_token.split("animenexus:", 1)[1]
     else:
         source = request.args.get("source", "").strip().lower()
         if not source:
@@ -1171,6 +1207,8 @@ def api_servers(ep_token):
         res = fetch_servers_hanime(ep_token)
     elif source == "miruro":
         res = fetch_servers_miruro(ep_token)
+    elif source == "animenexus":
+        res = fetch_servers_animenexus(ep_token)
     else:
         res = fetch_servers(stripped_token)
         
@@ -1338,6 +1376,9 @@ def api_source(link_id):
     elif link_id.startswith("miruro:"):
         source = "miruro"
         stripped_link = link_id.split("miruro:", 1)[1]
+    elif link_id.startswith("animenexus:"):
+        source = "animenexus"
+        stripped_link = link_id.split("animenexus:", 1)[1]
     else:
         if "hanime" in link_id:
             source = "hanime"
@@ -1345,6 +1386,8 @@ def api_source(link_id):
             source = "aniwatch"
         elif "miruro" in link_id:
             source = "miruro"
+        elif "animenexus" in link_id:
+            source = "animenexus"
         else:
             source = "animekai"
             
@@ -1354,6 +1397,8 @@ def api_source(link_id):
         res = resolve_source(stripped_link)
     elif source == "miruro":
         res = resolve_source_miruro(stripped_link)
+    elif source == "animenexus":
+        res = resolve_source_animenexus(stripped_link)
     else:
         res = resolve_source(stripped_link)
         
