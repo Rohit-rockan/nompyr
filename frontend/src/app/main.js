@@ -837,7 +837,9 @@ const loadWatchRecommendations = async (anime, container) => {
   try {
     const jikanRecs = await sourceManager.recommendations(anime.title);
     if (jikanRecs && jikanRecs.length > 0) {
-      related.push(...jikanRecs);
+      // Exclude current anime from Jikan recommendations
+      const filteredJikan = jikanRecs.filter(item => item.id !== anime.id);
+      related.push(...filteredJikan);
     }
   } catch (err) {
     console.warn("Jikan recommendations failed:", err);
@@ -852,7 +854,12 @@ const loadWatchRecommendations = async (anime, container) => {
         type: (anime.type || "TV").toLowerCase()
       });
       const searchItems = searchRes?.results || [];
-      const filteredSearch = searchItems.filter(item => item.id !== anime.id && !related.some(r => r.id === item.id));
+      const filteredSearch = searchItems.filter(item => 
+        item.id !== anime.id && 
+        item.type === anime.type && 
+        item.genres.some(g => anime.genres.includes(g)) && 
+        !related.some(r => r.id === item.id)
+      );
       related.push(...filteredSearch);
     } catch (err) {
       console.warn("Genre/type search fallback failed:", err);
@@ -860,7 +867,23 @@ const loadWatchRecommendations = async (anime, container) => {
   }
 
   if (related.length === 0) {
-    related = animeCatalog.filter((item) => item.id !== anime.id && item.genres.some((genre) => anime.genres.includes(genre)));
+    // Fallback static catalog match: Prioritize same type AND overlapping genres
+    related = animeCatalog.filter((item) => 
+      item.id !== anime.id && 
+      item.type === anime.type && 
+      item.genres.some((genre) => anime.genres.includes(genre))
+    );
+    
+    // Relax type constraint if less than 6 matches
+    if (related.length < 6) {
+      const more = animeCatalog.filter((item) => 
+        item.id !== anime.id && 
+        item.type !== anime.type && 
+        item.genres.some((genre) => anime.genres.includes(genre)) &&
+        !related.some(r => r.id === item.id)
+      );
+      related.push(...more);
+    }
   }
 
   related = related.slice(0, 6);
