@@ -41,7 +41,28 @@ from scrapers import (
 )
 
 # Import recommender
-from recommender import AnimeRecommender, find_local_slug_by_title
+from recommender import AnimeRecommender, find_local_slug_by_title, is_hentai
+
+def should_keep_hentai(item):
+    if not is_hentai(item):
+        return True
+    title = item.get("title", "")
+    h = sum(ord(c) for c in title) if title else 0
+    return h % 7 == 0  # ~14.3% probability
+
+def filter_and_demote_hentai(items, max_hentai=2):
+    if not items:
+        return items
+    non_hentai = []
+    hentai = []
+    for item in items:
+        if is_hentai(item):
+            if should_keep_hentai(item):
+                hentai.append(item)
+        else:
+            non_hentai.append(item)
+    hentai = hentai[:max_hentai]
+    return non_hentai + hentai
 
 app = Flask(__name__)
 CORS(app)
@@ -945,11 +966,11 @@ def api_home():
         )
         
         res = {
-            "banner": banners,
-            "latest_updates": latest,
-            "top_trending": trending,
-            "popular": popular,
-            "upcoming": upcoming
+            "banner": filter_and_demote_hentai(banners, max_hentai=1),
+            "latest_updates": filter_and_demote_hentai(latest, max_hentai=2),
+            "top_trending": {key: filter_and_demote_hentai(val, max_hentai=2) for key, val in trending.items()},
+            "popular": filter_and_demote_hentai(popular, max_hentai=2),
+            "upcoming": filter_and_demote_hentai(upcoming, max_hentai=2)
         }
     else:
         res = scrape_home()

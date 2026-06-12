@@ -1,6 +1,25 @@
 import re
 import math
 
+def is_hentai(item):
+    if not isinstance(item, dict):
+        return False
+    slug = str(item.get("slug", ""))
+    item_id = str(item.get("id", ""))
+    if slug.startswith("hanime:") or item_id.startswith("hanime:"):
+        return True
+    genres = [str(g).lower() for g in (item.get("genres") or [])]
+    if "hentai" in genres:
+        return True
+    tags = [str(t).lower() for t in (item.get("tags") or [])]
+    if "hentai" in tags:
+        return True
+    title = str(item.get("title", "")).lower()
+    desc = str(item.get("description", "") or item.get("synopsis", "")).lower()
+    if "hentai" in title or "hentai" in desc:
+        return True
+    return False
+
 class AnimeRecommender:
     def __init__(self):
         pass
@@ -83,6 +102,8 @@ class AnimeRecommender:
             scores = []
             for idx, vec in enumerate(doc_vectors):
                 sim = self._cosine_similarity(query_vector, vec)
+                if is_hentai(anime_data[idx]):
+                    sim *= 0.15
                 scores.append((sim, idx))
                 
             # Sort by similarity descending
@@ -117,6 +138,8 @@ class AnimeRecommender:
                 if idx == anime_index:
                     continue
                 sim = self._cosine_similarity(target_vector, vec)
+                if is_hentai(anime_data[idx]):
+                    sim *= 0.15
                 scores.append((sim, idx))
                 
             scores.sort(key=lambda x: x[0], reverse=True)
