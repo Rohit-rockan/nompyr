@@ -1175,6 +1175,11 @@ const renderAdmin = () => {
         <div><strong>Base URL</strong><span>${api.baseUrl}</span><small>${api.configured ? "Key configured" : "No key stored"}</small></div>
         <div><strong>Auth Headers</strong><span>x-api-key + Bearer</span><small>Frontend storage only</small></div>
       </div>
+      <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid rgba(255, 255, 255, 0.05);">
+        <button id="resetApiConfigBtn" class="search-submit-btn" style="height: auto; padding: 0.6rem 1.5rem; font-size: 0.8rem;">
+          RESET API TO DEFAULT
+        </button>
+      </div>
     </section>
     <section class="panel">
       <div class="section-head"><h2>Source Health</h2><span>Demo adapter</span></div>
@@ -1231,6 +1236,14 @@ const render = async () => {
 };
 
 document.addEventListener("click", async (event) => {
+  const resetApiBtn = event.target.closest("#resetApiConfigBtn");
+  if (resetApiBtn) {
+    store.clearApiConfig();
+    showToast("API configuration reset to default!");
+    renderAdmin();
+    return;
+  }
+
   const calDayBtn = event.target.closest("[data-calendar-day]");
   if (calDayBtn) {
     state.selectedCalendarDay = calDayBtn.dataset.calendarDay;
