@@ -180,28 +180,56 @@ def scrape_home_animenexus():
 def scrape_anime_info_animenexus(slug):
     try:
         url = "https://api.anime.nexus/api/anime/shows"
+        target_id = None
+        search_query = slug
+        details_show_obj = None
+        
+        # Check if the slug is a UUID (36-character string like 019b3b1a-9986-70f5-bc64-33b408d3986d)
+        if re.match(r'^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$', slug, re.IGNORECASE):
+            target_id = slug
+            try:
+                details_url = f"https://api.anime.nexus/api/anime/details?id={target_id}"
+                r_det = requests.get(details_url, headers=HEADERS, timeout=10)
+                if r_det.status_code == 200:
+                    details_show_obj = r_det.json().get("data", {})
+                    real_slug = details_show_obj.get("slug")
+                    if real_slug:
+                        search_query = real_slug
+            except Exception as e:
+                print(f"Failed to fetch details for UUID {target_id}: {e}")
+
         params = {
-            "search": slug,
+            "search": search_query,
             "includes[]": ["poster", "genres", "background"]
         }
         r = requests.get(url, params=params, headers=HEADERS, timeout=10)
-        if r.status_code != 200:
-            return {"error": f"Failed to fetch show details: {r.status_code}"}, r.status_code
-            
-        data = r.json()
-        items = data.get("data", [])
         
-        # Find exact match by slug
+        items = []
+        if r.status_code == 200:
+            data = r.json()
+            items = data.get("data", [])
+            
+        # Find exact match
         show = None
-        for item in items:
-            if item.get("slug") == slug:
-                show = item
-                break
+        if target_id:
+            for item in items:
+                if item.get("id") == target_id:
+                    show = item
+                    break
+        else:
+            for item in items:
+                if item.get("slug") == slug:
+                    show = item
+                    break
+                    
         if not show and items:
             show = items[0]
             
         if not show:
-            return {"error": "Anime not found"}, 404
+            if details_show_obj:
+                show = details_show_obj
+            else:
+                return {"error": "Anime not found"}, 404
             
         show_id = show.get("id")
         
