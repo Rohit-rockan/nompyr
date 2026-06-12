@@ -1232,6 +1232,11 @@ const render = async () => {
           <a href="#/" class="search-submit-btn" style="display: inline-flex; text-decoration: none; font-size: 0.85rem; padding: 0.75rem 2rem; height: auto;">
             RETURN TO HOME
           </a>
+          ${!window.location.origin.includes("127.0.0.1") && !window.location.origin.includes("localhost") && !window.location.origin.includes("4173") ? `
+            <button id="errorUseLocalApiBtn" class="search-submit-btn" style="display: inline-flex; height: auto; padding: 0.75rem 2rem; font-size: 0.85rem; background: #e76f51; color: #fff; border: none; font-weight: bold; box-shadow: 0 4px 14px rgba(231, 111, 81, 0.3);">
+              CONNECT TO LOCAL BACKEND (127.0.0.1:5000)
+            </button>
+          ` : ''}
           ${api.contentReady ? `
             <button id="errorResetApiBtn" class="search-submit-btn" style="display: inline-flex; height: auto; padding: 0.75rem 2rem; font-size: 0.85rem; background: rgba(255, 255, 255, 0.08); color: #fff; border: 1px solid var(--border); box-shadow: none;">
               RESET API TO DEFAULT
@@ -1248,6 +1253,20 @@ document.addEventListener("click", async (event) => {
   if (errorResetBtn) {
     store.clearApiConfig();
     showToast("API configuration reset to default!");
+    location.hash = "#/";
+    render();
+    return;
+  }
+
+  const useLocalApiBtn = event.target.closest("#errorUseLocalApiBtn");
+  if (useLocalApiBtn) {
+    store.updateApiConfig({
+      enabled: true,
+      provider: "all",
+      baseUrl: "http://127.0.0.1:5000",
+      key: ""
+    });
+    showToast("Connected to local backend on 127.0.0.1:5000!");
     location.hash = "#/";
     render();
     return;

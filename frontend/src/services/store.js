@@ -28,11 +28,7 @@ const read = () => {
     const saved = JSON.parse(localStorage.getItem(KEY)) || {};
     const api = saved.api?.baseUrl ? { ...initialState.api, ...saved.api } : { ...initialState.api };
     
-    const isLocal = window.location.origin.includes("127.0.0.1") || window.location.origin.includes("localhost") || window.location.origin.includes("4173");
-    const isSavedUrlLocal = api.baseUrl.includes("127.0.0.1") || api.baseUrl.includes("localhost");
-    if (!isLocal && isSavedUrlLocal) {
-      api.baseUrl = window.location.origin;
-    }
+    // Keep configured custom local backend base URLs intact even on remote domains to bypass Cloudflare IP blocks.
 
     if (api.provider === "animekai") {
       api.provider = "all";
