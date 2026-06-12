@@ -155,7 +155,13 @@ const row = (title, items, action = "") => `
 `;
 
 const renderHome = async () => {
-  const data = await sourceManager.home();
+  const [data, lists] = await Promise.all([
+    sourceManager.home(),
+    sourceManager.jikanLists().catch((err) => {
+      console.warn("Failed to load Jikan lists:", err);
+      return null;
+    })
+  ]);
   const hero = data.spotlight[state.heroIndex % data.spotlight.length];
   const continueItems = store
     .getState()
@@ -214,16 +220,22 @@ const renderHome = async () => {
   }
 
   // Generate lists for 3-column list widget (New Releases, Upcoming, Completed)
-  const newReleases = animeCatalog
-    .filter(anime => anime.status === "Ongoing")
-    .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
-    .slice(0, 5);
-  const upcomingAnime = animeCatalog
-    .filter(anime => anime.status === "Upcoming")
-    .slice(0, 5);
-  const completedAnime = animeCatalog
-    .filter(anime => anime.status === "Completed")
-    .slice(0, 5);
+  const newReleases = lists?.newReleases?.length
+    ? lists.newReleases.slice(0, 20)
+    : animeCatalog
+        .filter(anime => anime.status === "Ongoing")
+        .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
+        .slice(0, 20);
+  const upcomingAnime = lists?.upcoming?.length
+    ? lists.upcoming.slice(0, 20)
+    : animeCatalog
+        .filter(anime => anime.status === "Upcoming")
+        .slice(0, 20);
+  const completedAnime = lists?.completed?.length
+    ? lists.completed.slice(0, 20)
+    : animeCatalog
+        .filter(anime => anime.status === "Completed")
+        .slice(0, 20);
 
   view.innerHTML = `
     <!-- Hero Spotlight Section -->

@@ -2066,6 +2066,22 @@ h2 {
   display: flex;
   flex-direction: column;
   gap: 0.85rem;
+  max-height: 540px;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+}
+.list-widget-items::-webkit-scrollbar {
+  width: 4px;
+}
+.list-widget-items::-webkit-scrollbar-track {
+  background: transparent;
+}
+.list-widget-items::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+.list-widget-items::-webkit-scrollbar-thumb:hover {
+  background: var(--muted);
 }
 .list-widget-item {
   display: flex;

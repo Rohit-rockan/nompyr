@@ -943,6 +943,9 @@ def api_anime_info(slug):
     elif slug.startswith("miruro:"):
         source = "miruro"
         stripped_slug = slug.split("miruro:", 1)[1]
+    elif slug.startswith("jikan:"):
+        source = "jikan"
+        stripped_slug = slug.split("jikan:", 1)[1]
     else:
         source = request.args.get("source", "").strip().lower()
         if not source:
@@ -954,6 +957,8 @@ def api_anime_info(slug):
         res = scrape_anime_info_hanime(stripped_slug)
     elif source == "miruro":
         res = scrape_anime_info_miruro(stripped_slug)
+    elif source == "jikan":
+        res = scrape_anime_info_jikan(stripped_slug)
     else:
         res = scrape_anime_info(stripped_slug)
         
@@ -1028,6 +1033,9 @@ def api_episodes(ani_id):
     elif ani_id.startswith("miruro:"):
         source = "miruro"
         stripped_id = ani_id.split("miruro:", 1)[1]
+    elif ani_id.startswith("jikan:"):
+        source = "jikan"
+        stripped_id = ani_id.split("jikan:", 1)[1]
     else:
         source = request.args.get("source", "").strip().lower()
         if not source:
@@ -1039,6 +1047,8 @@ def api_episodes(ani_id):
         res = fetch_episodes_hanime(stripped_id)
     elif source == "miruro":
         res = fetch_episodes_miruro(stripped_id)
+    elif source == "jikan":
+        res = fetch_episodes_jikan(stripped_id)
     else:
         res = fetch_episodes(stripped_id)
         
@@ -1310,6 +1320,192 @@ def api_source(link_id):
     if "error" not in final_res:
         cache.set(cache_key, final_res, timeout=180) # Cache video source for 3 minutes to keep URLs fresh
     return jsonify(final_res)
+
+# ─── Jikan API Integration ───────────────────────────────────────────────
+def map_jikan_to_nompyr(item, status_override=None):
+    mal_id = item.get("mal_id")
+    title = item.get("title") or "Untitled"
+    jp_title = item.get("title_japanese") or title
+    
+    # Images
+    poster = item.get("images", {}).get("jpg", {}).get("large_image_url") or item.get("images", {}).get("jpg", {}).get("image_url") or ""
+    banner = poster
+    
+    # Genres
+    genres = [g.get("name") for g in item.get("genres", []) if g.get("name")]
+    
+    # Studio
+    studio = "Unknown"
+    studios = item.get("studios", [])
+    if studios:
+        studio = studios[0].get("name") or "Unknown"
+        
+    # Status mapping
+    status = status_override
+    if not status:
+        j_status = item.get("status", "").lower()
+        if "currently airing" in j_status:
+            status = "Ongoing"
+        elif "finished" in j_status:
+            status = "Completed"
+        elif "not yet aired" in j_status:
+            status = "Upcoming"
+        else:
+            status = "Completed"
+            
+    # Year
+    year = item.get("year")
+    if not year:
+        aired_from = item.get("aired", {}).get("prop", {}).get("from", {})
+        if aired_from:
+            year = aired_from.get("year")
+    year = year or 2026
+    
+    # Episodes
+    episodes = item.get("episodes") or 1
+    
+    return {
+        "id": f"jikan:{mal_id}",
+        "title": title,
+        "jpTitle": jp_title,
+        "type": item.get("type") or "TV",
+        "status": status,
+        "year": year,
+        "season": item.get("season") or "Spring",
+        "rating": item.get("rating") or "PG-13",
+        "score": item.get("score") or "N/A",
+        "duration": item.get("duration") or "24m",
+        "studio": studio,
+        "genres": genres,
+        "language": ["Sub", "Dub"],
+        "episodes": episodes,
+        "latestEpisode": episodes if status == "Completed" else (item.get("episodes") or 1),
+        "updatedAt": time.strftime("%Y-%m-%d"),
+        "schedule": "TBA",
+        "color": "#7c3aed",
+        "accent": "#f97316",
+        "poster": poster,
+        "banner": banner,
+        "description": item.get("synopsis") or "No description available.",
+        "tags": [g.get("name") for g in item.get("genres", [])][:3],
+        "sourceHealth": "Healthy"
+    }
+
+def scrape_anime_info_jikan(mal_id):
+    cache_key = f"jikan_details:{mal_id}"
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return cached
+        
+    import requests as _requests
+    url = f"https://api.jikan.moe/v4/anime/{mal_id}"
+    try:
+        r = _requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=10)
+        if r.status_code == 200:
+            item = r.json().get("data", {})
+            mapped = map_jikan_to_nompyr(item)
+            cache.set(cache_key, mapped, timeout=86400)
+            return mapped
+    except Exception as e:
+        print("Error fetching Jikan details:", e)
+        
+    return {"error": "Failed to fetch details from Jikan API"}
+
+def fetch_episodes_jikan(mal_id):
+    cache_key = f"jikan_episodes:{mal_id}"
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return cached
+        
+    import requests as _requests
+    url = f"https://api.jikan.moe/v4/anime/{mal_id}/episodes"
+    try:
+        r = _requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=10)
+        if r.status_code == 200:
+            episodes_data = r.json().get("data", [])
+            eps = []
+            for ep in episodes_data:
+                eps.append({
+                    "id": ep.get("mal_id") or ep.get("number") or 1,
+                    "number": ep.get("mal_id") or ep.get("number") or 1,
+                    "title": ep.get("title") or f"Episode {ep.get('mal_id')}",
+                    "released": True,
+                    "duration": "24m"
+                })
+            
+            if not eps:
+                info = scrape_anime_info_jikan(mal_id)
+                total_episodes = info.get("episodes") or 1
+                for i in range(1, total_episodes + 1):
+                    eps.append({
+                        "id": i,
+                        "number": i,
+                        "title": f"Episode {i}",
+                        "released": True,
+                        "duration": info.get("duration") or "24m"
+                    })
+            cache.set(cache_key, eps, timeout=86400)
+            return eps
+    except Exception as e:
+        print("Error fetching Jikan episodes:", e)
+        
+    return []
+
+@app.route("/api/jikan-lists", methods=["GET"])
+def api_jikan_lists():
+    cache_key = "jikan_lists_v2"
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return jsonify(cached)
+        
+    import requests as _requests
+    import time
+    
+    headers = {"User-Agent": "Mozilla/5.0"}
+    
+    try:
+        r_now = _requests.get("https://api.jikan.moe/v4/seasons/now?limit=25", headers=headers, timeout=10)
+        time.sleep(0.5)
+        
+        r_upcoming = _requests.get("https://api.jikan.moe/v4/seasons/upcoming?limit=25", headers=headers, timeout=10)
+        time.sleep(0.5)
+        
+        r_top = _requests.get("https://api.jikan.moe/v4/top/anime?limit=25", headers=headers, timeout=10)
+        
+        new_releases = []
+        upcoming = []
+        completed = []
+        
+        if r_now.status_code == 200:
+            for item in r_now.json().get("data", []):
+                new_releases.append(map_jikan_to_nompyr(item, "Ongoing"))
+                
+        if r_upcoming.status_code == 200:
+            for item in r_upcoming.json().get("data", []):
+                upcoming.append(map_jikan_to_nompyr(item, "Upcoming"))
+                
+        if r_top.status_code == 200:
+            for item in r_top.json().get("data", []):
+                completed.append(map_jikan_to_nompyr(item, "Completed"))
+                
+        if not new_releases and not upcoming and not completed:
+            raise Exception("Jikan API returned empty results")
+            
+        res = {
+            "success": True,
+            "newReleases": new_releases,
+            "upcoming": upcoming,
+            "completed": completed
+        }
+        cache.set(cache_key, res, timeout=3600)
+        return jsonify(res)
+        
+    except Exception as e:
+        print("Error in Jikan lists fetch:", e)
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True, use_reloader=False)
