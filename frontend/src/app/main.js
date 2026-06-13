@@ -94,7 +94,7 @@ const route = () => {
       query[k] = decodeURIComponent(v || "");
     });
   }
-  return { page: page || "home", parts, query };
+  return { page: page || "home", parts: parts.map(p => decodeURIComponent(p)), query };
 };
 
 const showToast = (message) => {
