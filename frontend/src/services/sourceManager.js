@@ -1,5 +1,5 @@
 import { animeCatalog, days } from "../data/anime.js?v=5";
-import { store } from "./store.js?v=5";
+import { store } from "./store.js?v=6";
 
 const wait = (ms = 120) => new Promise((resolve) => setTimeout(resolve, ms));
 const unwrap = (payload) => payload?.data || payload?.result || payload;
