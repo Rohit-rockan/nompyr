@@ -1,5 +1,5 @@
-import { animeCatalog, days } from "../data/anime.js?v=3";
-import { store } from "./store.js?v=3";
+import { animeCatalog, days } from "../data/anime.js?v=5";
+import { store } from "./store.js?v=5";
 
 const wait = (ms = 120) => new Promise((resolve) => setTimeout(resolve, ms));
 const unwrap = (payload) => payload?.data || payload?.result || payload;
@@ -477,14 +477,57 @@ class DemoSource {
   async anime(slug) {
     await wait(80);
     if (slug.startsWith("jikan:")) {
-      const malId = slug.split("jikan:")[1];
-      const res = await fetch(`https://api.jikan.moe/v4/anime/${malId}`);
-      const data = await res.json();
-      return mapJikanToNompyr(data.data);
+      try {
+        const malId = slug.split("jikan:")[1];
+        const res = await fetch(`https://api.jikan.moe/v4/anime/${malId}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.data) {
+            return mapJikanToNompyr(data.data);
+          }
+        }
+      } catch (err) {
+        console.warn("Direct Jikan details fetch failed:", err);
+      }
     }
-    const anime = animeCatalog.find((item) => item.id === slug);
-    if (!anime) throw new Error("Anime not found");
-    return anime;
+    const anime = animeCatalog.find((item) => item.id === slug || item.slug === slug);
+    if (anime) return anime;
+
+    // Dynamically generate a simulated fallback anime details object
+    const provider = slug.includes(":") ? slug.split(":")[0] : "demo";
+    const cleanSlug = slug.includes(":") ? slug.split(":")[1] : slug;
+    const title = cleanSlug
+      .split("-")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
+
+    return {
+      id: slug,
+      sourceAnimeId: cleanSlug,
+      title: title,
+      jpTitle: title,
+      type: "TV",
+      status: "Ongoing",
+      year: new Date().getFullYear(),
+      season: "Spring",
+      rating: "PG-13",
+      score: "8.0",
+      duration: "24m",
+      studio: "Nompyr Studio",
+      genres: ["Action", "Adventure"],
+      language: ["Sub", "Dub"],
+      episodes: 12,
+      latestEpisode: 12,
+      updatedAt: new Date().toISOString().slice(0, 10),
+      schedule: "TBA",
+      color: "#7c3aed",
+      accent: "#f97316",
+      poster: fallbackPoster,
+      banner: fallbackBanner,
+      description: `This is a dynamically simulated detail view for ${title}. The remote API did not find this show or is offline, so Nompyr has loaded it in demo mode.`,
+      tags: ["Action", "Adventure"],
+      sourceHealth: `Demo (${provider})`
+    };
   }
 
   async episodes(slug) {

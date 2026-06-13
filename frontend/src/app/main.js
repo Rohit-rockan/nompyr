@@ -1,6 +1,6 @@
-import { animeCatalog } from "../data/anime.js?v=4";
-import { sourceManager, normalizeAnime, mapJikanToNompyr } from "../services/sourceManager.js?v=4";
-import { store } from "../services/store.js?v=4";
+import { animeCatalog } from "../data/anime.js?v=5";
+import { sourceManager, normalizeAnime, mapJikanToNompyr } from "../services/sourceManager.js?v=5";
+import { store } from "../services/store.js?v=5";
 
 const view = document.querySelector("#view");
 const navLinks = [...document.querySelectorAll("[data-nav]")];
@@ -1614,6 +1614,9 @@ const render = async () => {
             <button id="errorResetApiBtn" class="search-submit-btn" style="display: inline-flex; height: auto; padding: 0.75rem 2rem; font-size: 0.85rem; background: rgba(255, 255, 255, 0.08); color: #fff; border: 1px solid var(--border); box-shadow: none;">
               RESET API TO DEFAULT
             </button>
+            <button id="errorDisableApiBtn" class="search-submit-btn" style="display: inline-flex; height: auto; padding: 0.75rem 2rem; font-size: 0.85rem; background: rgba(255, 255, 255, 0.08); color: #fff; border: 1px solid var(--border); box-shadow: none;">
+              RUN IN DEMO MODE (DISABLE API)
+            </button>
           ` : ''}
         </div>
       </div>
@@ -1626,6 +1629,20 @@ document.addEventListener("click", async (event) => {
   if (errorResetBtn) {
     store.clearApiConfig();
     showToast("API configuration reset to default!");
+    location.hash = "#/";
+    render();
+    return;
+  }
+
+  const errorDisableBtn = event.target.closest("#errorDisableApiBtn");
+  if (errorDisableBtn) {
+    store.updateApiConfig({
+      enabled: false,
+      provider: "all",
+      baseUrl: "",
+      key: ""
+    });
+    showToast("Remote API disabled. Running in local Demo mode.");
     location.hash = "#/";
     render();
     return;

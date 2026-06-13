@@ -449,7 +449,8 @@ def refresh_cf_cookies(show_id, episode_id, episode_slug):
                 cookies = context.cookies()
                 browser.close()
                 
-            CF_COOKIES = cookies
+            CF_COOKIES.clear()
+            CF_COOKIES.extend(cookies)
             print(f"Successfully retrieved {len(CF_COOKIES)} cookies.")
             return True
         except Exception as e:
