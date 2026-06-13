@@ -2614,3 +2614,365 @@ h2 {
   }
 }
 
+/* ────────────────── MOBILE RESPONSIVENESS OVERRIDES ────────────────── */
+@media (max-width: 768px) {
+  /* Prevent horizontal body overflow */
+  html, body {
+    overflow-x: hidden;
+    max-width: 100vw;
+    width: 100%;
+  }
+
+  .app-shell {
+    overflow-x: hidden;
+  }
+
+  .view {
+    padding: 0.75rem 0.5rem !important;
+  }
+
+  /* Topbar Header Redesign - Grid with 2 rows to avoid squishing */
+  .topbar {
+    display: grid !important;
+    grid-template-areas: 
+      "left actions"
+      "search search" !important;
+    grid-template-columns: 1fr auto !important;
+    gap: 0.75rem !important;
+    margin: 0.5rem !important;
+    padding: 0.75rem 1rem !important;
+    border-radius: 0.75rem !important;
+    position: sticky !important;
+    top: 0.5rem !important;
+    height: auto !important;
+  }
+
+  .topbar-left {
+    grid-area: left;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+  }
+
+  .topbar-left .brand {
+    font-size: 1.15rem;
+  }
+
+  .topbar-left .brand-pyr {
+    font-size: 1.05rem;
+    padding: 0.1rem 0.35rem;
+  }
+
+  .topbar-actions {
+    grid-area: actions;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  /* Compact topbar action buttons on mobile */
+  .topbar-actions .icon-button,
+  .topbar-actions .profile-chip {
+    width: 2.2rem !important;
+    height: 2.2rem !important;
+    padding: 0 !important;
+    display: grid !important;
+    place-items: center !important;
+    border-radius: 50% !important;
+  }
+  
+  .topbar-actions .lang-toggle-wrap {
+    gap: 0.15rem;
+    padding: 0.15rem;
+    border-radius: 0.35rem;
+  }
+  
+  .topbar-actions .lang-btn {
+    min-height: 1.8rem;
+    padding: 0 0.45rem;
+    font-size: 0.65rem;
+  }
+
+  .searchbar {
+    grid-area: search;
+    max-width: 100% !important;
+    width: 100% !important;
+    height: 2.8rem !important;
+    margin: 0 !important;
+    padding: 0 0.5rem 0 0.75rem !important;
+  }
+
+  .searchbar input {
+    font-size: 0.85rem !important;
+  }
+
+  .search-submit-btn {
+    height: 2rem !important;
+    padding: 0 0.85rem !important;
+    font-size: 0.72rem !important;
+  }
+
+  /* 2-Column Home Layout Stacking */
+  .home-columns-layout {
+    grid-template-columns: 1fr !important;
+    gap: 1.5rem !important;
+  }
+  
+  .home-side-col {
+    width: 100%;
+  }
+
+  /* Hero Section Mobile Enhancements */
+  .hero {
+    min-height: 24rem !important;
+    padding: 1.25rem !important;
+    border-radius: 0.75rem !important;
+  }
+
+  .hero-title {
+    font-size: 1.6rem !important;
+    line-height: 1.1 !important;
+    max-width: 100% !important;
+    margin-bottom: 0.6rem !important;
+  }
+
+  .hero-desc {
+    font-size: 0.82rem !important;
+    line-height: 1.5 !important;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    margin-bottom: 1rem !important;
+  }
+
+  .hero-meta-box {
+    margin-bottom: 1rem !important;
+  }
+
+  .hero-actions-row {
+    gap: 0.5rem !important;
+  }
+
+  .watch-now-btn {
+    font-size: 0.75rem !important;
+    padding: 0.5rem 1rem !important;
+    min-height: 2.2rem !important;
+  }
+
+  .bookmark-btn {
+    width: 2.2rem !important;
+    height: 2.2rem !important;
+    font-size: 1rem !important;
+  }
+
+  .hero-carousel-controls {
+    display: none !important; /* Hide carousel navigation on tiny mobile screens to save space */
+  }
+
+  /* Social Share Bar Responsiveness */
+  .share-bar {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    padding: 0.75rem 1rem !important;
+    gap: 0.75rem !important;
+    text-align: center;
+  }
+
+  .share-left {
+    justify-content: center;
+  }
+
+  .share-right {
+    justify-content: center;
+    gap: 0.35rem !important;
+  }
+
+  .share-btn {
+    font-size: 0.75rem !important;
+    padding: 0.4rem 0.75rem !important;
+  }
+
+  /* Grid adjustment to perfectly fit two columns */
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 0.75rem !important;
+  }
+
+  .anime-card .card-title {
+    font-size: 0.85rem !important;
+    min-height: 2.2rem !important;
+  }
+
+  .anime-card .card-meta {
+    font-size: 0.72rem !important;
+    gap: 0.35rem !important;
+  }
+
+  /* A-Z Panel alignment */
+  .az-panel {
+    padding: 0.75rem !important;
+  }
+  
+  .az-chip {
+    min-width: 1.8rem !important;
+    height: 1.8rem !important;
+    font-size: 0.7rem !important;
+  }
+
+  /* Details and Watch layouts */
+  .detail-hero {
+    grid-template-columns: 1fr !important;
+    min-height: auto !important;
+    padding: 1.25rem !important;
+    text-align: center;
+    gap: 1.25rem !important;
+  }
+
+  .detail-poster {
+    max-width: 10rem !important;
+    margin: 0 auto !important;
+  }
+
+  .detail-copy h1 {
+    font-size: 1.8rem !important;
+    max-width: 100% !important;
+  }
+
+  .detail-copy p {
+    font-size: 0.85rem !important;
+  }
+
+  .hero-pills, .hero-actions {
+    justify-content: center !important;
+  }
+
+  .two-column, .watch-layout {
+    grid-template-columns: 1fr !important;
+    gap: 1rem !important;
+  }
+
+  /* Watch Page Layout Optimizations */
+  .hianime-main-row {
+    grid-template-columns: 1fr !important;
+  }
+
+  .hianime-episodes-sidebar {
+    max-height: 220px !important;
+  }
+
+  .hianime-ep-list {
+    overflow-y: auto !important;
+    max-height: 170px !important;
+  }
+
+  .hianime-player-section {
+    width: 100% !important;
+  }
+
+  .player {
+    min-height: 13rem !important;
+    aspect-ratio: 16 / 9 !important;
+    border-radius: 0.5rem !important;
+  }
+
+  .hianime-servers-box {
+    flex-direction: column !important;
+  }
+
+  .hianime-server-alert {
+    border-right: none !important;
+    border-bottom: 1px solid var(--border) !important;
+    padding: 0.75rem !important;
+    text-align: center !important;
+  }
+
+  .hianime-server-list-wrap {
+    padding: 0.75rem !important;
+    gap: 0.5rem !important;
+  }
+
+  .hianime-server-list-wrap > div {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 0.35rem !important;
+    padding-bottom: 0.5rem !important;
+  }
+
+  .hianime-server-list-wrap .server {
+    padding: 0.25rem 0.5rem !important;
+    font-size: 0.72rem !important;
+  }
+
+  .hianime-info-sidebar {
+    padding: 0.85rem !important;
+  }
+
+  .hianime-info-sidebar img {
+    width: 60px !important;
+    height: 85px !important;
+  }
+
+  .hianime-info-sidebar h1 {
+    font-size: 0.85rem !important;
+  }
+
+  .hianime-info-sidebar p {
+    font-size: 0.78rem !important;
+    -webkit-line-clamp: 4 !important;
+  }
+
+  .hianime-bottom-row {
+    grid-template-columns: 1fr !important;
+  }
+
+  .hianime-comments-panel {
+    padding: 1rem !important;
+  }
+
+  .comment-item {
+    padding: 0.5rem !important;
+    font-size: 0.78rem !important;
+  }
+
+  .comment-item p {
+    font-size: 0.78rem !important;
+  }
+
+  /* Calendar Widget for side panel */
+  .calendar-days-row {
+    gap: 0.2rem !important;
+  }
+
+  .calendar-day-btn {
+    padding: 0.35rem 0.15rem !important;
+  }
+
+  .cal-day-name {
+    font-size: 0.55rem !important;
+  }
+
+  .cal-date-num {
+    font-size: 0.8rem !important;
+  }
+
+  /* footer responsive alignment */
+  .branded-footer {
+    padding: 1.5rem 0.5rem !important;
+    text-align: center !important;
+  }
+
+  .footer-top {
+    flex-direction: column !important;
+    gap: 1rem !important;
+  }
+
+  .footer-links {
+    justify-content: center !important;
+    flex-wrap: wrap !important;
+    gap: 1rem !important;
+  }
+}
+
