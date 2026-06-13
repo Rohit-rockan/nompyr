@@ -1172,6 +1172,8 @@ def api_home():
 
 @app.route("/api/anime/<slug>", methods=["GET"])
 def api_anime_info(slug):
+    from urllib.parse import unquote
+    slug = unquote(slug)
     cache_key = f"anime:{slug}"
     cached = cache.get(cache_key)
     if cached is not None:
@@ -1306,6 +1308,8 @@ def api_anime_info(slug):
 
 @app.route("/api/episodes/<ani_id>", methods=["GET"])
 def api_episodes(ani_id):
+    from urllib.parse import unquote
+    ani_id = unquote(ani_id)
     cache_key = f"episodes:{ani_id}"
     cached = cache.get(cache_key)
     if cached is not None:
@@ -1380,6 +1384,8 @@ def api_episodes(ani_id):
 
 @app.route("/api/servers/<ep_token>", methods=["GET"])
 def api_servers(ep_token):
+    from urllib.parse import unquote
+    ep_token = unquote(ep_token)
     cache_key = f"servers:{ep_token}"
     cached = cache.get(cache_key)
     if cached is not None:
