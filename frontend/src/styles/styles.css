@@ -3050,6 +3050,47 @@ h2 {
     margin-left: 0 !important;
     justify-content: center;
   }
+
+  /* Horizontal scrolling for New Releases, Upcoming, Completed, and Top Trending lists on mobile */
+  .list-widget-items {
+    flex-direction: row !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    max-height: none !important;
+    padding-bottom: 0.75rem !important;
+    padding-right: 0 !important;
+    gap: 1rem !important;
+    scrollbar-color: var(--primary) transparent !important;
+    scrollbar-width: thin !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+  
+  .list-widget-item {
+    flex: 0 0 16rem !important;
+    background: var(--surface-2) !important;
+    padding: 0.5rem !important;
+    border-radius: 0.5rem !important;
+    border: 1px solid var(--border) !important;
+    box-sizing: border-box !important;
+  }
+
+  .trending-list {
+    flex-direction: row !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    padding-bottom: 0.75rem !important;
+    gap: 1rem !important;
+    scrollbar-color: var(--primary) transparent !important;
+    scrollbar-width: thin !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  .trending-item {
+    flex: 0 0 16rem !important;
+    background: var(--surface-2) !important;
+    border: 1px solid var(--border) !important;
+    box-sizing: border-box !important;
+  }
 }
 
 /* Watch Page Share Bar Redesign */
