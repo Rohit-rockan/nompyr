@@ -414,26 +414,6 @@ const renderHome = async () => {
           </div>
         </div>
 
-        <!-- Branded Footer -->
-        <footer class="branded-footer">
-          <div class="footer-top">
-            <a class="brand" href="#/">
-              <span class="brand-nom">Nom</span><span class="brand-pyr">pyr</span>
-            </a>
-            <div class="footer-links">
-              <a href="#/search">Anime List</a>
-              <a href="#/schedule">Schedule</a>
-              <a href="#/recommender">Recommender</a>
-              <a href="#/profile">Profile Settings</a>
-            </div>
-          </div>
-          <div class="footer-bottom">
-            <p>Nompyr is a demo prototype client. Playback features represent simulation. External provider connectivity requires a configured Data API key in the admin control board.</p>
-            <p style="margin-top:0.5rem;">© 2026 Nompyr. All rights reserved.</p>
-          </div>
-        </footer>
-      </div>
-
       <!-- Right Sidebar Column -->
       <aside class="home-side-col">
         <!-- Top Trending (1-10 Ranked List) -->
@@ -1108,13 +1088,13 @@ const renderWatch = async (slug, episodeNo = "1") => {
         <!-- Bottom Left: Comments & Recommendations -->
         <div style="display: flex; flex-direction: column; gap: 1.5rem; min-width: 0;">
           <!-- Social Share Bar mimicking HiAnime -->
-          <div style="display: flex; align-items: center; gap: 1rem; background: rgba(17, 22, 26, 0.4); border: 1px solid var(--border); padding: 0.75rem 1.25rem; border-radius: 0.5rem; flex-wrap: wrap;">
-            <div style="display:flex; gap:0.5rem; align-items:center;">
+          <div class="watch-share-bar">
+            <div class="watch-share-left">
               <img src="${anime.poster}" style="width:30px; height:30px; border-radius:50%; object-fit:cover;" />
-              <span style="font-size:0.85rem; color:#fff; font-weight:bold;">Share Nompyr</span>
-              <span style="font-size:0.75rem; color:var(--muted);">to your friends</span>
+              <span class="watch-share-title">Share Nompyr</span>
+              <span class="watch-share-desc">to your friends</span>
             </div>
-            <div style="display:flex; gap:0.5rem; margin-left:auto; flex-wrap:wrap;">
+            <div class="watch-share-right">
               <button class="button" style="background:#0088cc; color:#fff; font-size:0.75rem; height:auto; padding:0.4rem 0.8rem; border:none; border-radius:0.25rem;">Share Telegram</button>
               <button class="button" style="background:#1da1f2; color:#fff; font-size:0.75rem; height:auto; padding:0.4rem 0.8rem; border:none; border-radius:0.25rem;">Post Twitter</button>
               <button class="button" style="background:#3b5998; color:#fff; font-size:0.75rem; height:auto; padding:0.4rem 0.8rem; border:none; border-radius:0.25rem;">Share Facebook</button>
@@ -1128,8 +1108,8 @@ const renderWatch = async (slug, episodeNo = "1") => {
               Comments <span style="font-size: 0.75rem; font-weight: normal; background: rgba(255,255,255,0.08); padding: 0.15rem 0.5rem; border-radius: 0.2rem; color: var(--muted);">Guest Mode</span>
             </h2>
             <form id="commentForm" style="display:flex; flex-direction:column; gap:0.75rem; margin-bottom:1.5rem;">
-              <div style="display:flex; gap:0.5rem;">
-                <input type="text" id="commentUser" placeholder="Your name..." required style="padding: 0.6rem 0.8rem; background: rgba(0,0,0,0.25); border: 1px solid var(--border); border-radius: 0.35rem; color: #fff; font-size: 0.85rem; width: 200px; outline:none;" />
+              <div style="display:flex; gap:0.5rem; width:100%;">
+                <input type="text" id="commentUser" placeholder="Your name..." required style="padding: 0.6rem 0.8rem; background: rgba(0,0,0,0.25); border: 1px solid var(--border); border-radius: 0.35rem; color: #fff; font-size: 0.85rem; width: 100%; max-width: 280px; outline:none;" />
               </div>
               <textarea id="commentText" placeholder="Leave a comment..." required style="padding: 0.6rem 0.8rem; background: rgba(0,0,0,0.25); border: 1px solid var(--border); border-radius: 0.35rem; color: #fff; font-size: 0.85rem; height: 4.5rem; resize: none; outline:none;"></textarea>
               <button type="submit" class="search-submit-btn" style="height: auto; padding: 0.5rem 1.5rem; font-size: 0.85rem; align-self: flex-end; width: auto; font-weight:600; border:none; border-radius:0.35rem;">Comment</button>

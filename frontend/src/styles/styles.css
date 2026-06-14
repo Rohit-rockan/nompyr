@@ -23,11 +23,13 @@
 
 html {
   scroll-behavior: smooth;
+  overflow-x: clip;
 }
 
 body {
   margin: 0;
   min-height: 100vh;
+  overflow-x: clip;
   background:
     radial-gradient(circle at 72% 0%, rgba(82, 183, 136, 0.08), transparent 32rem),
     linear-gradient(135deg, #0b0f12 0%, #0e1418 60%, #15111b 100%);
@@ -60,6 +62,7 @@ img {
 .app-shell {
   display: block;
   min-height: 100vh;
+  overflow-x: clip;
 }
 
 .rail {
@@ -958,7 +961,7 @@ h2 {
   --border: rgba(255, 255, 255, 0.32);
 }
 
-@media (max-width: 980px) {
+@media (max-width: 991px) {
   .rail {
     width: min(19rem, 88vw);
     transition: transform 0.22s ease;
@@ -1005,7 +1008,7 @@ h2 {
   }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 575px) {
   .topbar {
     gap: 0.55rem;
     padding: 0.75rem;
@@ -1393,7 +1396,7 @@ h2 {
   margin-top: 1.5rem;
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 991px) {
   .home-columns-layout {
     grid-template-columns: 1fr;
   }
@@ -2012,7 +2015,7 @@ h2 {
   margin-top: 2rem;
   align-items: start;
 }
-@media (max-width: 1024px) {
+@media (max-width: 991px) {
   .home-columns-layout {
     grid-template-columns: 1fr;
   }
@@ -2084,7 +2087,7 @@ h2 {
   border-radius: 0.75rem;
   padding: 1.25rem;
 }
-@media (max-width: 768px) {
+@media (max-width: 767px) {
   .three-col-list-widget {
     grid-template-columns: 1fr;
   }
@@ -2198,7 +2201,7 @@ h2 {
 
 /* Branded Footer */
 .branded-footer {
-  margin-top: 2rem;
+  margin: 2rem clamp(1rem, 3vw, 2rem) 0;
   padding: 2rem 0;
   border-top: 1px solid var(--border);
 }
@@ -2596,7 +2599,7 @@ h2 {
 }
 
 /* Responsive Styles */
-@media (max-width: 1200px) {
+@media (max-width: 1199px) {
   .hianime-main-row {
     grid-template-columns: 1fr;
   }
@@ -2615,7 +2618,7 @@ h2 {
 }
 
 /* ────────────────── MOBILE RESPONSIVENESS OVERRIDES ────────────────── */
-@media (max-width: 768px) {
+@media (max-width: 767px) {
   /* Prevent horizontal body overflow */
   html, body {
     overflow-x: hidden;
@@ -2639,12 +2642,14 @@ h2 {
       "search search" !important;
     grid-template-columns: 1fr auto !important;
     gap: 0.75rem !important;
-    margin: 0.5rem !important;
+    margin: 0.5rem auto !important;
+    width: calc(100% - 1rem) !important;
     padding: 0.75rem 1rem !important;
     border-radius: 0.75rem !important;
     position: sticky !important;
     top: 0.5rem !important;
     height: auto !important;
+    box-sizing: border-box !important;
   }
 
   .topbar-left {
@@ -2702,10 +2707,16 @@ h2 {
     height: 2.8rem !important;
     margin: 0 !important;
     padding: 0 0.5rem 0 0.75rem !important;
+    min-width: 0 !important;
+  }
+
+  .search-input-wrap {
+    min-width: 0 !important;
   }
 
   .searchbar input {
     font-size: 0.85rem !important;
+    min-width: 0 !important;
   }
 
   .search-submit-btn {
@@ -2779,6 +2790,8 @@ h2 {
     padding: 0.75rem 1rem !important;
     gap: 0.75rem !important;
     text-align: center;
+    box-sizing: border-box !important;
+    width: 100% !important;
   }
 
   .share-left {
@@ -2786,19 +2799,25 @@ h2 {
   }
 
   .share-right {
-    justify-content: center;
-    gap: 0.35rem !important;
+    display: flex !important;
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+    gap: 0.4rem !important;
+    width: 100% !important;
   }
 
   .share-btn {
-    font-size: 0.75rem !important;
-    padding: 0.4rem 0.75rem !important;
+    font-size: 0.72rem !important;
+    padding: 0.4rem 0.6rem !important;
+    gap: 0.25rem !important;
   }
 
   /* Grid adjustment to perfectly fit two columns */
   .grid {
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
     gap: 0.75rem !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
   }
 
   .anime-card .card-title {
@@ -2809,6 +2828,7 @@ h2 {
   .anime-card .card-meta {
     font-size: 0.72rem !important;
     gap: 0.35rem !important;
+    flex-wrap: wrap !important;
   }
 
   /* A-Z Panel alignment */
@@ -2943,11 +2963,17 @@ h2 {
 
   /* Calendar Widget for side panel */
   .calendar-days-row {
-    gap: 0.2rem !important;
+    display: grid !important;
+    grid-template-columns: repeat(5, 1fr) !important;
+    gap: 0.25rem !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
   }
 
   .calendar-day-btn {
     padding: 0.35rem 0.15rem !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
   }
 
   .cal-day-name {
@@ -2960,7 +2986,8 @@ h2 {
 
   /* footer responsive alignment */
   .branded-footer {
-    padding: 1.5rem 0.5rem !important;
+    margin: 1.5rem 0.5rem 0 !important;
+    padding: 1.5rem 0 !important;
     text-align: center !important;
   }
 
@@ -2974,5 +3001,90 @@ h2 {
     flex-wrap: wrap !important;
     gap: 1rem !important;
   }
+
+  /* Recommender Page Responsiveness */
+  .recommender-card {
+    padding: 1rem !important;
+  }
+
+  .recommender-tabs {
+    flex-direction: column !important;
+    gap: 0.5rem !important;
+    border-bottom: none !important;
+    margin-bottom: 1rem !important;
+  }
+
+  .recommender-tab-btn {
+    padding: 0.5rem !important;
+    font-size: 0.9rem !important;
+    text-align: center !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 0.35rem !important;
+  }
+
+  .recommender-tab-btn.active::after {
+    display: none !important;
+  }
+
+  .recommender-tab-btn.active {
+    background: rgba(248, 195, 96, 0.1) !important;
+    border-color: #F8C360 !important;
+  }
+
+  /* Watch Page Share Bar mobile overrides */
+  .watch-share-bar {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    padding: 0.75rem 1rem !important;
+    text-align: center;
+    gap: 0.75rem !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+  }
+
+  .watch-share-left {
+    justify-content: center;
+  }
+
+  .watch-share-right {
+    margin-left: 0 !important;
+    justify-content: center;
+  }
+}
+
+/* Watch Page Share Bar Redesign */
+.watch-share-bar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: rgba(17, 22, 26, 0.4);
+  border: 1px solid var(--border);
+  padding: 0.75rem 1.25rem;
+  border-radius: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.watch-share-left {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.watch-share-title {
+  font-size: 0.85rem;
+  color: #fff;
+  font-weight: bold;
+}
+
+.watch-share-desc {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.watch-share-right {
+  display: flex;
+  gap: 0.5rem;
+  margin-left: auto;
+  flex-wrap: wrap;
 }
 
