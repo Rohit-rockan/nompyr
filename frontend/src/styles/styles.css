@@ -224,6 +224,35 @@ main {
   transform: translateY(0);
 }
 
+.search-recommender-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.3rem;
+  height: 2.3rem;
+  border-radius: 0.45rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+  color: #F8C360;
+  font-size: 1.15rem;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  text-decoration: none;
+  flex-shrink: 0;
+}
+
+.search-recommender-btn:hover {
+  background: rgba(248, 195, 96, 0.1);
+  border-color: #F8C360;
+  color: #fff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(248, 195, 96, 0.15);
+}
+
+.search-recommender-btn:active {
+  transform: translateY(0);
+}
+
 .lang-toggle-wrap {
   display: flex;
   gap: 0.25rem;
@@ -2693,6 +2722,12 @@ h2 {
     height: 2rem !important;
     padding: 0 0.85rem !important;
     font-size: 0.72rem !important;
+  }
+
+  .search-recommender-btn {
+    width: 2rem !important;
+    height: 2rem !important;
+    font-size: 0.95rem !important;
   }
 
   /* 2-Column Home Layout Stacking */
