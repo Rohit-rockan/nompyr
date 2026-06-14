@@ -750,7 +750,6 @@ const renderCollection = async (kind) => {
 const renderAnime = async (slug) => {
   const [anime, episodes] = await Promise.all([sourceManager.anime(slug), sourceManager.episodes(slug)]);
   const isFavorite = store.getState().favorites.includes(anime.id);
-  const related = animeCatalog.filter((item) => item.id !== anime.id && item.genres.some((genre) => anime.genres.includes(genre))).slice(0, 4);
   view.innerHTML = `
     <section class="detail-hero" style="--hero-color:${anime.color};background-image:linear-gradient(90deg, rgba(6,9,15,.96), rgba(6,9,15,.62)), url('${anime.banner}')">
       ${img(anime.poster, anime.title, "detail-poster")}
@@ -812,7 +811,6 @@ const renderAnime = async (slug) => {
         </dl>
       </aside>
     </div>
-    ${row("Recommendations", related)}
   `;
 };
 
