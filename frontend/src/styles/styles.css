@@ -2820,6 +2820,27 @@ h2 {
     box-sizing: border-box !important;
   }
 
+  .home-latest-grid {
+    display: grid !important;
+    grid-template-columns: none !important;
+    grid-auto-flow: column !important;
+    grid-auto-columns: minmax(9.5rem, 40vw) !important;
+    gap: 0.85rem !important;
+    overflow-x: auto !important;
+    padding-bottom: 0.75rem !important;
+    width: 100% !important;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+  }
+
+  .home-latest-grid::-webkit-scrollbar {
+    display: none;
+  }
+
+  .home-latest-grid .anime-card {
+    scroll-snap-align: start;
+  }
+
   .anime-card .card-title {
     font-size: 0.85rem !important;
     min-height: 2.2rem !important;
