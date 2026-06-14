@@ -436,7 +436,7 @@ const renderHome = async () => {
               const dub = item.dub_episodes || (item.language && item.language.join("/").toLowerCase().includes("dub") ? item.latestEpisode : 0) || 0;
               return `
                 <a href="${targetHash}" ${targetAttr} class="trending-item">
-                  <span class="trending-rank rank-${index + 1}">#${index + 1}</span>
+                  <span class="trending-rank rank-${index + 1}">${index + 1}</span>
                   <img class="trending-item-poster" src="${item.poster}" alt="${item.title}" />
                   <div class="trending-item-details">
                     <span class="trending-item-title">${item.title}</span>
