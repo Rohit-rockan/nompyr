@@ -413,6 +413,7 @@ const renderHome = async () => {
             `).join("")}
           </div>
         </div>
+      </div>
 
       <!-- Right Sidebar Column -->
       <aside class="home-side-col">
