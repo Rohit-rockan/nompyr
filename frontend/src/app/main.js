@@ -304,20 +304,20 @@ const renderHome = async () => {
       </div>
     </div>
 
+    <!-- Continue Watching (if history exists) -->
+    ${continueItems.length ? `
+      <section class="content-row">
+        <div class="section-head"><h2>Continue Watching</h2></div>
+        <div class="card-scroller">
+          ${continueItems.map(item => card(item)).join("")}
+        </div>
+      </section>
+    ` : ""}
+
     <!-- Double Columns Layout -->
     <div class="home-columns-layout">
       <!-- Left Column (Main Content) -->
       <div class="home-main-col">
-        <!-- Continue Watching (if history exists) -->
-        ${continueItems.length ? `
-          <section class="content-row">
-            <div class="section-head"><h2>Continue Watching</h2></div>
-            <div class="card-scroller">
-              ${continueItems.map(item => card(item)).join("")}
-            </div>
-          </section>
-        ` : ""}
-
         <!-- Latest Updates Section with Filter Tabs -->
         <section class="content-row">
           <div class="section-head flex-section-head">
