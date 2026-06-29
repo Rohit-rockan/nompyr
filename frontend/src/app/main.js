@@ -236,6 +236,25 @@ const renderHome = async () => {
     })
   ]);
 
+  // Limit to top 6 banners by score (global reviews/rating), deduplicating by title
+  if (data.spotlight && Array.isArray(data.spotlight)) {
+    const seenTitles = new Set();
+    data.spotlight = data.spotlight
+      .map(item => {
+        let scoreVal = parseFloat(item.score);
+        if (isNaN(scoreVal)) scoreVal = 0;
+        return { ...item, _parsedScore: scoreVal };
+      })
+      .sort((a, b) => b._parsedScore - a._parsedScore)
+      .filter(item => {
+        const titleKey = String(item.title || "").trim().toLowerCase().replace(/[^a-z0-9]/g, "");
+        if (!titleKey || seenTitles.has(titleKey)) return false;
+        seenTitles.add(titleKey);
+        return true;
+      })
+      .slice(0, 6);
+  }
+
   // Cache all loaded home items in the store state
   const cacheList = (list) => {
     if (list && Array.isArray(list)) {
