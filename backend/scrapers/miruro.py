@@ -461,7 +461,7 @@ def fetch_servers_miruro(ep_token):
                         if not orig_id:
                             continue
                             
-                        link_id = f"miruro:{prov_name}:{cat}:{anilist_id}:{orig_id}"
+                        link_id = f"miruro:{prov_name}:{cat}:{anilist_id}:{ep_num}:{orig_id}"
                         
                         server_info = {
                             "name": f"{prov_name.capitalize()} ({cat.capitalize()})",
@@ -488,67 +488,19 @@ def fetch_servers_miruro(ep_token):
 def resolve_source_miruro(link_id):
     try:
         parts = link_id.split(":")
-        if len(parts) < 4:
+        if len(parts) < 5:
             return {"error": "Invalid link_id format"}, 400
         provider = parts[0]
         category = parts[1]
-        anilist_id = int(parts[2])
-        episode_id = ":".join(parts[3:])
+        anilist_id = parts[2]
+        ep_num = parts[3]
         
-        enc_id = base64.urlsafe_b64encode(episode_id.encode()).decode().rstrip('=')
-        
-        payload = {
-            "path": "sources",
-            "method": "GET",
-            "query": {
-                "episodeId": enc_id,
-                "provider": provider,
-                "category": category,
-                "anilistId": anilist_id,
-            },
-            "body": None,
-            "version": "0.1.0",
-        }
-        encoded_req = _encode_pipe_request(payload)
-        r = requests.get(f"{MIRURO_PIPE_URL}?e={encoded_req}", headers=MIRURO_HEADERS, timeout=15.0)
-        if r.status_code != 200:
-            return {"error": f"Miruro pipe sources request failed with status {r.status_code}"}, r.status_code
-            
-        data = _decode_pipe_response(r.text.strip())
-        
-        streams = data.get("streams", [])
-        subtitles = data.get("subtitles", [])
-        intro = data.get("intro", {})
-        outro = data.get("outro", {})
-        
-        sources = []
-        for s in streams:
-            sources.append({
-                "file": s.get("url"),
-                "type": s.get("type", "hls"),
-                "label": s.get("quality", "Auto")
-            })
-            
-        tracks = []
-        for sub in subtitles:
-            tracks.append({
-                "file": sub.get("file"),
-                "label": sub.get("label", "Unknown"),
-                "kind": "captions",
-                "default": sub.get("label", "").lower() == "english"
-            })
-            
-        skip = {
-            "intro": [intro.get("start", 0), intro.get("end", 0)],
-            "outro": [outro.get("start", 0), outro.get("end", 0)]
-        }
+        watch_url = f"https://www.miruro.tv/watch?id={anilist_id}&ep={ep_num}"
         
         return {
-            "embed_url": "https://www.miruro.tv/",
-            "skip": skip,
-            "sources": sources,
-            "tracks": tracks,
-            "download": ""
+            "external_url": watch_url,
+            "provider": "Miruro",
+            "message": "Due to server protections, this episode must be watched directly on the provider's website."
         }
     except Exception as e:
         print(f"Error resolving source for Miruro: {e}")

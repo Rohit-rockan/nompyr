@@ -488,47 +488,12 @@ def resolve_source_animenexus(link_id):
         episode_slug = parts[2]
         lang = parts[3]
         
-        r = make_stream_request(episode_id)
-        if r.status_code == 403 or r.status_code == 401 or not CF_COOKIES:
-            print("Direct request failed (403/401) or no cookies cached. Refreshing cookies...")
-            if refresh_cf_cookies(show_id, episode_id, episode_slug):
-                r = make_stream_request(episode_id)
-                
-        if r.status_code != 200:
-            return {"error": f"Failed to fetch stream details: {r.status_code}", "text": r.text}, r.status_code
-            
-        stream_data = r.json().get("data", {})
-        hls_url = stream_data.get("hls")
-        if not hls_url:
-            return {"error": "HLS URL not found in stream data"}, 404
-            
-        subtitles = stream_data.get("subtitles", [])
-        tracks = []
-        for sub in subtitles:
-            tracks.append({
-                "file": sub.get("src"),
-                "label": sub.get("label", "Unknown"),
-                "kind": "captions",
-                "default": sub.get("label", "").lower() == "english"
-            })
-            
-        sources = [
-            {
-                "file": hls_url,
-                "type": "hls",
-                "label": "Auto"
-            }
-        ]
+        watch_url = f"https://anime.nexus/watch/{episode_id}/{episode_slug}"
         
         return {
-            "embed_url": "https://anime.nexus/",
-            "skip": {
-                "intro": [0, 0],
-                "outro": [0, 0]
-            },
-            "sources": sources,
-            "tracks": tracks,
-            "download": ""
+            "external_url": watch_url,
+            "provider": "Anime Nexus",
+            "message": "Due to server protections, this episode must be watched directly on the provider's website."
         }
     except Exception as e:
         print(f"Error resolving source for Anime Nexus: {e}")
