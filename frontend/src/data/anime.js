@@ -19,7 +19,7 @@ export const animeCatalog = [
     schedule: "Tuesday",
     color: "#7c3aed",
     accent: "#f97316",
-    poster: "https://images.unsplash.com/photo-1518709268805-4e9042af2176?auto=format&fit=crop&w=720&q=80",
+    poster: "https://images.unsplash.com/photo-1578632767115-351597cf2477?auto=format&fit=crop&w=720&q=80",
     banner: "https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=1600&q=80",
     description:
       "A curious apprentice discovers that every spell has a cost, and every sketch can redraw the shape of a kingdom.",

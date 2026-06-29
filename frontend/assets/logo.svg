@@ -1,0 +1,69 @@
+<svg viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Teal/Blue Gradient (Bottom-Right Section) -->
+    <linearGradient id="v3-teal-base" x1="280" y1="200" x2="430" y2="350" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#02aab0" />
+      <stop offset="100%" stop-color="#00cdac" />
+    </linearGradient>
+    
+    <!-- Green Top Gradient (Top Section) -->
+    <linearGradient id="v3-green-top" x1="110" y1="90" x2="400" y2="280" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#2ebd59" />
+      <stop offset="100%" stop-color="#1b7a43" />
+    </linearGradient>
+    
+    <!-- Lime Green Fold Face (Curving fold/leaf overlay) -->
+    <linearGradient id="v3-fold-face" x1="110" y1="120" x2="320" y2="380" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#55c57a" />
+      <stop offset="40%" stop-color="#7ed56f" />
+      <stop offset="100%" stop-color="#28b485" />
+    </linearGradient>
+
+    <!-- Shadow cast by the folding leaf -->
+    <radialGradient id="v3-fold-shadow" cx="150" cy="300" r="180" fx="150" fy="300" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#000000" stop-opacity="0.85" />
+      <stop offset="100%" stop-color="#000000" stop-opacity="0" />
+    </radialGradient>
+    
+    <!-- Outer Triangle Clip Path -->
+    <clipPath id="v3-triangle-clip">
+      <!-- A beautiful rounded play triangle -->
+      <path d="M 160 85 
+               C 140 73, 110 88, 110 115 
+               L 110 397 
+               C 110 424, 140 439, 160 427 
+               L 415 281 
+               C 435 269, 435 243, 415 231 
+               Z" />
+    </clipPath>
+  </defs>
+  
+  <g clip-path="url(#v3-triangle-clip)">
+    <!-- 1. Teal Base (Bottom Right half) -->
+    <rect x="0" y="0" width="512" height="512" fill="url(#v3-teal-base)" />
+    
+    <!-- 2. Green Top Area (Separated by a smooth dip wave) -->
+    <path d="M 110 115 
+             L 110 240 
+             C 160 220, 220 200, 270 240
+             C 320 280, 360 260, 422 230 
+             L 422 115 
+             Z" fill="url(#v3-green-top)" />
+    
+    <!-- 3. Shadow under the fold -->
+    <path d="M 110 120 
+             C 110 120, 210 250, 250 380 
+             C 270 430, 180 430, 110 390 
+             Z" fill="url(#v3-fold-shadow)" opacity="0.95" filter="blur(6px)" />
+    
+    <!-- 4. The Peeling Fold Flap (The green/lime leaf shape) -->
+    <path d="M 110 115 
+             C 110 115, 230 220, 245 365 
+             C 250 410, 180 430, 110 390 
+             Z" fill="url(#v3-fold-face)" />
+             
+    <!-- Soft highlight stroke on the fold ridge -->
+    <path d="M 110 115 
+             C 110 115, 230 220, 245 365" stroke="#ffffff" stroke-width="3" opacity="0.35" />
+  </g>
+</svg>

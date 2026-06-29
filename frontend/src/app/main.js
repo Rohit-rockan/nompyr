@@ -1,6 +1,37 @@
-import { animeCatalog } from "../data/anime.js?v=5";
-import { sourceManager, normalizeAnime, mapJikanToNompyr } from "../services/sourceManager.js?v=6";
-import { store } from "../services/store.js?v=6";
+import { animeCatalog } from "../data/anime.js?v=11";
+import { sourceManager, normalizeAnime, mapJikanToNompyr } from "../services/sourceManager.js?v=12";
+import { store } from "../services/store.js?v=10";
+
+const fallbackPoster = "https://images.unsplash.com/photo-1541562232579-512a21360020?auto=format&fit=crop&w=720&q=80";
+const fallbackBanner = "https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=1600&q=80";
+
+const getAnimeById = (id, stateNow) => {
+  if (!id) return null;
+  const local = animeCatalog.find((anime) => anime.id === id);
+  if (local) return local;
+
+  const stateVal = stateNow || store.getState();
+  if (stateVal.cachedAnime && stateVal.cachedAnime[id]) {
+    return normalizeAnime(stateVal.cachedAnime[id]);
+  }
+
+  const histEntry = stateVal.history?.find((h) => h.animeId === id);
+  if (histEntry && histEntry.anime) {
+    return normalizeAnime(histEntry.anime);
+  }
+
+  const cleanId = String(id).includes(":") ? String(id).split(":")[1] : String(id);
+  const title = cleanId
+    .split("-")
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+  return normalizeAnime({
+    id: id,
+    title: title,
+    poster: fallbackPoster,
+    banner: fallbackBanner
+  });
+};
 
 const view = document.querySelector("#view");
 const navLinks = [...document.querySelectorAll("[data-nav]")];
@@ -17,8 +48,23 @@ const state = {
   activeLanguage: null,
   currentEpisodeId: null,
   videoHlsInstance: null,
-  watchdog: null
+  watchdog: null,
+  currentWatchToken: null
 };
+
+const updateThemeUI = () => {
+  const theme = store.getState().settings?.theme || "dark";
+  document.documentElement.setAttribute("data-theme", theme);
+  document.documentElement.style.colorScheme = theme;
+  const darkBtn = document.getElementById("themeDarkBtn");
+  const lightBtn = document.getElementById("themeLightBtn");
+  if (darkBtn && lightBtn) {
+    darkBtn.classList.toggle("active", theme === "dark");
+    lightBtn.classList.toggle("active", theme === "light");
+  }
+};
+updateThemeUI();
+
 
 const formatTime = (seconds) => {
   if (isNaN(seconds)) return "00:00";
@@ -73,8 +119,35 @@ const handleKeyboardShortcuts = (event) => {
 document.addEventListener("keydown", handleKeyboardShortcuts);
 
 const cleanupHls = () => {
+  const video = document.getElementById("videoPlayer");
+  if (video) {
+    try {
+      video.pause();
+      video.src = "";
+      video.removeAttribute("src");
+      video.load();
+    } catch (e) {
+      console.warn("Error pausing video during cleanup:", e);
+    }
+  }
+
+  // Clear and remove any active iframe player elements to prevent background audio play
+  const iframes = document.querySelectorAll("iframe.video-player, .player-container iframe");
+  iframes.forEach((iframe) => {
+    try {
+      iframe.src = "about:blank";
+      iframe.remove();
+    } catch (e) {
+      console.warn("Error cleaning up iframe:", e);
+    }
+  });
+
   if (state.videoHlsInstance) {
-    state.videoHlsInstance.destroy();
+    try {
+      state.videoHlsInstance.destroy();
+    } catch (e) {
+      console.warn("Error destroying HLS instance:", e);
+    }
     state.videoHlsInstance = null;
   }
   if (state.watchdog) {
@@ -162,17 +235,41 @@ const renderHome = async () => {
       return null;
     })
   ]);
+
+  // Cache all loaded home items in the store state
+  const cacheList = (list) => {
+    if (list && Array.isArray(list)) {
+      list.forEach((item) => store.cacheAnime(item));
+    }
+  };
+  cacheList(data.spotlight);
+  cacheList(data.trending);
+  cacheList(data.latest);
+  cacheList(data.popular);
+  cacheList(data.upcoming);
+  if (data.movies) cacheList(data.movies);
+  if (lists) {
+    cacheList(lists.newReleases);
+    cacheList(lists.upcoming);
+    cacheList(lists.completed);
+  }
+
+  state.spotlightLength = data.spotlight.length;
   const hero = data.spotlight[state.heroIndex % data.spotlight.length];
-  const continueItems = store
-    .getState()
-    .history.map((entry) => animeCatalog.find((anime) => anime.id === entry.animeId))
+  
+  const stateNow = store.getState();
+  const continueItems = stateNow.history
+    .map((entry) => getAnimeById(entry.animeId, stateNow))
     .filter(Boolean);
-  const isFavorite = store.getState().favorites.includes(hero.id);
+  const isFavorite = stateNow.favorites.includes(hero.id);
   const isHeroHanime = String(hero.id).startsWith("hanime:");
-  const heroWatchHref = isHeroHanime 
-    ? `https://hanime.tv/videos/hentai/${hero.id.split("hanime:")[1]}` 
-    : `#/watch/${hero.id}/1`;
-  const heroWatchTarget = isHeroHanime ? 'target="_blank" rel="noopener noreferrer"' : '';
+  const isNews = String(hero.id).startsWith("http") || hero.isNews;
+  const heroWatchHref = isNews 
+    ? hero.id 
+    : isHeroHanime 
+      ? `https://hanime.tv/videos/hentai/${hero.id.split("hanime:")[1]}` 
+      : `#/watch/${hero.id}/1`;
+  const heroWatchTarget = (isHeroHanime || isNews) ? 'target="_blank" rel="noopener noreferrer"' : '';
 
   // Initialize active filter tab if not set
   state.homeFilter = state.homeFilter || "all";
@@ -221,27 +318,27 @@ const renderHome = async () => {
 
   // Generate lists for 3-column list widget (New Releases, Upcoming, Completed)
   const newReleases = lists?.newReleases?.length
-    ? lists.newReleases.slice(0, 20)
+    ? lists.newReleases.slice(0, 20).map((item) => normalizeAnime(item))
     : animeCatalog
         .filter(anime => anime.status === "Ongoing")
         .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
         .slice(0, 20);
   const upcomingAnime = lists?.upcoming?.length
-    ? lists.upcoming.slice(0, 20)
+    ? lists.upcoming.slice(0, 20).map((item) => normalizeAnime(item))
     : animeCatalog
         .filter(anime => anime.status === "Upcoming")
         .slice(0, 20);
   const completedAnime = lists?.completed?.length
-    ? lists.completed.slice(0, 20)
+    ? lists.completed.slice(0, 20).map((item) => normalizeAnime(item))
     : animeCatalog
         .filter(anime => anime.status === "Completed")
         .slice(0, 20);
 
   view.innerHTML = `
     <!-- Hero Spotlight Section -->
-    <section class="hero" style="background-image:linear-gradient(rgba(11,14,17,0.58), rgba(11,14,17,0.92)), url('${hero.banner}')">
+    <section class="hero" style="background-image:var(--hero-overlay), url('${hero.banner}')">
       <div class="hero-upper-row">
-        <span class="spotlight-tag">#${(state.heroIndex % data.spotlight.length) + 1} Spotlight</span>
+        <span class="spotlight-tag">${isNews ? "🔥 Anime News" : `#${(state.heroIndex % data.spotlight.length) + 1} Spotlight`}</span>
       </div>
       
       <div class="hero-lower-row">
@@ -251,11 +348,11 @@ const renderHome = async () => {
           
           <div class="hero-meta-box">
             <div class="meta-item">
-              <span class="meta-label">Rating</span>
-              <span class="meta-val">${hero.rating || 'PG-13'}</span>
+              <span class="meta-label">Category</span>
+              <span class="meta-val">${hero.rating || 'News'}</span>
             </div>
             <div class="meta-item">
-              <span class="meta-label">Release</span>
+              <span class="meta-label">Published</span>
               <span class="meta-val">${hero.year || 'TBA'}</span>
             </div>
             <div class="meta-item">
@@ -265,8 +362,8 @@ const renderHome = async () => {
           </div>
           
           <div class="hero-actions-row">
-            <a class="button primary watch-now-btn" href="${heroWatchHref}" ${heroWatchTarget}>▶ WATCH NOW</a>
-            <button class="bookmark-btn" data-favorite="${hero.id}">${isFavorite ? "♥" : "♡"}</button>
+            <a class="button primary watch-now-btn" href="${heroWatchHref}" ${heroWatchTarget}>${isNews ? "▶ READ ARTICLE" : "▶ WATCH NOW"}</a>
+            ${isNews ? "" : `<button class="bookmark-btn" data-favorite="${hero.id}">${isFavorite ? "♥" : "♡"}</button>`}
           </div>
         </div>
         
@@ -684,6 +781,7 @@ const renderSearch = async (title = "Search") => {
   if (!state.filters.page) state.filters.page = 1;
   const searchData = await sourceManager.search(state.filters);
   let results = searchData.results;
+  results.forEach((item) => store.cacheAnime(item));
   if (state.filters.az) {
     if (state.filters.az === "0-9") {
       results = results.filter(item => /^[0-9]/.test(item.title));
@@ -749,9 +847,10 @@ const renderCollection = async (kind) => {
 
 const renderAnime = async (slug) => {
   const [anime, episodes] = await Promise.all([sourceManager.anime(slug), sourceManager.episodes(slug)]);
+  store.cacheAnime(anime);
   const isFavorite = store.getState().favorites.includes(anime.id);
   view.innerHTML = `
-    <section class="detail-hero" style="--hero-color:${anime.color};background-image:linear-gradient(90deg, rgba(6,9,15,.96), rgba(6,9,15,.62)), url('${anime.banner}')">
+    <section class="detail-hero" style="--hero-color:${anime.color};background-image:var(--detail-hero-overlay), url('${anime.banner}')">
       ${img(anime.poster, anime.title, "detail-poster")}
       <div class="detail-copy">
         <span class="eyebrow">${anime.jpTitle}</span>
@@ -795,6 +894,35 @@ const renderAnime = async (slug) => {
             </div>
           `}
         </div>
+
+        <!-- Reviews Panel -->
+        <div style="display:flex; flex-direction:column; gap:0.5rem; margin-top:1.5rem;">
+          <div class="section-head">
+            <h2>User Reviews</h2>
+            <button id="writeReviewBtn" class="search-submit-btn" style="height:auto; padding:0.4rem 1rem; font-size:0.8rem; border-radius:9999px;">Write Review</button>
+          </div>
+          
+          <form id="reviewForm" class="hidden" style="display:flex; flex-direction:column; gap:0.75rem; background:var(--item-bg); padding:1rem; border:1px solid var(--border); border-radius:0.5rem; margin-bottom:1rem;">
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap;">
+              <input type="text" id="reviewUser" placeholder="Your name..." required style="padding: 0.6rem 0.8rem; background: var(--searchbar-bg); border: 1px solid var(--border); border-radius: 0.35rem; color: var(--text); font-size: 0.85rem; width: 100%; max-width: 200px; outline:none;" />
+              <div style="display:flex; align-items:center; gap:0.5rem;">
+                <label style="font-size:0.85rem; color:var(--muted);">Rating:</label>
+                <select id="reviewRating" style="padding: 0.4rem 0.6rem; background: var(--searchbar-bg); border: 1px solid var(--border); border-radius: 0.35rem; color: var(--text);">
+                  ${[10,9,8,7,6,5,4,3,2,1].map(r => `<option value="${r}">${r} ★</option>`).join("")}
+                </select>
+              </div>
+            </div>
+            <textarea id="reviewText" placeholder="Write your detailed review..." required style="padding: 0.6rem 0.8rem; background: var(--searchbar-bg); border: 1px solid var(--border); border-radius: 0.35rem; color: var(--text); font-size: 0.85rem; height: 5rem; resize: none; outline:none;"></textarea>
+            <div style="display:flex; justify-content:flex-end; gap:0.5rem;">
+              <button type="button" id="cancelReviewBtn" class="button ghost" style="min-height:2.1rem; font-size:0.8rem; padding:0 1rem; border-radius:9999px;">Cancel</button>
+              <button type="submit" class="search-submit-btn" style="height:auto; padding:0.5rem 1.25rem; font-size:0.8rem; border-radius:9999px;">Submit</button>
+            </div>
+          </form>
+          
+          <div id="reviewsList" style="display:flex; flex-direction:column; gap:0.75rem;">
+            <!-- Reviews dynamically loaded -->
+          </div>
+        </div>
       </section>
       <aside class="panel">
         <h2>Metadata</h2>
@@ -812,6 +940,84 @@ const renderAnime = async (slug) => {
       </aside>
     </div>
   `;
+
+  // Attach event listeners for Reviews Form
+  const writeReviewBtn = document.getElementById("writeReviewBtn");
+  const reviewForm = document.getElementById("reviewForm");
+  const cancelReviewBtn = document.getElementById("cancelReviewBtn");
+  const reviewsList = document.getElementById("reviewsList");
+  const reviewUser = document.getElementById("reviewUser");
+
+  // Prefill user name with profile username
+  const currentUserState = store.getState();
+  if (reviewUser && currentUserState.profile) {
+    reviewUser.value = currentUserState.profile.username;
+  }
+
+  const loadReviews = () => {
+    if (!reviewsList) return;
+    const key = `nompyr-reviews-${anime.id}`;
+    let list = JSON.parse(localStorage.getItem(key)) || [];
+    if (list.length === 0) {
+      list = [
+        { user: "OtakuSensei", rating: 9, text: "Absolutely phenomenal! The character development in this show is top notch. Visuals are amazing and the story is incredibly engaging.", date: "3 days ago" },
+        { user: "Hina_chan", rating: 8, text: "A really solid watch! The pacing is a bit fast in the beginning but it settles down. Definitely worth watching if you love this genre.", date: "1 week ago" }
+      ];
+      localStorage.setItem(key, JSON.stringify(list));
+    }
+    
+    reviewsList.innerHTML = list.map(r => `
+      <div class="review-item" style="padding:1rem; background:var(--item-bg); border:1px solid var(--border); border-radius:0.5rem; display:flex; flex-direction:column; gap:0.5rem; box-shadow: var(--shadow);">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <strong style="color:var(--text); font-size:0.9rem;">${r.user}</strong>
+          <span style="color:var(--accent); font-weight:bold; font-size:0.85rem;">⭐ ${r.rating}/10</span>
+        </div>
+        <p style="font-size:0.85rem; color:var(--text); margin:0; line-height:1.4; opacity:0.85;">${r.text}</p>
+        <span style="font-size:0.75rem; color:var(--muted); align-self:flex-end;">${r.date || "Just now"}</span>
+      </div>
+    `).join("");
+  };
+
+  loadReviews();
+
+  if (writeReviewBtn && reviewForm) {
+    writeReviewBtn.addEventListener("click", () => {
+      reviewForm.classList.remove("hidden");
+      writeReviewBtn.classList.add("hidden");
+    });
+  }
+
+  if (cancelReviewBtn && reviewForm && writeReviewBtn) {
+    cancelReviewBtn.addEventListener("click", () => {
+      reviewForm.classList.add("hidden");
+      writeReviewBtn.classList.remove("hidden");
+    });
+  }
+
+  if (reviewForm) {
+    reviewForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const rating = document.getElementById("reviewRating").value;
+      const text = document.getElementById("reviewText").value;
+      const user = reviewUser.value;
+      
+      const key = `nompyr-reviews-${anime.id}`;
+      const list = JSON.parse(localStorage.getItem(key)) || [];
+      list.unshift({
+        user,
+        rating: Number(rating),
+        text,
+        date: "Just now"
+      });
+      localStorage.setItem(key, JSON.stringify(list));
+      
+      showToast("Review submitted successfully!");
+      reviewForm.classList.add("hidden");
+      writeReviewBtn.classList.remove("hidden");
+      document.getElementById("reviewText").value = "";
+      loadReviews();
+    });
+  }
 };
 
 const getMockComments = (animeTitle) => {
@@ -825,20 +1031,35 @@ const getMockComments = (animeTitle) => {
   return templates.sort(() => 0.5 - Math.random()).slice(0, 3);
 };
 
-const getCommentsForAnime = (animeId, animeTitle) => {
-  const key = `nompyr-comments-${animeId}`;
-  const saved = localStorage.getItem(key);
-  if (saved) return JSON.parse(saved);
-  const mock = getMockComments(animeTitle);
-  localStorage.setItem(key, JSON.stringify(mock));
-  return mock;
+const getCommentsForAnime = async (animeId) => {
+  try {
+    const api = store.getState().api || {};
+    const baseUrl = api.baseUrl || "http://127.0.0.1:5000";
+    const res = await fetch(`${baseUrl}/api/reviews/${encodeURIComponent(animeId)}`);
+    if (res.ok) {
+      const data = await res.json();
+      return data.reviews || [];
+    }
+  } catch (err) {
+    console.error("Failed to load reviews:", err);
+  }
+  return [];
 };
 
-const saveComment = (animeId, comment) => {
-  const key = `nompyr-comments-${animeId}`;
-  const list = getCommentsForAnime(animeId, "");
-  list.unshift(comment);
-  localStorage.setItem(key, JSON.stringify(list));
+const saveComment = async (animeId, commentData) => {
+  try {
+    const api = store.getState().api || {};
+    const baseUrl = api.baseUrl || "http://127.0.0.1:5000";
+    const res = await fetch(`${baseUrl}/api/reviews/${encodeURIComponent(animeId)}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(commentData)
+    });
+    return res.ok;
+  } catch (err) {
+    console.error("Failed to save review:", err);
+    return false;
+  }
 };
 
 const loadWatchRecommendations = async (anime, container) => {
@@ -912,6 +1133,24 @@ const loadWatchRecommendations = async (anime, container) => {
 };
 
 const renderWatch = async (slug, episodeNo = "1") => {
+  cleanupHls();
+
+  // Concurrency Guard: Generate a token for this request
+  const currentToken = Math.random().toString(36).substr(2, 9);
+  state.currentWatchToken = currentToken;
+
+  // Immediate feedback: Clear the player container immediately if we are switching servers/episodes.
+  // This instantly stops any background audio or active iframe players.
+  const playerEl = document.querySelector(".hianime-player-section .player, .player");
+  if (playerEl) {
+    playerEl.innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:center;height:100%;min-height:360px;background:#0d1117;color:var(--text);flex-direction:column;gap:1.25rem;text-align:center;">
+        <div style="width:48px;height:48px;border:3px solid rgba(255,255,255,0.08);border-radius:50%;border-top-color:#e76f51;animation:spin 1s linear infinite;box-shadow:0 0 15px rgba(231,111,81,0.15);"></div>
+        <span style="font-size:0.92rem;font-weight:600;letter-spacing:0.02em;opacity:0.85;color:var(--muted);">Resolving secure stream...</span>
+      </div>
+    `;
+  }
+
   const currentEpKey = `${slug}-${episodeNo}`;
   if (state.currentEpisodeId !== currentEpKey) {
     state.currentEpisodeId = currentEpKey;
@@ -920,9 +1159,24 @@ const renderWatch = async (slug, episodeNo = "1") => {
   }
 
   const anime = await sourceManager.anime(slug);
+  if (state.currentWatchToken !== currentToken) {
+    console.log("Stale watch request aborted: anime");
+    return;
+  }
+
+  store.cacheAnime(anime);
   const episodes = await sourceManager.episodes(slug);
+  if (state.currentWatchToken !== currentToken) {
+    console.log("Stale watch request aborted: episodes");
+    return;
+  }
+
   const episode = episodes.find((item) => String(item.number) === String(episodeNo)) || episodes.at(-1);
   const servers = await sourceManager.servers(episode.id);
+  if (state.currentWatchToken !== currentToken) {
+    console.log("Stale watch request aborted: servers");
+    return;
+  }
 
   const modes = [...new Set(servers.map(s => s.mode.toLowerCase()))];
   if (!state.activeLanguage || !modes.includes(state.activeLanguage)) {
@@ -938,18 +1192,28 @@ const renderWatch = async (slug, episodeNo = "1") => {
   if (state.activeServerId) {
     stream = await sourceManager.stream(state.activeServerId);
   }
+  if (state.currentWatchToken !== currentToken) {
+    console.log("Stale watch request aborted: stream");
+    return;
+  }
 
   const progress = store.getState().progress[episode.id] || 0;
-  const isDirectMp4 = stream.type === "mp4" || stream.hls.split('?')[0].toLowerCase().endsWith(".mp4") || stream.hls.toLowerCase().includes(".mp4");
+  const isDirectMp4 = stream.type === "mp4" || (stream.hls && (stream.hls.split('?')[0].toLowerCase().endsWith(".mp4") || stream.hls.toLowerCase().includes(".mp4")));
 
   // Fetch popular items for the sidebar list
   let popularItems = [];
   try {
     const homeData = await sourceManager.home();
+    if (state.currentWatchToken !== currentToken) {
+      console.log("Stale watch request aborted: popularItems");
+      return;
+    }
     popularItems = homeData?.popular || [];
   } catch (err) {
     console.warn("Failed to fetch popular items:", err);
   }
+  if (state.currentWatchToken !== currentToken) return;
+
   if (!popularItems || popularItems.length === 0) {
     popularItems = animeCatalog;
   }
@@ -963,10 +1227,10 @@ const renderWatch = async (slug, episodeNo = "1") => {
       <div class="hianime-main-row">
         <!-- 1. Left Sidebar: Episode List -->
         <div class="hianime-episodes-sidebar">
-          <div style="padding: 0.75rem 1rem; border-bottom: 1px solid var(--border); background: rgba(255,255,255,0.02); display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;">
-            <span style="font-size: 0.85rem; font-weight: bold; color: #fff;">List of episodes:</span>
+          <div style="padding: 0.75rem 1rem; border-bottom: 1px solid var(--border); background: var(--item-bg); display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;">
+            <span style="font-size: 0.85rem; font-weight: bold; color: var(--text);">List of episodes:</span>
             <div style="position: relative; flex-grow: 1; max-width: 120px;">
-              <input type="text" id="epSearchInput" placeholder="Number of Ep" style="width: 100%; padding: 0.35rem 0.5rem; font-size: 0.75rem; background: rgba(0,0,0,0.25); border: 1px solid var(--border); border-radius: 0.25rem; color: #fff; outline:none;" />
+              <input type="text" id="epSearchInput" placeholder="Number of Ep" style="width: 100%; padding: 0.35rem 0.5rem; font-size: 0.75rem; background: var(--searchbar-bg); border: 1px solid var(--border); border-radius: 0.25rem; color: var(--text); outline:none;" />
             </div>
           </div>
           <div class="hianime-ep-list" id="epListContainer">
@@ -995,7 +1259,7 @@ const renderWatch = async (slug, episodeNo = "1") => {
                 <iframe src="${stream.embed_url || stream.embedUrl}" class="video-player" allow="autoplay; fullscreen" sandbox="allow-scripts allow-same-origin allow-forms" style="width:100%;height:100%;border:none;"></iframe>
               </div>
             ` : `
-              <div class="player-art" style="background-image:linear-gradient(rgba(7,10,16,.25),rgba(7,10,16,.85)),url('${anime.banner}')"></div>
+              <div class="player-art" style="background-image:var(--hero-overlay),url('${anime.banner}')"></div>
               <div class="player-message">
                 <span>Demo Player</span>
                 <h1>${anime.title}</h1>
@@ -1063,13 +1327,13 @@ const renderWatch = async (slug, episodeNo = "1") => {
           <div style="display: flex; gap: 1rem; align-items: flex-start;">
             <img src="${anime.poster}" style="width: 80px; height: 115px; object-fit: cover; border-radius: 0.35rem; border: 1px solid var(--border);" />
             <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-              <h1 style="font-size: 0.95rem; margin: 0; color: #fff; line-height: 1.3; font-weight: bold; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;" title="${anime.title}">${anime.title}</h1>
+              <h1 style="font-size: 0.95rem; margin: 0; color: var(--text); line-height: 1.3; font-weight: bold; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;" title="${anime.title}">${anime.title}</h1>
               <div style="display: flex; gap: 0.3rem; flex-wrap: wrap;">
-                <span style="background: rgba(255,255,255,0.08); color: #fff; font-size: 0.65rem; padding: 0.15rem 0.35rem; border-radius: 0.2rem; font-weight: bold; border: 1px solid var(--border);">G</span>
+                <span style="background: var(--item-bg); color: var(--text); font-size: 0.65rem; padding: 0.15rem 0.35rem; border-radius: 0.2rem; font-weight: bold; border: 1px solid var(--border);">G</span>
                 <span style="background: #e76f51; color:#fff; font-size: 0.65rem; padding: 0.15rem 0.35rem; border-radius: 0.2rem; font-weight: bold;">HD</span>
                 <span style="background: #2a9d8f; color:#fff; font-size: 0.65rem; padding: 0.15rem 0.35rem; border-radius: 0.2rem; font-weight: bold;">CC ${anime.sub_episodes || 1}</span>
                 ${anime.dub_episodes ? `<span style="background: #457b9d; color:#fff; font-size: 0.65rem; padding: 0.15rem 0.35rem; border-radius: 0.2rem; font-weight: bold;">🎙️ ${anime.dub_episodes}</span>` : ""}
-                <span style="background: rgba(255,255,255,0.05); color:#fff; font-size: 0.65rem; padding: 0.15rem 0.35rem; border-radius: 0.2rem;">${anime.type}</span>
+                <span style="background: var(--item-bg); color: var(--text); font-size: 0.65rem; padding: 0.15rem 0.35rem; border-radius: 0.2rem; border: 1px solid var(--border);">${anime.type}</span>
               </div>
             </div>
           </div>
@@ -1103,14 +1367,21 @@ const renderWatch = async (slug, episodeNo = "1") => {
 
           <!-- Comments Panel -->
           <div class="hianime-comments-panel">
-            <h2 style="margin-top:0; margin-bottom:1.25rem; font-size:1.15rem; color:#fff; display:flex; align-items:center; gap:0.5rem;">
-              Comments <span style="font-size: 0.75rem; font-weight: normal; background: rgba(255,255,255,0.08); padding: 0.15rem 0.5rem; border-radius: 0.2rem; color: var(--muted);">Guest Mode</span>
+            <h2 style="margin-top:0; margin-bottom:1.25rem; font-size:1.15rem; color:var(--text); display:flex; align-items:center; gap:0.5rem;">
+              Comments <span style="font-size: 0.75rem; font-weight: normal; background: var(--item-bg); padding: 0.15rem 0.5rem; border-radius: 0.2rem; color: var(--muted);">Guest Mode</span>
             </h2>
             <form id="commentForm" style="display:flex; flex-direction:column; gap:0.75rem; margin-bottom:1.5rem;">
               <div style="display:flex; gap:0.5rem; width:100%;">
-                <input type="text" id="commentUser" placeholder="Your name..." required style="padding: 0.6rem 0.8rem; background: rgba(0,0,0,0.25); border: 1px solid var(--border); border-radius: 0.35rem; color: #fff; font-size: 0.85rem; width: 100%; max-width: 280px; outline:none;" />
+                <input type="text" id="commentUser" placeholder="Your name..." required style="padding: 0.6rem 0.8rem; background: var(--searchbar-bg); border: 1px solid var(--border); border-radius: 0.35rem; color: var(--text); font-size: 0.85rem; width: 100%; max-width: 280px; outline:none;" />
+                <select id="commentRating" style="padding: 0.6rem 0.8rem; background: var(--searchbar-bg); border: 1px solid var(--border); border-radius: 0.35rem; color: var(--text); font-size: 0.85rem; outline:none;">
+                  <option value="5">⭐⭐⭐⭐⭐ (5/5)</option>
+                  <option value="4">⭐⭐⭐⭐ (4/5)</option>
+                  <option value="3">⭐⭐⭐ (3/5)</option>
+                  <option value="2">⭐⭐ (2/5)</option>
+                  <option value="1">⭐ (1/5)</option>
+                </select>
               </div>
-              <textarea id="commentText" placeholder="Leave a comment..." required style="padding: 0.6rem 0.8rem; background: rgba(0,0,0,0.25); border: 1px solid var(--border); border-radius: 0.35rem; color: #fff; font-size: 0.85rem; height: 4.5rem; resize: none; outline:none;"></textarea>
+              <textarea id="commentText" placeholder="Leave a comment..." required style="padding: 0.6rem 0.8rem; background: var(--searchbar-bg); border: 1px solid var(--border); border-radius: 0.35rem; color: var(--text); font-size: 0.85rem; height: 4.5rem; resize: none; outline:none;"></textarea>
               <button type="submit" class="search-submit-btn" style="height: auto; padding: 0.5rem 1.5rem; font-size: 0.85rem; align-self: flex-end; width: auto; font-weight:600; border:none; border-radius:0.35rem;">Comment</button>
             </form>
             <div id="commentsList" style="display:flex; flex-direction:column; gap:0.75rem; padding-right: 0.25rem;">
@@ -1120,7 +1391,7 @@ const renderWatch = async (slug, episodeNo = "1") => {
 
           <!-- Recommendations Panel (dynamically resolved) -->
           <div id="watchRecommendationsContainer" style="margin-top:0.5rem;">
-            <div style="padding: 2rem; text-align: center; color: var(--muted); font-size: 0.9rem; background: rgba(17, 22, 26, 0.85); border: 1px solid var(--border); border-radius: 0.65rem;">
+            <div style="padding: 2rem; text-align: center; color: var(--muted); font-size: 0.9rem; background: var(--panel-bg); border: 1px solid var(--border); border-radius: 0.65rem; box-shadow: var(--shadow);">
               Loading recommendations...
             </div>
           </div>
@@ -1128,7 +1399,7 @@ const renderWatch = async (slug, episodeNo = "1") => {
 
         <!-- Bottom Right: Most Popular -->
         <div class="hianime-popular-sidebar">
-          <h2 style="margin: 0 0 0.5rem 0; font-size: 1.1rem; color: #fff; font-weight: bold;">Most Popular</h2>
+          <h2 style="margin: 0 0 0.5rem 0; font-size: 1.1rem; color: var(--text); font-weight: bold;">Most Popular</h2>
           <div class="hianime-popular-list">
             ${popularItems.map((item) => `
               <a href="#/anime/${item.id}" class="hianime-popular-item">
@@ -1136,7 +1407,7 @@ const renderWatch = async (slug, episodeNo = "1") => {
                 <div class="hianime-popular-info">
                   <div class="hianime-popular-title" title="${item.title}">${item.title}</div>
                   <div class="hianime-popular-meta">
-                    <span style="background: rgba(255,255,255,0.05); color: var(--muted); font-size: 0.65rem; padding: 0.1rem 0.3rem; border-radius: 0.15rem; font-weight: bold;">CC ${item.sub_episodes || item.episodes || 1}</span>
+                    <span style="background: var(--item-bg); color: var(--muted); font-size: 0.65rem; padding: 0.1rem 0.3rem; border-radius: 0.15rem; font-weight: bold;">CC ${item.sub_episodes || item.episodes || 1}</span>
                     ${item.dub_episodes ? `<span style="background: rgba(124,58,237,0.15); color: #c084fc; font-size: 0.65rem; padding: 0.1rem 0.3rem; border-radius: 0.15rem; font-weight: bold;">🎙️ ${item.dub_episodes}</span>` : ""}
                     <span style="font-size: 0.7rem; color: var(--muted); margin-left: 0.25rem;">${item.type || "TV"}</span>
                   </div>
@@ -1156,27 +1427,31 @@ const renderWatch = async (slug, episodeNo = "1") => {
   }
 
   // Setup comments list & form
-  const renderComments = () => {
+  const renderComments = async () => {
     const commentsList = document.getElementById("commentsList");
     if (!commentsList) return;
 
-    const list = getCommentsForAnime(anime.id, anime.title);
+    commentsList.innerHTML = `<p class="muted" style="font-size:0.85rem; text-align:center; padding:1.5rem 0;">Loading reviews...</p>`;
+    const list = await getCommentsForAnime(anime.id);
     if (list.length === 0) {
-      commentsList.innerHTML = `<p class="muted" style="font-size:0.85rem; text-align:center; padding:1.5rem 0;">No comments yet. Be the first to post!</p>`;
+      commentsList.innerHTML = `<p class="muted" style="font-size:0.85rem; text-align:center; padding:1.5rem 0;">No comments yet. Be the first to post a review!</p>`;
       return;
     }
 
     commentsList.innerHTML = list.map(c => `
-      <div class="comment-item" style="padding: 0.75rem 1rem; background: rgba(255,255,255,0.015); border: 1px solid rgba(255,255,255,0.04); border-radius: 0.5rem; display: flex; gap: 0.75rem; align-items: flex-start;">
+      <div class="comment-item" style="padding: 0.75rem 1rem; background: var(--item-bg); border: 1px solid var(--border); border-radius: 0.5rem; display: flex; gap: 0.75rem; align-items: flex-start; box-shadow: var(--shadow);">
         <div style="width: 32px; height: 32px; border-radius: 50%; background: #e76f51; color: #fff; font-size: 0.95rem; font-weight: bold; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-          ${(c.user || "G").charAt(0).toUpperCase()}
+          ${(c.username || "G").charAt(0).toUpperCase()}
         </div>
         <div style="flex-grow: 1; min-width: 0;">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.25rem;">
-            <strong style="color:#e76f51; font-size:0.85rem;">${c.user}</strong>
-            <span style="font-size:0.75rem; color:var(--muted);">${c.date || "Just now"}</span>
+            <div style="display:flex; gap: 0.5rem; align-items:center;">
+              <strong style="color:#e76f51; font-size:0.85rem;">${c.username}</strong>
+              <span style="font-size:0.75rem;">${"⭐".repeat(c.rating || 5)}</span>
+            </div>
+            <span style="font-size:0.75rem; color:var(--muted);">${new Date(c.created_at).toLocaleDateString()}</span>
           </div>
-          <p style="margin:0; font-size:0.85rem; line-height:1.4; color:rgba(255,255,255,0.8);">${c.text}</p>
+          <p style="margin:0; font-size:0.85rem; line-height:1.4; color:var(--text);">${c.comment}</p>
         </div>
       </div>
     `).join("");
@@ -1184,22 +1459,32 @@ const renderWatch = async (slug, episodeNo = "1") => {
 
   renderComments();
 
-  document.getElementById("commentForm")?.addEventListener("submit", (e) => {
+  document.getElementById("commentForm")?.addEventListener("submit", async (e) => {
     e.preventDefault();
     const userEl = document.getElementById("commentUser");
     const textEl = document.getElementById("commentText");
+    const ratingEl = document.getElementById("commentRating");
     if (!userEl || !textEl) return;
 
+    const btn = e.target.querySelector("button");
+    if (btn) btn.disabled = true;
+
     const newComment = {
-      user: userEl.value.trim(),
-      text: textEl.value.trim(),
-      date: "Just now"
+      username: userEl.value.trim(),
+      comment: textEl.value.trim(),
+      rating: ratingEl ? parseInt(ratingEl.value) : 5
     };
 
-    saveComment(anime.id, newComment);
-    textEl.value = "";
-    showToast("Comment posted!");
-    renderComments();
+    const success = await saveComment(anime.id, newComment);
+    if (btn) btn.disabled = false;
+    
+    if (success) {
+      textEl.value = "";
+      showToast("Review posted successfully!");
+      renderComments();
+    } else {
+      showToast("Failed to post review. Is the server running?");
+    }
   });
 
   // Setup episodes search filter
@@ -1286,10 +1571,21 @@ const renderWatch = async (slug, episodeNo = "1") => {
 
     const fallbackToIframe = () => {
       const playerContainer = video.parentElement;
-      if (playerContainer && (stream.embed_url || stream.embedUrl)) {
+      const embedUrl = stream.embed_url || stream.embedUrl;
+      if (playerContainer && embedUrl) {
         cleanupHls();
-        playerContainer.innerHTML = `<iframe src="${stream.embed_url || stream.embedUrl}" class="video-player" allow="autoplay; fullscreen" sandbox="allow-scripts allow-same-origin allow-forms" style="width:100%;height:100%;border:none;"></iframe>`;
-        showToast("Direct stream unavailable. Switched to embed player.");
+        if (embedUrl.includes("miruro.tv") || embedUrl.includes("anime.nexus")) {
+          playerContainer.innerHTML = `
+            <div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text);flex-direction:column;gap:1rem;text-align:center;padding:2rem;">
+              <i class="fas fa-exclamation-triangle" style="font-size:2rem;color:var(--accent);"></i>
+              <h3>Stream Failed</h3>
+              <p style="opacity:0.7">This stream encountered a fatal error and the provider does not support external embedding. Please try selecting a different server below.</p>
+            </div>`;
+          showToast("Stream failed. Please switch servers.");
+        } else {
+          playerContainer.innerHTML = `<iframe src="${embedUrl}" class="video-player" allow="autoplay; fullscreen" sandbox="allow-scripts allow-same-origin allow-forms" style="width:100%;height:100%;border:none;"></iframe>`;
+          showToast("Direct stream unavailable. Switched to embed player.");
+        }
       }
     };
 
@@ -1318,7 +1614,7 @@ const renderWatch = async (slug, episodeNo = "1") => {
       fallbackToIframe();
     });
 
-    const isDirectMp4 = stream.type === "mp4" || stream.hls.split('?')[0].toLowerCase().endsWith(".mp4") || stream.hls.toLowerCase().includes(".mp4");
+    const isDirectMp4 = stream.type === "mp4" || (stream.hls && (stream.hls.split('?')[0].toLowerCase().endsWith(".mp4") || stream.hls.toLowerCase().includes(".mp4")));
     if (isDirectMp4) {
       video.src = stream.hls;
     } else if (Hls.isSupported() && stream.hls) {
@@ -1470,8 +1766,8 @@ const renderSaved = (kind) => {
   const stateNow = store.getState();
   const items =
     kind === "favorites"
-      ? animeCatalog.filter((anime) => stateNow.favorites.includes(anime.id))
-      : stateNow.history.map((entry) => ({ entry, anime: animeCatalog.find((anime) => anime.id === entry.animeId) })).filter((item) => item.anime);
+      ? stateNow.favorites.map((favId) => getAnimeById(favId, stateNow)).filter(Boolean)
+      : stateNow.history.map((entry) => ({ entry, anime: getAnimeById(entry.animeId, stateNow) })).filter((item) => item.anime);
 
   view.innerHTML = `
     <div class="page-head"><span>${items.length} saved</span><h1>${kind === "favorites" ? "Favorites" : "Watch History"}</h1></div>
@@ -1494,24 +1790,258 @@ const renderSaved = (kind) => {
   });
 };
 
-const renderProfile = () => {
+const getUserStats = () => {
   const current = store.getState();
-  view.innerHTML = `
-    <div class="page-head"><span>Local guest mode</span><h1>Profile</h1></div>
-    <div class="settings-grid">
-      ${Object.entries(current.settings).map(([name, value]) => `
-        <label class="setting-card">
-          <span><strong>${name.replace(/[A-Z]/g, " $&")}</strong><small>${value ? "Enabled" : "Disabled"}</small></span>
-          <input type="checkbox" data-setting="${name}" ${value ? "checked" : ""} />
-        </label>
-      `).join("")}
-    </div>
-  `;
+  const username = current.profile?.username || "DaoistGNE3VE";
+  
+  let commentCount = 0;
+  let reviewCount = 0;
+  
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && key.startsWith("nompyr-comments-")) {
+      try {
+        const comments = JSON.parse(localStorage.getItem(key)) || [];
+        comments.forEach(c => {
+          if (c.user === username) commentCount++;
+        });
+      } catch (e) {}
+    }
+    if (key && key.startsWith("nompyr-reviews-")) {
+      try {
+        const reviews = JSON.parse(localStorage.getItem(key)) || [];
+        reviews.forEach(r => {
+          if (r.user === username) reviewCount++;
+        });
+      } catch (e) {}
+    }
+  }
+  
+  return { commentCount, reviewCount };
 };
 
-const renderAdmin = () => {
+const renderProfile = () => {
+  const current = store.getState();
+  const profile = current.profile || {};
+  
+  // Calculate dynamic stats
+  const { commentCount, reviewCount } = getUserStats();
+  
+  // Set default values for banner and avatar if empty
+  const bannerStyle = profile.bannerUrl 
+    ? `background-image: url('${profile.bannerUrl}')` 
+    : `background-image: url('./assets/profile_banner.png')`;
+  
+  const avatarContent = profile.avatarUrl 
+    ? `<img src="${profile.avatarUrl}" class="profile-avatar-img" style="width:100%; height:100%; object-fit:cover;" />`
+    : `<span class="profile-avatar-initial">${profile.username.charAt(0).toUpperCase()}</span>`;
+
+  view.innerHTML = `
+    <!-- Profile Banner Container -->
+    <div class="profile-banner-container" style="${bannerStyle}">
+      <!-- Edit Banner Overlay (Only visible in Edit Mode) -->
+      ${state.profileEditMode ? `
+        <label class="banner-edit-overlay" for="bannerUpload">
+          <span class="edit-camera-icon">📷</span>
+          <span>Update Banner</span>
+        </label>
+      ` : ""}
+      <input type="file" id="bannerUpload" accept="image/*" style="display:none;" />
+      
+      <!-- Stats Overlay at Bottom Right -->
+      <div class="profile-stats-bar">
+        <div class="profile-stat-box">
+          <span class="stat-num">${current.favorites.length}</span>
+          <span class="stat-label">Favorites</span>
+        </div>
+        <div class="profile-stat-box">
+          <span class="stat-num">${commentCount}</span>
+          <span class="stat-label">Comments</span>
+        </div>
+        <div class="profile-stat-box">
+          <span class="stat-num">${reviewCount}</span>
+          <span class="stat-label">Reviews</span>
+        </div>
+      </div>
+      
+      <!-- Profile Avatar overlapping banner -->
+      <div class="profile-avatar-container">
+        ${avatarContent}
+        <!-- Edit Avatar Overlay (Only visible in Edit Mode) -->
+        ${state.profileEditMode ? `
+          <label class="avatar-edit-overlay" for="avatarUpload">
+            <span class="edit-camera-icon">📷</span>
+          </label>
+        ` : ""}
+        <input type="file" id="avatarUpload" accept="image/*" style="display:none;" />
+      </div>
+    </div>
+    
+    <!-- Profile Identity Row -->
+    <div class="profile-identity-row">
+      <div class="profile-user-details">
+        ${state.profileEditMode ? `
+          <div style="display:flex; flex-direction:column; gap:0.5rem; max-width:320px; margin-top: 0.5rem;">
+            <input type="text" id="editUsernameInput" value="${profile.username}" placeholder="Username" style="padding:0.55rem 0.75rem; background:var(--searchbar-bg); border:1px solid var(--border); border-radius:0.4rem; color:var(--text); font-size:0.9rem; outline:none;" />
+            <input type="text" id="editLocationInput" value="${profile.location}" placeholder="Location" style="padding:0.55rem 0.75rem; background:var(--searchbar-bg); border:1px solid var(--border); border-radius:0.4rem; color:var(--text); font-size:0.9rem; outline:none;" />
+          </div>
+        ` : `
+          <h2 class="profile-username-heading">${profile.username} <span style="font-size: 0.7rem; color: var(--accent); vertical-align: middle; background: rgba(231,161,92,0.12); padding: 0.15rem 0.45rem; border-radius: 0.25rem; margin-left: 0.5rem;">GUEST</span></h2>
+          <div class="profile-meta-chips">
+            <span class="meta-chip">ID: ${profile.userId}</span>
+            <span class="meta-chip">📅 Joined: ${profile.joinedDate}</span>
+            <span class="meta-chip">📍 Region: ${profile.location}</span>
+          </div>
+        `}
+      </div>
+      
+      <div class="profile-action-buttons">
+        ${state.profileEditMode ? `
+          <button id="saveProfileBtn" class="search-submit-btn" style="height:auto; padding:0.55rem 1.25rem; font-size:0.85rem; border-radius:9999px;">Save</button>
+          <button id="cancelProfileBtn" class="button ghost" style="min-height:2.4rem; padding:0 1.25rem; border-radius:9999px; font-size:0.85rem;">Cancel</button>
+          <button id="resetProfileImagesBtn" class="button ghost" style="min-height:2.4rem; padding:0 1.25rem; border-radius:9999px; font-size:0.85rem; border-color:var(--danger); color:var(--danger);">Reset Photos</button>
+        ` : `
+          <a href="#/favorites" class="button ghost" style="min-height:2.4rem; padding:0 1.25rem; border-radius:9999px; font-size:0.85rem; display:inline-flex; align-items:center; gap:0.4rem;">♥ Favorites</a>
+          <button id="editProfileBtn" class="button ghost" style="min-height:2.4rem; padding:0 1.25rem; border-radius:9999px; font-size:0.85rem;">Edit Profile</button>
+        `}
+      </div>
+    </div>
+  `;
+
+  // Attach Event Listeners
+  const editProfileBtn = document.getElementById("editProfileBtn");
+  const cancelProfileBtn = document.getElementById("cancelProfileBtn");
+  const saveProfileBtn = document.getElementById("saveProfileBtn");
+  const resetProfileImagesBtn = document.getElementById("resetProfileImagesBtn");
+  
+  if (editProfileBtn) {
+    editProfileBtn.addEventListener("click", () => {
+      state.profileEditMode = true;
+      renderProfile();
+    });
+  }
+  
+  if (cancelProfileBtn) {
+    cancelProfileBtn.addEventListener("click", () => {
+      state.profileEditMode = false;
+      renderProfile();
+    });
+  }
+  
+  if (saveProfileBtn) {
+    saveProfileBtn.addEventListener("click", () => {
+      const nameInput = document.getElementById("editUsernameInput");
+      const locInput = document.getElementById("editLocationInput");
+      if (nameInput && locInput) {
+        store.updateProfile(nameInput.value.trim() || undefined, locInput.value.trim() || undefined);
+        state.profileEditMode = false;
+        showToast("Profile details saved!");
+        renderProfile();
+      }
+    });
+  }
+
+  if (resetProfileImagesBtn) {
+    resetProfileImagesBtn.addEventListener("click", () => {
+      store.updateProfile(undefined, undefined, "", "");
+      state.profileEditMode = false;
+      showToast("Photos reset to defaults!");
+      renderProfile();
+    });
+  }
+
+  // Handle avatar upload file reader
+  const avatarUpload = document.getElementById("avatarUpload");
+  if (avatarUpload) {
+    avatarUpload.addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          store.updateProfile(undefined, undefined, event.target.result, undefined);
+          showToast("Profile photo updated!");
+          renderProfile();
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+  }
+
+  // Handle banner upload file reader
+  const bannerUpload = document.getElementById("bannerUpload");
+  if (bannerUpload) {
+    bannerUpload.addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          store.updateProfile(undefined, undefined, undefined, event.target.result);
+          showToast("Profile banner updated!");
+          renderProfile();
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+  }
+
+
+};
+
+const renderAdmin = async () => {
   const current = store.getState();
   const api = sourceManager.apiStatus();
+  
+  // Verify token in session storage to keep login state active
+  const token = sessionStorage.getItem("admin_session_token");
+  if (!token) {
+    view.innerHTML = `
+      <div style="max-width: 26rem; margin: 4rem auto; padding: 2.5rem; background: var(--panel-bg); border: 1px solid var(--border); border-radius: 0.75rem; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 1.5rem;">
+        <div style="text-align: center;">
+          <h1 style="font-size: 1.8rem; margin-bottom: 0.5rem; color: var(--text);">Access Gate</h1>
+          <p style="color: var(--muted); font-size: 0.85rem; margin: 0;">Authorized Owner Authorization Required</p>
+        </div>
+        <form id="adminLoginForm" style="display: flex; flex-direction: column; gap: 1rem;">
+          <div style="display: flex; flex-direction: column; gap: 0.35rem;">
+            <label style="font-size: 0.75rem; color: var(--muted); text-transform: uppercase;">ID</label>
+            <input type="text" id="adminUser" required style="padding: 0.65rem 0.85rem; background: var(--searchbar-bg); border: 1px solid var(--border); border-radius: 0.35rem; color: var(--text); font-size: 0.9rem; outline: none;" />
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 0.35rem;">
+            <label style="font-size: 0.75rem; color: var(--muted); text-transform: uppercase;">Password</label>
+            <input type="password" id="adminPass" required style="padding: 0.65rem 0.85rem; background: var(--searchbar-bg); border: 1px solid var(--border); border-radius: 0.35rem; color: var(--text); font-size: 0.9rem; outline: none;" />
+          </div>
+          <button type="submit" class="search-submit-btn" style="height: auto; padding: 0.75rem 1.5rem; font-size: 0.9rem; border-radius: 0.35rem; margin-top: 0.5rem;">Verify Credentials</button>
+        </form>
+      </div>
+    `;
+    
+    document.getElementById("adminLoginForm")?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const user = document.getElementById("adminUser").value.trim();
+      const pass = document.getElementById("adminPass").value.trim();
+      const baseUrl = current.api?.baseUrl || "http://127.0.0.1:5000";
+      
+      try {
+        const response = await fetch(`${baseUrl}/api/admin/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username: user, password: pass })
+        });
+        
+        if (response.ok) {
+          const resData = await response.json();
+          sessionStorage.setItem("admin_session_token", resData.token);
+          showToast("Access Granted");
+          renderAdmin();
+        } else {
+          showToast("Invalid credentials");
+        }
+      } catch (err) {
+        showToast("Backend connection error");
+      }
+    });
+    return;
+  }
+
   view.innerHTML = `
     <div class="page-head"><span>Source and product overview</span><h1>Admin Dashboard</h1></div>
     <div class="admin-grid">
@@ -1527,9 +2057,12 @@ const renderAdmin = () => {
         <div><strong>Base URL</strong><span>${api.baseUrl}</span><small>${api.configured ? "Key configured" : "No key stored"}</small></div>
         <div><strong>Auth Headers</strong><span>x-api-key + Bearer</span><small>Frontend storage only</small></div>
       </div>
-      <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid rgba(255, 255, 255, 0.05);">
+      <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid rgba(255, 255, 255, 0.05); display: flex; gap: 1rem;">
         <button id="resetApiConfigBtn" class="search-submit-btn" style="height: auto; padding: 0.6rem 1.5rem; font-size: 0.8rem;">
           RESET API TO DEFAULT
+        </button>
+        <button id="adminLogoutBtn" class="button ghost" style="min-height: 2.3rem; padding: 0 1.5rem; font-size: 0.8rem; border-radius: 9999px;">
+          Lock Dashboard
         </button>
       </div>
     </section>
@@ -1540,6 +2073,27 @@ const renderAdmin = () => {
       </div>
     </section>
   `;
+  
+  document.getElementById("adminLogoutBtn")?.addEventListener("click", () => {
+    sessionStorage.removeItem("admin_session_token");
+    showToast("Dashboard Locked");
+    renderAdmin();
+  });
+};
+
+const updateTopbarProfile = () => {
+  const current = store.getState();
+  const profile = current.profile || {};
+  const profileChip = document.querySelector(".profile-chip");
+  if (!profileChip) return;
+
+  if (profile.avatarUrl) {
+    profileChip.innerHTML = `<img src="${profile.avatarUrl}" style="width:100%; height:100%; object-fit:cover;" />`;
+  } else {
+    const username = profile.username || "DaoistGNE3VE";
+    const initials = username.slice(0, 2).toUpperCase();
+    profileChip.innerHTML = `<span class="avatar" style="width:100%;height:100%;border-radius:0;font-size:0.75rem;display:grid;place-items:center;background:linear-gradient(135deg, var(--cyan), var(--green));font-weight:800;color:#fff;">${initials}</span>`;
+  }
 };
 
 const render = async () => {
@@ -1549,6 +2103,7 @@ const render = async () => {
   }
   cleanupHls();
   setActive();
+  updateTopbarProfile();
   rail.classList.remove("open");
   const { page, parts } = route();
 
@@ -1574,9 +2129,9 @@ const render = async () => {
   } catch (error) {
     const api = sourceManager.apiStatus();
     view.innerHTML = `
-      <div class="empty-state" style="max-width: 36rem; margin: 5rem auto; text-align: center; padding: 3rem 2rem; border: 1px solid var(--border); border-radius: 1rem; background: rgba(255, 255, 255, 0.02); backdrop-filter: blur(10px); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);">
+      <div class="empty-state" style="max-width: 36rem; margin: 5rem auto; text-align: center; padding: 3rem 2rem; border: 1px solid var(--border); border-radius: 1rem; background: var(--panel-bg); backdrop-filter: blur(10px); box-shadow: var(--shadow);">
         <div class="empty-icon" style="font-size: 3.5rem; margin-bottom: 1.5rem; color: #E76F51; filter: drop-shadow(0 4px 10px rgba(231, 111, 81, 0.2));">⚠️</div>
-        <h2 style="margin-bottom: 0.75rem; color: #fff; font-size: 1.6rem; font-weight: 750;">Unable to Load Content</h2>
+        <h2 style="margin-bottom: 0.75rem; color: var(--text); font-size: 1.6rem; font-weight: 750;">Unable to Load Content</h2>
         <p style="color: var(--muted); margin-bottom: 2rem; font-size: 0.95rem; line-height: 1.6; max-width: 28rem; margin-left: auto; margin-right: auto;">
           ${error.message.replace(/;/g, '<br>')}
         </p>
@@ -1590,10 +2145,10 @@ const render = async () => {
             </button>
           ` : ''}
           ${api.contentReady ? `
-            <button id="errorResetApiBtn" class="search-submit-btn" style="display: inline-flex; height: auto; padding: 0.75rem 2rem; font-size: 0.85rem; background: rgba(255, 255, 255, 0.08); color: #fff; border: 1px solid var(--border); box-shadow: none;">
+            <button id="errorResetApiBtn" class="search-submit-btn" style="display: inline-flex; height: auto; padding: 0.75rem 2rem; font-size: 0.85rem; background: var(--item-bg); color: var(--text); border: 1px solid var(--border); box-shadow: none;">
               RESET API TO DEFAULT
             </button>
-            <button id="errorDisableApiBtn" class="search-submit-btn" style="display: inline-flex; height: auto; padding: 0.75rem 2rem; font-size: 0.85rem; background: rgba(255, 255, 255, 0.08); color: #fff; border: 1px solid var(--border); box-shadow: none;">
+            <button id="errorDisableApiBtn" class="search-submit-btn" style="display: inline-flex; height: auto; padding: 0.75rem 2rem; font-size: 0.85rem; background: var(--item-bg); color: var(--text); border: 1px solid var(--border); box-shadow: none;">
               RUN IN DEMO MODE (DISABLE API)
             </button>
           ` : ''}
@@ -1604,6 +2159,22 @@ const render = async () => {
 };
 
 document.addEventListener("click", async (event) => {
+  const darkThemeBtn = event.target.closest("#themeDarkBtn");
+  if (darkThemeBtn) {
+    store.updateSetting("theme", "dark");
+    updateThemeUI();
+    showToast("Theme switched to Dark mode");
+    return;
+  }
+
+  const lightThemeBtn = event.target.closest("#themeLightBtn");
+  if (lightThemeBtn) {
+    store.updateSetting("theme", "light");
+    updateThemeUI();
+    showToast("Theme switched to Light mode");
+    return;
+  }
+
   const errorResetBtn = event.target.closest("#errorResetApiBtn");
   if (errorResetBtn) {
     store.clearApiConfig();
@@ -1769,8 +2340,7 @@ document.addEventListener("click", async (event) => {
   const heroNav = event.target.closest("[data-hero-nav]");
   if (heroNav) {
     const dir = heroNav.dataset.heroNav;
-    const data = await sourceManager.home();
-    const len = data.spotlight.length || 4;
+    const len = state.spotlightLength || 5;
     if (dir === "next") {
       state.heroIndex = (state.heroIndex + 1) % len;
     } else {
@@ -1917,12 +2487,12 @@ if (popupNavEl) {
     popupNavEl.classList.add("hidden");
   });
 }
-document.querySelector("#themeToggle")?.addEventListener("click", () => document.body.classList.toggle("high-contrast"));
+updateThemeUI();
 window.addEventListener("hashchange", render);
 
 setInterval(() => {
   if (route().page === "home") {
-    state.heroIndex = (state.heroIndex + 1) % 4;
+    state.heroIndex = (state.heroIndex + 1) % (state.spotlightLength || 5);
     renderHome();
   }
 }, 9000);
@@ -2243,6 +2813,63 @@ if (sInput) {
   sInput.addEventListener("focus", (event) => {
     setupAutocomplete(event.target, document.querySelector("#searchSuggestions"));
   });
+}
+
+// Searchbar interactive buttons handler
+const searchbarAddBtn = document.getElementById("searchbarAddBtn");
+if (searchbarAddBtn) {
+  searchbarAddBtn.addEventListener("click", () => {
+    showToast("Add source: Custom streaming adapters (Coming Soon!)");
+  });
+}
+
+const searchbarMicBtn = document.getElementById("searchbarMicBtn");
+if (searchbarMicBtn) {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (SpeechRecognition) {
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.lang = 'en-US';
+    recognition.interimResults = false;
+    
+    recognition.onstart = () => {
+      showToast("🎙️ Listening... Speak now!");
+      searchbarMicBtn.style.color = "#E76F51";
+      searchbarMicBtn.style.transform = "scale(1.2)";
+    };
+    
+    recognition.onend = () => {
+      searchbarMicBtn.style.color = "";
+      searchbarMicBtn.style.transform = "";
+    };
+    
+    recognition.onresult = (event) => {
+      const text = event.results[0][0].transcript;
+      if (sInput) {
+        sInput.value = text;
+        showToast(`Voice Search: "${text}"`);
+        if (globalSearch) {
+          globalSearch.dispatchEvent(new Event("submit"));
+        }
+      }
+    };
+    
+    recognition.onerror = () => {
+      showToast("Voice recognition failed. Try again.");
+    };
+
+    searchbarMicBtn.addEventListener("click", () => {
+      try {
+        recognition.start();
+      } catch (err) {
+        recognition.stop();
+      }
+    });
+  } else {
+    searchbarMicBtn.addEventListener("click", () => {
+      showToast("Voice Search: Speech recognition not supported in this browser.");
+    });
+  }
 }
 
 render();

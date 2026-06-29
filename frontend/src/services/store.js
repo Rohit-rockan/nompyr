@@ -9,6 +9,7 @@ const initialState = {
   favorites: [],
   history: [],
   progress: {},
+  cachedAnime: {},
   api: {
     enabled: true,
     provider: "all",
@@ -19,7 +20,33 @@ const initialState = {
     autoplay: true,
     skipIntro: true,
     skipOutro: false,
-    theatre: false
+    theatre: false,
+    theme: "dark"
+  },
+  profile: {
+    username: "DaoistGNE3VE",
+    joinedDate: "2026-06-14",
+    userId: "4325078931",
+    location: "Global",
+    avatarUrl: "",
+    bannerUrl: ""
+  },
+  friends: [
+    { id: "zoro", name: "Roronoa Zoro", avatar: "🟢", status: "online", bio: "Lost, looking for the watch page." },
+    { id: "luffy", name: "Monkey D. Luffy", avatar: "🍖", status: "online", bio: "Going to be the Pirate King!" },
+    { id: "nami", name: "Nami", avatar: "🍊", status: "offline", bio: "Charging 100,000 berries per review." },
+    { id: "goku", name: "Son Goku", avatar: "🔥", status: "online", bio: "Hey, it's me, Goku!" }
+  ],
+  chatMessages: {
+    zoro: [
+      { sender: "friend", text: "Hey! Have you seen where the next episode is?", time: "2 hours ago" },
+      { sender: "me", text: "It's on the homepage in the continue watching row!", time: "1 hour ago" },
+      { sender: "zoro", text: "I still got lost...", time: "10 mins ago" }
+    ],
+    luffy: [
+      { sender: "friend", text: "Hey! Do they serve meat here?", time: "Yesterday" },
+      { sender: "me", text: "No, this is a simulated anime catalog site!", time: "Yesterday" }
+    ]
   }
 };
 
@@ -36,6 +63,10 @@ const read = () => {
         : window.location.origin;
     }
 
+    if (!api.baseUrl) {
+      api.baseUrl = getDynamicDefaultBaseUrl();
+    }
+
     if (api.provider === "animekai") {
       api.provider = "all";
     }
@@ -43,6 +74,13 @@ const read = () => {
       ...initialState,
       ...saved,
       api,
+      favorites: saved.favorites || initialState.favorites || [],
+      history: saved.history || initialState.history || [],
+      progress: saved.progress || initialState.progress || {},
+      cachedAnime: saved.cachedAnime || initialState.cachedAnime || {},
+      profile: { ...initialState.profile, ...(saved.profile || {}) },
+      friends: saved.friends || initialState.friends || [],
+      chatMessages: saved.chatMessages || initialState.chatMessages || {},
       settings: { ...initialState.settings, ...(saved.settings || {}) }
     };
   } catch {
@@ -57,6 +95,13 @@ const write = (state) => {
 
 export const store = {
   getState: read,
+  cacheAnime(anime) {
+    if (!anime || !anime.id) return;
+    const state = read();
+    if (!state.cachedAnime) state.cachedAnime = {};
+    state.cachedAnime[anime.id] = anime;
+    write(state);
+  },
   toggleFavorite(id) {
     const state = read();
     state.favorites = state.favorites.includes(id) ? state.favorites.filter((item) => item !== id) : [...state.favorites, id];
@@ -94,5 +139,41 @@ export const store = {
     state.history = [];
     state.progress = {};
     write(state);
+  },
+  updateProfile(username, location, avatarUrl, bannerUrl) {
+    const state = read();
+    state.profile = {
+      ...state.profile,
+      username: username !== undefined ? username : state.profile.username,
+      location: location !== undefined ? location : state.profile.location,
+      avatarUrl: avatarUrl !== undefined ? avatarUrl : state.profile.avatarUrl,
+      bannerUrl: bannerUrl !== undefined ? bannerUrl : state.profile.bannerUrl
+    };
+    write(state);
+    return state.profile;
+  },
+  addFriend(friend) {
+    const state = read();
+    if (!state.friends.some(f => f.id === friend.id)) {
+      state.friends.push(friend);
+    }
+    if (!state.chatMessages[friend.id]) {
+      state.chatMessages[friend.id] = [];
+    }
+    write(state);
+  },
+  removeFriend(friendId) {
+    const state = read();
+    state.friends = state.friends.filter(f => f.id !== friendId);
+    write(state);
+  },
+  addChatMessage(friendId, message) {
+    const state = read();
+    if (!state.chatMessages[friendId]) {
+      state.chatMessages[friendId] = [];
+    }
+    state.chatMessages[friendId].push(message);
+    write(state);
+    return state.chatMessages[friendId];
   }
 };

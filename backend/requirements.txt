@@ -2,4 +2,4 @@ Flask
 Flask-Cors
 requests
 beautifulsoup4
-scikit-learn
+urllib3

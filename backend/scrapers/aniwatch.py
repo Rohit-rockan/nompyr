@@ -389,6 +389,8 @@ def scrape_anime_info_aniwatch(slug):
 def fetch_episodes_aniwatch(slug):
     try:
         info = scrape_anime_info_aniwatch(slug)
+        if isinstance(info, tuple):
+            return info
         if "error" in info:
             return info
         anime_id = info["ani_id"]

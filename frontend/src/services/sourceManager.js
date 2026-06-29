@@ -1,5 +1,5 @@
-import { animeCatalog, days } from "../data/anime.js?v=5";
-import { store } from "./store.js?v=6";
+import { animeCatalog, days } from "../data/anime.js?v=11";
+import { store } from "./store.js?v=10";
 
 const wait = (ms = 120) => new Promise((resolve) => setTimeout(resolve, ms));
 const unwrap = (payload) => payload?.data || payload?.result || payload;
@@ -438,7 +438,78 @@ class DemoSource {
   async home() {
     await wait();
     return {
-      spotlight: animeCatalog.slice(0, 4),
+      spotlight: [
+        {
+          id: "https://www.animenewsnetwork.com/news/2026-06-23/paranormasight-spinoff-manga-listed-to-end-with-2nd-volume/.238817",
+          title: "PARANORMASIGHT Spinoff Manga Listed to End With 2nd Volume",
+          description: "The 2nd compiled volume of the spinoff manga will ship on August 6, marking the conclusion of the series.",
+          poster: "https://images.unsplash.com/photo-1578632767115-351597cf2477?auto=format&fit=crop&w=1600&q=80",
+          banner: "https://images.unsplash.com/photo-1578632767115-351597cf2477?auto=format&fit=crop&w=1600&q=80",
+          year: "2026",
+          rating: "Manga",
+          status: "Completed",
+          type: "Article",
+          genres: ["Manga"],
+          score: "News",
+          isNews: true
+        },
+        {
+          id: "https://www.animenewsnetwork.com/news/2026-06-23/abrams-comicarts-kana-licenses-qtonagi-hotel-astrology-book/.238821",
+          title: "Abrams ComicArts' Kana Licenses Qtonagi's Hotel Astrology Book",
+          description: "The new astrology and horoscope book is scheduled to ship in fall 2027 under the Kana imprint.",
+          poster: "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1600&q=80",
+          banner: "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1600&q=80",
+          year: "2027",
+          rating: "Book",
+          status: "Completed",
+          type: "Article",
+          genres: ["Book"],
+          score: "News",
+          isNews: true
+        },
+        {
+          id: "https://www.animenewsnetwork.com/news/2026-06-23/uta-no-prince-sama-dolce-vita-uta-no-prince-sama-shining-live-games-announce-release-dates/.238850",
+          title: "Uta no Prince-sama Dolce Vita, Uta no Prince-sama Shining Live Games Release Dates",
+          description: "Uta no Prince-sama Shining Live launches on December 17, and Uta no Prince-sama Dolce Vita launches in 2027.",
+          poster: "https://images.unsplash.com/photo-1493246507139-91e8fad9978e?auto=format&fit=crop&w=1600&q=80",
+          banner: "https://images.unsplash.com/photo-1493246507139-91e8fad9978e?auto=format&fit=crop&w=1600&q=80",
+          year: "2026",
+          rating: "Games",
+          status: "Completed",
+          type: "Article",
+          genres: ["Games"],
+          score: "News",
+          isNews: true
+        },
+        {
+          id: "https://www.animenewsnetwork.com/news/2026-06-23/sonic-racing-crossworlds-game-adds-classic-sonic-crazy-taxi-axel-samba-de-amigo-amigo/.238852",
+          title: "Sonic Racing CrossWorlds Game Adds Classic Sonic, Axel, Amigo",
+          description: "The game adds Classic Sonic on Tuesday, Crazy Taxi's Axel in August, and Samba de Amigo's Amigo in September.",
+          poster: "https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?auto=format&fit=crop&w=1600&q=80",
+          banner: "https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?auto=format&fit=crop&w=1600&q=80",
+          year: "2026",
+          rating: "Games",
+          status: "Completed",
+          type: "Article",
+          genres: ["Games"],
+          score: "News",
+          isNews: true
+        },
+        {
+          id: "https://www.animenewsnetwork.com/news/2026-06-23/cake-wep-partner-to-distribute-voltron-franchise/.238813",
+          title: "CAKE, WEP Partner to Distribute Voltron Franchise",
+          description: "The distributed catalog includes Voltron: Golion, Voltron: Dairugger XV, and other classic titles.",
+          poster: "https://images.unsplash.com/photo-1501004318641-b39e6451bec6?auto=format&fit=crop&w=1600&q=80",
+          banner: "https://images.unsplash.com/photo-1501004318641-b39e6451bec6?auto=format&fit=crop&w=1600&q=80",
+          year: "2026",
+          rating: "Anime",
+          status: "Completed",
+          type: "Article",
+          genres: ["Anime"],
+          score: "News",
+          isNews: true
+        }
+      ],
       trending: [...animeCatalog].sort((a, b) => b.score - a.score),
       latest: [...animeCatalog].sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)),
       popular: animeCatalog.filter((anime) => anime.score >= 8.4),
