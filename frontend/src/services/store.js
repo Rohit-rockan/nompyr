@@ -175,5 +175,30 @@ export const store = {
     state.chatMessages[friendId].push(message);
     write(state);
     return state.chatMessages[friendId];
+  },
+  exportMALSync() {
+    const state = read();
+    const exportData = state.history.map(entry => {
+      const anime = state.cachedAnime[entry.animeId] || {};
+      const malId = anime.sourceAnimeId || anime.id.split(':')[1] || anime.id;
+      return {
+        malId: malId,
+        title: anime.title || entry.title,
+        episodesWatched: entry.episode,
+        score: anime.score || 0,
+        status: 1, // 1 = watching
+        updatedAt: entry.date
+      };
+    });
+    
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `nompyr_malsync_export_${new Date().toISOString().slice(0,10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   }
 };
