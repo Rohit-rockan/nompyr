@@ -1702,8 +1702,6 @@ h2 {
 }
 
 .side-trending-panel {
-  position: sticky;
-  top: 5.6rem;
   padding: 1.25rem;
 }
 
