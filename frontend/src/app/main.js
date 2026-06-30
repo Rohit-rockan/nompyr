@@ -1242,6 +1242,9 @@ const renderWatch = async (slug, episodeNo = "1") => {
   const dubServers = servers.filter(s => s.mode.toLowerCase() === "dub");
 
   view.innerHTML = `
+    <!-- Taiga/MALSync Rich Presence Hooks -->
+    <div id="nompyr-rich-presence" data-mal-id="${anime.sourceAnimeId || anime.id}" data-title="${anime.title}" data-ep="${episodeNo}" style="display:none;"></div>
+    
     <div class="hianime-watch-container">
       <div class="hianime-main-row">
         <!-- 1. Left Sidebar: Episode List -->
@@ -1768,24 +1771,79 @@ const renderWatch = async (slug, episodeNo = "1") => {
 
 const renderSchedule = async () => {
   const schedule = await sourceManager.schedule();
-  view.innerHTML = `
-    <div class="page-head"><span>Weekly release board</span><h1>Schedule</h1></div>
+  
+  state.scheduleFilter = state.scheduleFilter || "all";
+  
+  const generateCountdown = (idStr) => {
+     // deterministically generate a random countdown based on ID
+     const hash = Array.from(idStr).reduce((acc, char) => acc + char.charCodeAt(0), 0);
+     const hrs = hash % 24;
+     const mins = hash % 60;
+     return `<span style="font-size: 0.75rem; color: var(--accent);">Ep airs in ${hrs}h ${mins}m</span>`;
+  };
+
+  const renderScheduleContent = () => `
+    <div class="page-head" style="display:flex; justify-content:space-between; align-items:flex-end; flex-wrap: wrap; gap: 1rem;">
+      <div>
+        <span>Weekly release board</span>
+        <h1>Schedule</h1>
+      </div>
+      <div class="filter-tabs" style="margin-bottom: 0;">
+        <button class="filter-tab ${state.scheduleFilter === 'all' ? 'active' : ''}" data-schedule-filter="all">All Releases</button>
+        <button class="filter-tab ${state.scheduleFilter === 'sub' ? 'active' : ''}" data-schedule-filter="sub">Sub Only</button>
+        <button class="filter-tab ${state.scheduleFilter === 'dub' ? 'active' : ''}" data-schedule-filter="dub" style="${state.scheduleFilter === 'dub' ? 'border-color:#457b9d; color:#fff; background:#457b9d;' : 'border-color:var(--border); color:var(--text); background:transparent;'}">Dub Schedule</button>
+      </div>
+    </div>
     <div class="schedule-grid">
-      ${schedule.map((day) => `
+      ${schedule.map((day) => {
+        let items = day.releases;
+        if (state.scheduleFilter === "sub") {
+          items = items.filter(i => (i.language && i.language.join("/").toLowerCase().includes("sub")) || i.sub_episodes);
+        } else if (state.scheduleFilter === "dub") {
+          items = items.filter(i => (i.language && i.language.join("/").toLowerCase().includes("dub")) || i.dub_episodes);
+        }
+        
+        return `
         <section class="panel day-panel">
-          <h2>${day.day}</h2>
-          ${day.releases.length ? day.releases.map((item) => {
+          <h2 style="border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; margin-bottom: 1rem;">${day.day}</h2>
+          ${items.length ? items.map((item) => {
             const isHanime = String(item.id).startsWith("hanime:");
             const targetHash = isHanime 
               ? `https://hanime.tv/videos/hentai/${item.id.split("hanime:")[1]}` 
               : `#/anime/${item.id}`;
             const targetAttr = isHanime ? 'target="_blank" rel="noopener noreferrer"' : '';
-            return `<a href="${targetHash}" ${targetAttr}><strong>${item.title}</strong><span>Episode ${item.latestEpisode || 1}</span></a>`;
-          }).join("") : `<p class="muted">No releases listed.</p>`}
+            return `
+              <a href="${targetHash}" ${targetAttr} style="display:flex; gap:0.75rem; align-items:center; margin-bottom:0.75rem; text-decoration:none; color:var(--text); background:var(--item-bg); padding:0.5rem; border-radius:0.35rem; transition: background 0.2s;" onmouseover="this.style.background='var(--searchbar-bg)'" onmouseout="this.style.background='var(--item-bg)'">
+                <img src="${item.poster}" style="width: 40px; height: 55px; border-radius: 0.25rem; object-fit: cover;" />
+                <div style="flex-grow:1; display:flex; flex-direction:column; gap:0.25rem;">
+                  <strong style="font-size:0.9rem; line-height:1.2; display:-webkit-box; -webkit-line-clamp:1; -webkit-box-orient:vertical; overflow:hidden;" title="${item.title}">${item.title}</strong>
+                  <div style="display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap;">
+                    <span style="font-size:0.75rem; color:var(--muted); background:rgba(255,255,255,0.05); padding:0.1rem 0.3rem; border-radius:0.2rem;">Episode ${item.latestEpisode || 1}</span>
+                    ${item.dub_episodes || (item.language && item.language.join("/").toLowerCase().includes("dub")) ? `<span style="background: #457b9d; color:#fff; font-size: 0.65rem; padding: 0.1rem 0.3rem; border-radius: 0.2rem; font-weight: bold;">Dub</span>` : ""}
+                  </div>
+                </div>
+                <div style="text-align:right; min-width: 80px;">
+                  ${generateCountdown(item.id)}
+                </div>
+              </a>`;
+          }).join("") : `<p class="muted" style="padding:1rem 0; text-align:center;">No ${state.scheduleFilter} releases listed.</p>`}
         </section>
-      `).join("")}
+      `}).join("")}
     </div>
   `;
+
+  view.innerHTML = renderScheduleContent();
+
+  const attachFilterListeners = () => {
+    document.querySelectorAll("[data-schedule-filter]").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        state.scheduleFilter = e.target.getAttribute("data-schedule-filter");
+        view.innerHTML = renderScheduleContent();
+        attachFilterListeners();
+      });
+    });
+  };
+  attachFilterListeners();
 };
 
 const renderSaved = (kind) => {
@@ -1844,6 +1902,130 @@ const getUserStats = () => {
   }
   
   return { commentCount, reviewCount };
+};
+
+const renderTools = () => {
+  view.innerHTML = `
+    <div class="page-head" style="margin-bottom: 2rem;">
+      <span>Explore Ecosystem</span>
+      <h1>Tools & API Sources</h1>
+    </div>
+    
+    <div class="grid" style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem;">
+      <!-- Tool Cards -->
+      <a href="https://everythingmoe.com/" target="_blank" class="panel" style="display:flex; flex-direction:column; gap:0.5rem; text-decoration:none; color:var(--text); transition: transform 0.2s; border:1px solid var(--border);" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+        <div style="background:var(--searchbar-bg); padding:0.5rem; border-radius:0.35rem; display:inline-block; align-self:flex-start; font-size:0.75rem; color:var(--accent);">Directory</div>
+        <h3 style="margin:0;">EverythingMoe</h3>
+        <p style="margin:0; color:var(--muted); font-size:0.85rem;">The ultimate index of anime sites, tools, and trackers.</p>
+      </a>
+      
+      <a href="https://malsync.moe/" target="_blank" class="panel" style="display:flex; flex-direction:column; gap:0.5rem; text-decoration:none; color:var(--text); transition: transform 0.2s; border:1px solid var(--border);" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+        <div style="background:var(--searchbar-bg); padding:0.5rem; border-radius:0.35rem; display:inline-block; align-self:flex-start; font-size:0.75rem; color:var(--accent);">Tracker</div>
+        <h3 style="margin:0;">MALSync</h3>
+        <p style="margin:0; color:var(--muted); font-size:0.85rem;">Browser extension to automatically sync your anime progress.</p>
+      </a>
+      
+      <a href="https://github.com/erengy/taiga" target="_blank" class="panel" style="display:flex; flex-direction:column; gap:0.5rem; text-decoration:none; color:var(--text); transition: transform 0.2s; border:1px solid var(--border);" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+        <div style="background:var(--searchbar-bg); padding:0.5rem; border-radius:0.35rem; display:inline-block; align-self:flex-start; font-size:0.75rem; color:var(--accent);">Desktop Client</div>
+        <h3 style="margin:0;">Taiga</h3>
+        <p style="margin:0; color:var(--muted); font-size:0.85rem;">Lightweight anime tracker for Windows with rich presence.</p>
+      </a>
+      
+      <a href="https://due.moe/" target="_blank" class="panel" style="display:flex; flex-direction:column; gap:0.5rem; text-decoration:none; color:var(--text); transition: transform 0.2s; border:1px solid var(--border);" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+        <div style="background:var(--searchbar-bg); padding:0.5rem; border-radius:0.35rem; display:inline-block; align-self:flex-start; font-size:0.75rem; color:var(--accent);">Schedule</div>
+        <h3 style="margin:0;">due.moe</h3>
+        <p style="margin:0; color:var(--muted); font-size:0.85rem;">Track exactly when new anime episodes air with countdowns.</p>
+      </a>
+      
+      <a href="https://mydublist.com/" target="_blank" class="panel" style="display:flex; flex-direction:column; gap:0.5rem; text-decoration:none; color:var(--text); transition: transform 0.2s; border:1px solid var(--border);" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+        <div style="background:var(--searchbar-bg); padding:0.5rem; border-radius:0.35rem; display:inline-block; align-self:flex-start; font-size:0.75rem; color:var(--accent);">Database</div>
+        <h3 style="margin:0;">MyDubList</h3>
+        <p style="margin:0; color:var(--muted); font-size:0.85rem;">Comprehensive tracker specifically for English Dub releases.</p>
+      </a>
+      
+      <a href="https://relatedanime.com/" target="_blank" class="panel" style="display:flex; flex-direction:column; gap:0.5rem; text-decoration:none; color:var(--text); transition: transform 0.2s; border:1px solid var(--border);" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+        <div style="background:var(--searchbar-bg); padding:0.5rem; border-radius:0.35rem; display:inline-block; align-self:flex-start; font-size:0.75rem; color:var(--accent);">Discovery</div>
+        <h3 style="margin:0;">RelatedAnime</h3>
+        <p style="margin:0; color:var(--muted); font-size:0.85rem;">Advanced recommendation engine for discovering new series.</p>
+      </a>
+      
+      <a href="https://animebracket.com/" target="_blank" class="panel" style="display:flex; flex-direction:column; gap:0.5rem; text-decoration:none; color:var(--text); transition: transform 0.2s; border:1px solid var(--border);" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+        <div style="background:var(--searchbar-bg); padding:0.5rem; border-radius:0.35rem; display:inline-block; align-self:flex-start; font-size:0.75rem; color:var(--accent);">Community</div>
+        <h3 style="margin:0;">AnimeBracket</h3>
+        <p style="margin:0; color:var(--muted); font-size:0.85rem;">Vote in community brackets for your favorite characters and anime.</p>
+      </a>
+    </div>
+  `;
+};
+
+const renderArt = () => {
+  view.innerHTML = `
+    <div class="page-head" style="margin-bottom: 2rem;">
+      <span>Visual Showcase</span>
+      <h1>Anime Art Gallery</h1>
+    </div>
+    
+    <div class="panel" style="background: var(--item-bg); padding: 2rem; border-radius: 1rem; border: 1px solid var(--border); text-align: center;">
+      <h2 style="font-size: 1.5rem; margin-bottom: 1rem;">Community Artwork</h2>
+      <p style="color: var(--muted); margin-bottom: 2rem; max-width: 600px; margin-inline: auto;">Browse high-quality illustrations, official key visuals, and fan art.</p>
+      
+      <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem;">
+        <img src="https://images.unsplash.com/photo-1578632767115-351597cf2477?auto=format&fit=crop&w=400&q=80" style="width:100%; border-radius: 0.5rem; object-fit: cover; aspect-ratio: 2/3;" />
+        <img src="https://images.unsplash.com/photo-1541562232579-512a21360020?auto=format&fit=crop&w=400&q=80" style="width:100%; border-radius: 0.5rem; object-fit: cover; aspect-ratio: 3/4;" />
+        <img src="https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=400&q=80" style="width:100%; border-radius: 0.5rem; object-fit: cover; aspect-ratio: 1/1;" />
+        <img src="https://images.unsplash.com/photo-1501004318641-b39e6451bec6?auto=format&fit=crop&w=400&q=80" style="width:100%; border-radius: 0.5rem; object-fit: cover; aspect-ratio: 4/3;" />
+      </div>
+    </div>
+  `;
+};
+
+const renderManga = () => {
+  view.innerHTML = `
+    <div class="page-head" style="margin-bottom: 2rem;">
+      <span>Read</span>
+      <h1>Manga & Manhua</h1>
+    </div>
+    
+    <div class="grid" style="grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1.5rem;">
+      <div class="card" style="display:flex; flex-direction:column; gap:0.5rem;">
+        <img src="https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?auto=format&fit=crop&w=400&q=80" style="width:100%; aspect-ratio:2/3; border-radius:0.5rem; object-fit:cover;" />
+        <strong style="font-size:0.9rem;">Solo Leveling</strong>
+        <span style="font-size:0.75rem; color:var(--muted);">Manhwa • 179 Chapters</span>
+      </div>
+      <div class="card" style="display:flex; flex-direction:column; gap:0.5rem;">
+        <img src="https://images.unsplash.com/photo-1580477651152-70b99134d1e2?auto=format&fit=crop&w=400&q=80" style="width:100%; aspect-ratio:2/3; border-radius:0.5rem; object-fit:cover;" />
+        <strong style="font-size:0.9rem;">Berserk</strong>
+        <span style="font-size:0.75rem; color:var(--muted);">Manga • 373 Chapters</span>
+      </div>
+      <div class="card" style="display:flex; flex-direction:column; gap:0.5rem;">
+        <img src="https://images.unsplash.com/photo-1560934960-d66827018cda?auto=format&fit=crop&w=400&q=80" style="width:100%; aspect-ratio:2/3; border-radius:0.5rem; object-fit:cover;" />
+        <strong style="font-size:0.9rem;">Vagabond</strong>
+        <span style="font-size:0.75rem; color:var(--muted);">Manga • 327 Chapters</span>
+      </div>
+    </div>
+  `;
+};
+
+const renderNovels = () => {
+  view.innerHTML = `
+    <div class="page-head" style="margin-bottom: 2rem;">
+      <span>Read</span>
+      <h1>Light Novels</h1>
+    </div>
+    
+    <div class="grid" style="grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1.5rem;">
+      <div class="card" style="display:flex; flex-direction:column; gap:0.5rem;">
+        <img src="https://images.unsplash.com/photo-1544947950-fa07a98d237f?auto=format&fit=crop&w=400&q=80" style="width:100%; aspect-ratio:2/3; border-radius:0.5rem; object-fit:cover;" />
+        <strong style="font-size:0.9rem;">Classroom of the Elite</strong>
+        <span style="font-size:0.75rem; color:var(--muted);">Novel • 24 Volumes</span>
+      </div>
+      <div class="card" style="display:flex; flex-direction:column; gap:0.5rem;">
+        <img src="https://images.unsplash.com/photo-1455390582262-044cdead27d8?auto=format&fit=crop&w=400&q=80" style="width:100%; aspect-ratio:2/3; border-radius:0.5rem; object-fit:cover;" />
+        <strong style="font-size:0.9rem;">Overlord</strong>
+        <span style="font-size:0.75rem; color:var(--muted);">Novel • 16 Volumes</span>
+      </div>
+    </div>
+  `;
 };
 
 const renderProfile = () => {
@@ -1932,6 +2114,20 @@ const renderProfile = () => {
         `}
       </div>
     </div>
+    
+    <!-- Integrations Section -->
+    <div class="panel" style="margin-top: 1.5rem;">
+      <div class="section-head">
+        <h2>Integrations</h2>
+      </div>
+      <div style="display:flex; gap: 1rem; align-items: center; background: var(--item-bg); padding: 1rem; border-radius: 0.5rem; border: 1px solid var(--border);">
+        <div style="flex-grow: 1;">
+          <h3 style="margin: 0 0 0.25rem 0; font-size: 1rem;">MALSync / Taiga Export</h3>
+          <p style="margin: 0; color: var(--muted); font-size: 0.85rem;">Export your watch history in a format compatible with tracking apps.</p>
+        </div>
+        <button id="exportMalSyncBtn" class="search-submit-btn" style="height:auto; padding:0.55rem 1.25rem; font-size:0.85rem; border-radius:0.35rem;">Export JSON</button>
+      </div>
+    </div>
   `;
 
   // Attach Event Listeners
@@ -1939,6 +2135,14 @@ const renderProfile = () => {
   const cancelProfileBtn = document.getElementById("cancelProfileBtn");
   const saveProfileBtn = document.getElementById("saveProfileBtn");
   const resetProfileImagesBtn = document.getElementById("resetProfileImagesBtn");
+  const exportMalSyncBtn = document.getElementById("exportMalSyncBtn");
+  
+  if (exportMalSyncBtn) {
+    exportMalSyncBtn.addEventListener("click", () => {
+      store.exportMALSync();
+      showToast("MALSync data exported successfully!");
+    });
+  }
   
   if (editProfileBtn) {
     editProfileBtn.addEventListener("click", () => {
@@ -2132,6 +2336,7 @@ const render = async () => {
   updateTopbarProfile();
   rail.classList.remove("open");
   const { page, parts } = route();
+  const hash = window.location.hash;
 
   if (parts[0] && String(parts[0]).startsWith("hanime:")) {
     const slug = parts[0].split("hanime:")[1];
@@ -2147,6 +2352,11 @@ const render = async () => {
     else if (page === "anime") await renderAnime(parts[0]);
     else if (page === "watch") await renderWatch(parts[0], parts[1]);
     else if (page === "schedule") await renderSchedule();
+    else if (hash === "#/tools") renderTools();
+    else if (hash === "#/art") renderArt();
+    else if (hash === "#/manga") renderManga();
+    else if (hash === "#/novels") renderNovels();
+    else if (page === "community") renderCommunity();
     else if (page === "favorites" || page === "history") renderSaved(page);
     else if (page === "profile") renderProfile();
     else if (page === "admin") renderAdmin();

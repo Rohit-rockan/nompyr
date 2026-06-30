@@ -518,6 +518,43 @@ class DemoSource {
     };
   }
 
+  async recommend(animeId) {
+    await wait(100);
+    const target = animeCatalog.find((a) => a.id === animeId);
+    if (!target) return animeCatalog.slice(0, 12);
+    
+    // "RelatedAnime" inspired recommendation algorithm
+    return animeCatalog
+      .filter((a) => a.id !== animeId)
+      .map(a => {
+        let score = 0;
+        // Shared studio is a strong signal
+        if (a.studio && target.studio && a.studio === target.studio) score += 3;
+        
+        // Shared genres (each adds 1 point)
+        if (a.genres && target.genres) {
+          const common = a.genres.filter(g => target.genres.includes(g));
+          score += common.length;
+        }
+        
+        // Match franchise (if title starts similarly)
+        if (a.title && target.title) {
+            const t1 = a.title.split(" ")[0].toLowerCase();
+            const t2 = target.title.split(" ")[0].toLowerCase();
+            if (t1 === t2 && t1.length > 3) score += 5;
+        }
+        
+        // Match format (e.g. TV vs Movie)
+        if (a.format && target.format && a.format === target.format) score += 1;
+        
+        return { anime: a, score };
+      })
+      .filter(a => a.score > 0)
+      .sort((a, b) => b.score - a.score || Math.random() - 0.5)
+      .map(a => a.anime)
+      .slice(0, 12);
+  }
+
   async search(params = {}) {
     await wait(80);
     const query = (params.query || "").toLowerCase();
