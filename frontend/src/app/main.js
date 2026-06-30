@@ -1275,7 +1275,7 @@ const renderWatch = async (slug, episodeNo = "1") => {
               </div>
             ` : (stream.embed_url || stream.embedUrl) ? `
               <div class="player-container" style="width:100%; height:100%;">
-                <iframe src="${stream.embed_url || stream.embedUrl}" class="video-player" allow="autoplay; fullscreen" sandbox="allow-scripts allow-same-origin allow-forms" style="width:100%;height:100%;border:none;"></iframe>
+                <iframe src="${stream.embed_url || stream.embedUrl}" class="video-player" allow="autoplay; fullscreen" style="width:100%;height:100%;border:none;" allowfullscreen="true" scrolling="no" frameborder="0"></iframe>
               </div>
             ` : stream.external_url ? `
               <div class="player-art" style="background-image:var(--hero-overlay),url('${anime.banner}')"></div>
@@ -1287,7 +1287,7 @@ const renderWatch = async (slug, episodeNo = "1") => {
             ` : `
               <div class="player-art" style="background-image:var(--hero-overlay),url('${anime.banner}')"></div>
               <div class="player-message">
-                <span>Demo Player</span>
+                <span>${stream.demoOnly ? "Demo Player" : "Player Notice"}</span>
                 <h1>${anime.title}</h1>
                 <p>${stream.message || "Streaming is disabled/not resolved for this server."}</p>
                 <button class="button primary" id="simulateProgress">Simulate Watch Progress</button>

@@ -296,7 +296,7 @@ class RemoteApiSource {
         outro: payload?.skip?.outro || [0, 0],
         tracks: payload?.tracks || [],
         download: payload?.download || "",
-        message: hlsSource?.file ? "" : "No HLS source resolved."
+        message: (hlsSource?.file || payload?.embed_url) ? "" : "No source resolved."
       };
     } catch (error) {
       return {
