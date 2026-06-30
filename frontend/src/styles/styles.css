@@ -4058,4 +4058,67 @@ h2 {
   100% { transform: rotate(360deg); }
 }
 
-
+/* ────────────────── EXTRA SMALL MOBILE RESPONSIVENESS (PHONES < 480px) ────────────────── */
+@media (max-width: 480px) {
+  /* Fix Spotlight/Hero Overlaps */
+  .hero {
+    min-height: auto !important;
+    padding: 1rem !important;
+  }
+  .hero-title {
+    font-size: 1.25rem !important;
+    margin-bottom: 0.4rem !important;
+  }
+  .hero-desc {
+    font-size: 0.75rem !important;
+    -webkit-line-clamp: 2 !important;
+    margin-bottom: 0.75rem !important;
+  }
+  .watch-now-btn {
+    padding: 0.4rem 0.8rem !important;
+    font-size: 0.7rem !important;
+    min-height: 2rem !important;
+  }
+  .bookmark-btn {
+    width: 2rem !important;
+    height: 2rem !important;
+    font-size: 0.85rem !important;
+  }
+  
+  /* Fix Massive Anime Cards (Force 2 Columns) */
+  .grid, .home-latest-grid, .three-col-list-widget {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 0.5rem !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  
+  .anime-card .card-title {
+    font-size: 0.7rem !important;
+    min-height: 1.8rem !important;
+    margin-top: 0.35rem !important;
+  }
+  .anime-card .card-meta {
+    font-size: 0.65rem !important;
+  }
+  
+  /* Fix Share Buttons Wrapping */
+  .share-bar {
+    padding: 0.5rem !important;
+    gap: 0.5rem !important;
+  }
+  .share-right {
+    gap: 0.3rem !important;
+  }
+  .share-btn {
+    font-size: 0.65rem !important;
+    padding: 0.3rem 0.5rem !important;
+  }
+  .share-title {
+    font-size: 0.8rem !important;
+  }
+  .share-desc {
+    font-size: 0.65rem !important;
+  }
+}
