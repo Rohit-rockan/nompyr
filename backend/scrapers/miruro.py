@@ -488,19 +488,72 @@ def fetch_servers_miruro(ep_token):
 def resolve_source_miruro(link_id):
     try:
         parts = link_id.split(":")
-        if len(parts) < 5:
+        if len(parts) < 6:
             return {"error": "Invalid link_id format"}, 400
-        provider = parts[0]
-        category = parts[1]
-        anilist_id = parts[2]
-        ep_num = parts[3]
+        provider = parts[1]
+        category = parts[2]
+        anilist_id = parts[3]
+        ep_num = parts[4]
+        orig_id = parts[5]
         
         watch_url = f"https://www.miruro.tv/watch?id={anilist_id}&ep={ep_num}"
         
+        try:
+            enc_id = base64.urlsafe_b64encode(orig_id.encode()).decode().rstrip('=')
+            payload = {
+                "path": "sources",
+                "method": "GET",
+                "query": {
+                    "episodeId": enc_id,
+                    "provider": provider,
+                    "category": category,
+                    "anilistId": int(anilist_id),
+                },
+                "body": None,
+                "version": "0.1.0",
+            }
+            encoded_req = _encode_pipe_request(payload)
+            res = requests.get(f"{MIRURO_PIPE_URL}?e={encoded_req}", headers=MIRURO_HEADERS, timeout=15)
+            
+            if res.status_code == 200:
+                data = _decode_pipe_response(res.text.strip())
+                _deep_translate(data)
+                
+                streams = data.get("streams", [])
+                if streams:
+                    stream = streams[0]
+                    stream_url = stream.get("url")
+                    
+                    subtitles = data.get("subtitles") or []
+                    tracks = []
+                    for sub in subtitles:
+                        label = sub.get("label", "English")
+                        sub_url = sub.get("file") or sub.get("url")
+                        if sub_url:
+                            tracks.append({
+                                "file": sub_url,
+                                "label": label,
+                                "kind": "captions",
+                                "default": label.lower() == "english"
+                            })
+                            
+                    # Miruro provides streams that work perfectly with bysekoze referer via our proxy
+                    # So we mark embed_url to pass the proxy referer logic downstream
+                    return {
+                        "sources": [{"file": stream_url, "type": "mp4"}], # Force mp4 to use proxy-media, since HLS via proxy is trickier unless m3u8 uses absolute paths
+                        "tracks": tracks,
+                        "embed_url": "https://bysekoze.com/",
+                        "external_url": watch_url,
+                        "provider": "Miruro"
+                    }
+        except Exception as api_err:
+            print(f"Miruro pipe API failed to fetch stream: {api_err}")
+
+        # Fallback to external url if stream fetch fails
         return {
             "external_url": watch_url,
             "provider": "Miruro",
-            "message": "Due to server protections, this episode must be watched directly on the provider's website."
+            "message": "Stream interception failed. Due to server protections, this episode must be watched directly on the provider's website."
         }
     except Exception as e:
         print(f"Error resolving source for Miruro: {e}")

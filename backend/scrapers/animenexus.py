@@ -457,25 +457,71 @@ def refresh_cf_cookies(show_id, episode_id, episode_slug):
             print(f"Failed to retrieve cookies via Playwright: {e}")
             return False
 
-def make_stream_request(episode_id):
-    url = f"https://api.anime.nexus/api/anime/details/episode/stream?id={episode_id}&fillers=true&recaps=true"
-    session = requests.Session()
-    if CF_COOKIES:
-        for c in CF_COOKIES:
-            session.cookies.set(c["name"], c["value"], domain=c["domain"])
-            
-    fingerprint = str(uuid.uuid4())
-    headers = {
-        "User-Agent": CF_USER_AGENT,
-        "Origin": "https://anime.nexus",
-        "Referer": "https://anime.nexus/",
-        "Accept": "application/json, text/plain, */*",
-        "x-client-fingerprint": fingerprint,
-        "x-fingerprint": fingerprint
-    }
-    
-    r = session.get(url, headers=headers, timeout=15)
-    return r
+def make_stream_request_via_playwright(show_id, episode_id, episode_slug):
+    if not sync_playwright:
+        print("Playwright is not installed/available in this environment.")
+        return None
+        
+    with PLAYWRIGHT_LOCK:
+        print("Capturing stream JSON using sync Playwright...")
+        try:
+            show_slug = ""
+            try:
+                url = f"https://api.anime.nexus/api/anime/shows/{show_id}"
+                r = requests.get(url, headers=HEADERS, timeout=10)
+                if r.status_code == 200:
+                    show_slug = r.json().get("data", {}).get("slug", "")
+            except Exception as e:
+                print(f"Failed to fetch show slug for navigation: {e}")
+
+            captured_json = None
+
+            with sync_playwright() as p:
+                browser = p.chromium.launch(headless=True)
+                context = browser.new_context(
+                    user_agent=CF_USER_AGENT,
+                    viewport={"width": 1280, "height": 720}
+                )
+                page = context.new_page()
+                
+                def handle_response(response):
+                    nonlocal captured_json
+                    url = response.url
+                    if "details/episode/stream" in url and response.status == 200:
+                        try:
+                            captured_json = response.json()
+                            print("Captured stream JSON successfully!")
+                        except Exception as e:
+                            print(f"Error parsing captured JSON: {e}")
+
+                page.on("response", handle_response)
+                
+                if show_slug:
+                    series_url = f"https://anime.nexus/series/{show_id}/{show_slug}"
+                    print(f"Playwright navigating to series: {series_url}")
+                    page.goto(series_url, timeout=30000)
+                    page.wait_for_timeout(3000)
+                else:
+                    print("Playwright navigating to home page fallback")
+                    page.goto("https://anime.nexus/", timeout=30000)
+                    page.wait_for_timeout(3000)
+
+                watch_url = f"https://anime.nexus/watch/{episode_id}/{episode_slug}"
+                print(f"Playwright navigating to watch: {watch_url}")
+                page.goto(watch_url, timeout=30000)
+                
+                # Wait up to 15 seconds for the API response to be captured
+                for _ in range(15):
+                    if captured_json is not None:
+                        break
+                    page.wait_for_timeout(1000)
+                
+                browser.close()
+                
+            return captured_json
+        except Exception as e:
+            print(f"Failed to capture stream via Playwright: {e}")
+            return None
 
 def resolve_source_animenexus(link_id):
     try:
@@ -490,10 +536,43 @@ def resolve_source_animenexus(link_id):
         
         watch_url = f"https://anime.nexus/watch/{episode_id}/{episode_slug}"
         
+        # We also pass the external_url back in case the user prefers to use the button fallback
+        # However, we will try to resolve the actual stream first!
+        
+        data = make_stream_request_via_playwright(show_id, episode_id, episode_slug)
+        if not data:
+            return {
+                "external_url": watch_url,
+                "provider": "Anime Nexus",
+                "message": "Stream interception failed. Due to server protections, this episode must be watched directly on the provider's website."
+            }
+
+        stream_data = data.get("data", {})
+        hls_url = stream_data.get("url")
+        if not hls_url:
+            return {"error": "No stream URL found in the intercepted data"}, 404
+
+        video_meta = stream_data.get("video_meta") or {}
+        subtitles = video_meta.get("subtitles") or []
+        
+        tracks = []
+        for sub in subtitles:
+            language = sub.get("language", "English")
+            sub_url = sub.get("url")
+            if sub_url:
+                tracks.append({
+                    "file": f"https://api.anime.nexus{sub_url}",
+                    "label": language,
+                    "kind": "captions",
+                    "default": language.lower() == "english"
+                })
+
         return {
-            "external_url": watch_url,
+            "sources": [{"file": hls_url, "type": "hls"}],
+            "tracks": tracks,
+            "embed_url": watch_url, # Fallback button
             "provider": "Anime Nexus",
-            "message": "Due to server protections, this episode must be watched directly on the provider's website."
+            "message": "Stream intercepted successfully. If it fails to play, you can still watch directly on the provider."
         }
     except Exception as e:
         print(f"Error resolving source for Anime Nexus: {e}")
