@@ -27,6 +27,10 @@ from scrapers import (
     scrape_home_hanime,
     scrape_home_miruro,
     scrape_home_animenexus,
+    scrape_home_anikototv,
+    scrape_home_mkissa,
+    scrape_home_anineko,
+    scrape_home_anidb,
 )
 
 home_bp = Blueprint("home", __name__)
@@ -93,6 +97,18 @@ def api_home():
         res = scrape_home_miruro()
     elif source == "animenexus":
         res = scrape_home_animenexus()
+    elif source == "anikototv":
+        res = scrape_home_anikototv()
+    elif source == "mkissa":
+        res = scrape_home_mkissa()
+    elif source == "anineko":
+        res = scrape_home_anineko()
+    elif source == "senshi":
+        res = scrape_home_senshi()
+    elif source == "animotvslash":
+        res = scrape_home_animotvslash()
+    elif source == "animedekho":
+        res = scrape_home_animedekho()
     elif source == "all" or not source:
         with ThreadPoolExecutor(max_workers=Config.MAX_SCRAPER_WORKERS) as executor:
             fut_kai = executor.submit(safe_run, scrape_home)
@@ -100,12 +116,26 @@ def api_home():
             fut_hanime = executor.submit(safe_run, scrape_home_hanime)
             fut_miruro = executor.submit(safe_run, scrape_home_miruro)
             fut_nexus = executor.submit(safe_run, scrape_home_animenexus)
+            fut_anikototv = executor.submit(safe_run, scrape_home_anikototv)
+            fut_mkissa = executor.submit(safe_run, scrape_home_mkissa)
+            fut_anineko = executor.submit(safe_run, scrape_home_anineko)
+            fut_anidb = executor.submit(safe_run, scrape_home_anidb)
+            fut_senshi = executor.submit(safe_run, scrape_home_senshi)
+            fut_animotv = executor.submit(safe_run, scrape_home_animotvslash)
+            fut_animedekho = executor.submit(safe_run, scrape_home_animedekho)
 
             res_kai = fut_kai.result()
             res_watch = fut_watch.result()
             res_hanime = fut_hanime.result()
             res_miruro = fut_miruro.result()
             res_nexus = fut_nexus.result()
+            res_anikototv = fut_anikototv.result()
+            res_mkissa = fut_mkissa.result()
+            res_anineko = fut_anineko.result()
+            res_anidb = fut_anidb.result()
+            res_senshi = fut_senshi.result()
+            res_animotv = fut_animotv.result()
+            res_animedekho = fut_animedekho.result()
 
         def clean_res(r):
             if isinstance(r, tuple):
@@ -119,6 +149,13 @@ def api_home():
         hanime = clean_res(res_hanime)
         miruro = clean_res(res_miruro)
         nexus = clean_res(res_nexus)
+        anikototv = clean_res(res_anikototv)
+        mkissa = clean_res(res_mkissa)
+        anineko = clean_res(res_anineko)
+        anidb = clean_res(res_anidb)
+        senshi = clean_res(res_senshi)
+        animotvslash = clean_res(res_animotv)
+        animedekho = clean_res(res_animedekho)
 
         def prefix_list(lst, prefix):
             return [prefix_item(item, prefix) for item in lst] if lst else []
@@ -129,6 +166,13 @@ def api_home():
             prefix_list(hanime.get("banner", []), "hanime"),
             prefix_list(miruro.get("banner", []), "miruro"),
             prefix_list(nexus.get("banner", []), "animenexus"),
+            prefix_list(anikototv.get("banner", []), "anikototv"),
+            prefix_list(mkissa.get("banner", []), "mkissa"),
+            prefix_list(anineko.get("banner", []), "anineko"),
+            prefix_list(anidb.get("banner", []), "anidb"),
+            prefix_list(senshi.get("banner", []), "senshi"),
+            prefix_list(animotvslash.get("banner", []), "animotvslash"),
+            prefix_list(animedekho.get("banner", []), "animedekho"),
         )
 
         latest = merge_lists(
@@ -137,6 +181,9 @@ def api_home():
             prefix_list(hanime.get("latest_updates", []), "hanime"),
             prefix_list(miruro.get("latest_updates", []), "miruro"),
             prefix_list(nexus.get("latest_updates", []), "animenexus"),
+            prefix_list(anikototv.get("latest_updates", []), "anikototv"),
+            prefix_list(mkissa.get("latest_updates", []), "mkissa"),
+            prefix_list(anineko.get("latest_updates", []), "anineko"),
         )
 
         t_kai = kai.get("top_trending", {})
@@ -144,6 +191,7 @@ def api_home():
         t_hanime = hanime.get("top_trending", {})
         t_miruro = miruro.get("top_trending", {})
         t_nexus = nexus.get("top_trending", {})
+        t_anidb = anidb.get("top_trending", {})
 
         trending = {}
         for key in ["NOW", "DAY", "WEEK", "MONTH"]:
@@ -153,6 +201,7 @@ def api_home():
                 prefix_list(t_hanime.get(key, []), "hanime"),
                 prefix_list(t_miruro.get(key, []), "miruro"),
                 prefix_list(t_nexus.get(key, []), "animenexus"),
+                prefix_list(t_anidb.get(key, []), "anidb"),
             )
 
         popular = merge_lists(
@@ -161,6 +210,7 @@ def api_home():
             prefix_list(hanime.get("popular", []), "hanime"),
             prefix_list(miruro.get("popular", []), "miruro"),
             prefix_list(nexus.get("popular", []), "animenexus"),
+            prefix_list(anidb.get("popular", []), "anidb"),
         )
 
         upcoming = merge_lists(

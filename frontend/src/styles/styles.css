@@ -4411,3 +4411,127 @@ body::before {
   background: rgba(34, 211, 238, 0.3);
   color: #fff;
 }
+
+/* Source Selector Styles */
+.source-selector-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.source-pills-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.source-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.85rem;
+  border-radius: 9999px;
+  background: var(--item-bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.source-pill:hover {
+  background: rgba(34, 211, 238, 0.08);
+  border-color: rgba(34, 211, 238, 0.3);
+  transform: translateY(-1px);
+}
+
+.source-pill.active {
+  background: color-mix(in srgb, var(--primary) 20%, transparent);
+  border-color: var(--accent);
+  color: var(--text);
+  box-shadow: var(--glow-primary);
+}
+
+.source-pill-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--muted);
+}
+
+.source-pill-dot.connected {
+  background: var(--green);
+  box-shadow: 0 0 8px var(--green);
+}
+
+.source-pill-tag {
+  font-size: 0.6rem;
+  padding: 0.1rem 0.3rem;
+  background: rgba(255,255,255,0.1);
+  border-radius: 0.2rem;
+  margin-left: 0.25rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+}
+
+.browse-all-toggle {
+  background: transparent;
+  border: 1px dashed var(--muted);
+  color: var(--muted);
+}
+
+.browse-all-toggle:hover {
+  border-color: var(--text);
+  color: var(--text);
+}
+
+.source-directory-panel {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 0.65rem;
+}
+
+.source-directory-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 0.5rem;
+}
+
+.source-dir-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.5rem;
+  background: var(--item-bg);
+  border: 1px solid transparent;
+  border-radius: 0.35rem;
+  font-size: 0.75rem;
+}
+
+.source-dir-item.connected {
+  border-color: rgba(52, 211, 153, 0.2);
+  background: rgba(52, 211, 153, 0.05);
+}
+
+.source-dir-name {
+  flex-grow: 1;
+  font-weight: 600;
+}
+
+.source-dir-tag {
+  font-size: 0.6rem;
+  background: rgba(255,255,255,0.1);
+  padding: 0.1rem 0.2rem;
+  border-radius: 0.2rem;
+}
+
+.source-dir-status {
+  font-size: 0.65rem;
+  color: var(--muted);
+}
+

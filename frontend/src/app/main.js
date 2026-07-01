@@ -1,5 +1,5 @@
 import { animeCatalog } from "../data/anime.js?v=11";
-import { sourceManager, normalizeAnime, mapJikanToNompyr } from "../services/sourceManager.js?v=12";
+import { sourceManager, normalizeAnime, mapJikanToNompyr, KNOWN_SOURCES } from "../services/sourceManager.js?v=12";
 import { store } from "../services/store.js?v=10";
 
 const fallbackPoster = "https://images.unsplash.com/photo-1541562232579-512a21360020?auto=format&fit=crop&w=720&q=80";
@@ -1319,13 +1319,33 @@ const renderWatch = async (slug, episodeNo = "1") => {
             </div>
           </div>
 
-          <!-- Yellow Card & Server Groups -->
+          <!-- Source Selector & Server Groups -->
           <div class="hianime-servers-box">
+            <!-- Tier 1: Source Selector Pills -->
+            <div class="source-selector-row">
+              <span style="font-size: 0.7rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); opacity: 0.7;">🌊 Active Source</span>
+              <div class="source-pills-wrap">
+                ${KNOWN_SOURCES.filter(s => s.status === "connected").map((src, i) => `
+                  <button class="source-pill ${(state.activeSourceName || KNOWN_SOURCES.filter(sx => sx.status === "connected")[0]?.name) === src.name ? 'active' : ''}" data-source-name="${src.name}">
+                    <span class="source-pill-dot ${src.status}"></span>
+                    ${src.name}
+                    ${src.tags.length ? `<span class="source-pill-tag">${src.tags[0]}</span>` : ''}
+                  </button>
+                `).join("")}
+                <button class="source-pill browse-all-toggle" id="toggleSourceDirectory" title="Browse all 90+ sources">
+                  + ${KNOWN_SOURCES.length - KNOWN_SOURCES.filter(s => s.status === "connected").length} more
+                </button>
+              </div>
+            </div>
+
+            <!-- Alert Banner -->
             <div class="hianime-server-alert">
               <span style="font-size: 0.8rem; color: #856404; font-weight: normal; margin-bottom: 0.15rem;">You are watching</span>
               <strong style="font-size: 1.1rem; color: #856404; margin-bottom: 0.25rem;">Episode ${episodeNo}</strong>
-              <span style="font-size: 0.72rem; color: #9c7a1e; line-height: 1.3;">If current server doesn't work please try other servers beside.</span>
+              <span style="font-size: 0.72rem; color: #9c7a1e; line-height: 1.3;">If current server doesn't work, try another source or server below.</span>
             </div>
+
+            <!-- Tier 2: SUB/DUB Server Buttons -->
             <div class="hianime-server-list-wrap">
               <div style="display: flex; align-items: flex-start; gap: 1rem; border-bottom: 1px solid rgba(255,255,255,0.03); padding-bottom: 0.75rem;">
                 <span style="width: 50px; font-size: 0.8rem; font-weight: bold; color: var(--muted); padding-top: 0.35rem;">SUB:</span>
@@ -1346,6 +1366,21 @@ const renderWatch = async (slug, episodeNo = "1") => {
                     </button>
                   `).join("") || `<span style="font-size:0.8rem; color:var(--muted); padding-top:0.35rem;">No DUB servers</span>`}
                 </div>
+              </div>
+            </div>
+
+            <!-- Browse All Sources Directory (collapsed by default) -->
+            <div class="source-directory-panel hidden" id="sourceDirectoryPanel">
+              <div style="font-size: 0.7rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); margin-bottom: 0.75rem; opacity: 0.7;">📡 All Available Sources (${KNOWN_SOURCES.length})</div>
+              <div class="source-directory-grid">
+                ${KNOWN_SOURCES.map(src => `
+                  <div class="source-dir-item ${src.status}">
+                    <span class="source-pill-dot ${src.status}"></span>
+                    <span class="source-dir-name">${src.name}</span>
+                    ${src.tags.map(t => `<span class="source-dir-tag">${t}</span>`).join("")}
+                    <span class="source-dir-status">${src.status === "connected" ? "● Live" : "○ Directory"}</span>
+                  </div>
+                `).join("")}
               </div>
             </div>
           </div>
@@ -2522,6 +2557,29 @@ document.addEventListener("click", async (event) => {
     }
     const { parts } = route();
     renderWatch(parts[0], parts[1]);
+  }
+
+  // Source directory toggle
+  const toggleDirBtn = event.target.closest("#toggleSourceDirectory");
+  if (toggleDirBtn) {
+    const panel = document.getElementById("sourceDirectoryPanel");
+    if (panel) panel.classList.toggle("hidden");
+  }
+
+  // Source pill active state
+  const sourcePill = event.target.closest(".source-pill:not(.browse-all-toggle)");
+  if (sourcePill) {
+    document.querySelectorAll(".source-pill").forEach(p => p.classList.remove("active"));
+    sourcePill.classList.add("active");
+    state.activeSourceName = sourcePill.dataset.sourceName;
+    showToast(`Switched to source: ${sourcePill.dataset.sourceName}`);
+    
+    // Trigger a re-fetch/re-render of the watch page servers
+    state.activeServerId = null;
+    const { parts } = route();
+    if (parts.length >= 2) {
+       renderWatch(parts[0], parts[1]);
+    }
   }
 
   if (langTab) {

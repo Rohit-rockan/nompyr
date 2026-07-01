@@ -6,6 +6,133 @@ const unwrap = (payload) => payload?.data || payload?.result || payload;
 const fallbackPoster = "https://images.unsplash.com/photo-1541562232579-512a21360020?auto=format&fit=crop&w=720&q=80";
 const fallbackBanner = "https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=1600&q=80";
 
+/* ===================================================================
+   DEDUPLICATION ENGINE
+   =================================================================== */
+const normalizeTitle = (title = "") =>
+  String(title)
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "")
+    .replace(/(season\d+|part\d+|s\d+|cour\d+)$/g, "");
+
+const deduplicateAnime = (list = []) => {
+  const seen = new Map();
+  for (const anime of list) {
+    const key = normalizeTitle(anime.title);
+    if (!key) continue;
+    const existing = seen.get(key);
+    if (!existing) {
+      seen.set(key, anime);
+    } else {
+      // Keep the entry with richer metadata
+      const existingScore = (existing.description?.length || 0) + (existing.episodes || 0) +
+        (existing.poster && !existing.poster.includes("unsplash") ? 50 : 0);
+      const newScore = (anime.description?.length || 0) + (anime.episodes || 0) +
+        (anime.poster && !anime.poster.includes("unsplash") ? 50 : 0);
+      if (newScore > existingScore) {
+        seen.set(key, anime);
+      }
+    }
+  }
+  return [...seen.values()];
+};
+
+/* ===================================================================
+   KNOWN SOURCES DIRECTORY (90 sources from EverythingMoe + extras)
+   =================================================================== */
+export const KNOWN_SOURCES = [
+  { name: "Anikoto", tags: [], status: "directory" },
+  { name: "Animepahe", tags: [], status: "directory" },
+  { name: "MKissa", tags: [], status: "directory" },
+  { name: "Re:Anime", tags: [], status: "directory" },
+  { name: "Miruro", tags: ["MULT"], status: "directory" },
+  { name: "AniDB", tags: [], status: "directory" },
+  { name: "Animetsu", tags: ["MULT"], status: "directory" },
+  { name: "AniZone", tags: [], status: "directory" },
+  { name: "AniNeko", tags: [], status: "directory" },
+  { name: "Senshi", tags: [], status: "directory" },
+  { name: "AnimeVerse", tags: [], status: "directory" },
+  { name: "AnimeStream", tags: [], status: "directory" },
+  { name: "KickAssAnime", tags: [], status: "directory" },
+  { name: "AnimeOnsen", tags: [], status: "directory" },
+  { name: "Anime Nexus", tags: [], status: "connected" },
+  { name: "Anibd.app", tags: [], status: "directory" },
+  { name: "AniSnatch", tags: ["MULT"], status: "directory" },
+  { name: "AnimeX", tags: ["MULT"], status: "directory" },
+  { name: "aniwaves.ru", tags: [], status: "directory" },
+  { name: "Anify", tags: [], status: "directory" },
+  { name: "Anikuro", tags: ["MULT"], status: "directory" },
+  { name: "AnimeParadise", tags: [], status: "directory" },
+  { name: "2Dhive", tags: [], status: "directory" },
+  { name: "AniHQ", tags: [], status: "directory" },
+  { name: "AnimeHeaven", tags: [], status: "directory" },
+  { name: "Anikage", tags: ["MULT"], status: "directory" },
+  { name: "Anidap", tags: ["MULT"], status: "directory" },
+  { name: "Just4Anime", tags: ["MULT"], status: "directory" },
+  { name: "Lunar Animes", tags: ["MULT"], status: "directory" },
+  { name: "ANIMEGG", tags: [], status: "directory" },
+  { name: "AnimeHub", tags: [], status: "directory" },
+  { name: "Animotvslash", tags: [], status: "directory" },
+  { name: "HIDIVE", tags: [], status: "directory" },
+  { name: "AniWorld", tags: [], status: "directory" },
+  { name: "FireAnime", tags: [], status: "directory" },
+  { name: "Anime-Loads", tags: [], status: "directory" },
+  { name: "WCO", tags: [], status: "directory" },
+  { name: "Kisskh", tags: [], status: "directory" },
+  { name: "Otaku-Streamers", tags: ["LOGIN"], status: "directory" },
+  { name: "AnimeNoSub", tags: [], status: "directory" },
+  { name: "KimoiTV", tags: [], status: "directory" },
+  { name: "Animo", tags: [], status: "directory" },
+  { name: "1Anime", tags: ["MULT"], status: "directory" },
+  { name: "Shiroko", tags: ["MULT"], status: "directory" },
+  { name: "AV1 EnCodes", tags: [], status: "directory" },
+  { name: "bettermelon", tags: [], status: "directory" },
+  { name: "Zenkai", tags: [], status: "directory" },
+  { name: "JustAnime", tags: ["MULT"], status: "directory" },
+  { name: "Luna", tags: ["MULT"], status: "directory" },
+  { name: "Fanime", tags: ["MULT"], status: "directory" },
+  { name: "AnimeDex", tags: ["MULT"], status: "directory" },
+  { name: "Animeyubi", tags: ["MULT"], status: "directory" },
+  { name: "AniLight", tags: ["MULT"], status: "directory" },
+  { name: "YumeZone", tags: ["MULT"], status: "directory" },
+  { name: "Itachi", tags: ["MULT"], status: "directory" },
+  { name: "AnimeKizz", tags: ["MULT"], status: "directory" },
+  { name: "Kyren", tags: ["MULT"], status: "directory" },
+  { name: "Animelok", tags: ["MULT"], status: "directory" },
+  { name: "Anistream", tags: ["MULT"], status: "directory" },
+  { name: "Anime Libre", tags: [], status: "directory" },
+  { name: "gogoanime.by", tags: [], status: "directory" },
+  { name: "AniVibe", tags: [], status: "directory" },
+  { name: "Netflix", tags: [], status: "directory" },
+  { name: "OceanVeil", tags: [], status: "directory" },
+  { name: "RetroCrush", tags: [], status: "directory" },
+  { name: "Yomi", tags: ["MULT"], status: "directory" },
+  { name: "Anime Silo", tags: ["KOTO"], status: "directory" },
+  { name: "Kaori", tags: ["MULT"], status: "directory" },
+  { name: "Otakutsu", tags: ["MULT"], status: "directory" },
+  { name: "PimpAnime", tags: ["MULT"], status: "directory" },
+  { name: "NekoWatch", tags: ["MULT"], status: "directory" },
+  { name: "Animegers", tags: ["MULT"], status: "directory" },
+  { name: "Kawaii Anime", tags: ["MULT"], status: "directory" },
+  { name: "ani.pm", tags: ["MULT"], status: "directory" },
+  { name: "StreamX", tags: ["MULT"], status: "directory" },
+  { name: "aniwavecomse", tags: ["KOTO"], status: "directory" },
+  { name: "AniverseHD", tags: ["MULT"], status: "directory" },
+  { name: "RamenFlix", tags: ["MULT"], status: "directory" },
+  { name: "Hulu", tags: [], status: "directory" },
+  { name: "Zanora", tags: ["KOTO"], status: "directory" },
+  { name: "Animeya", tags: ["MULT"], status: "directory" },
+  { name: "Enma", tags: ["KOTO"], status: "directory" },
+  { name: "Anime-Dunya", tags: [], status: "directory" },
+  { name: "AnimeEpisodeSeries", tags: [], status: "directory" },
+  { name: "Kayoanimetv", tags: [], status: "directory" },
+  { name: "AnimeWorld", tags: [], status: "directory" },
+  { name: "AnimeDekho", tags: [], status: "directory" },
+  // Meta/Tracking sources
+  { name: "Jikan/MAL", tags: ["META"], status: "connected" },
+  { name: "Nompyr Demo", tags: ["DEMO"], status: "connected" },
+];
+
 const slugFromUrl = (url = "") => {
   if (!url) return "";
   const clean = String(url).trim().replace(/\/$/, "");
@@ -811,12 +938,26 @@ export class SourceManager {
     throw new Error(errors.map((error) => `${error.source}: ${error.message}`).join("; "));
   }
 
-  home() {
-    return this.trySources("home");
+  async home() {
+    const data = await this.trySources("home");
+    // Deduplicate all lists
+    if (data) {
+      data.spotlight = deduplicateAnime(data.spotlight || []);
+      data.trending = deduplicateAnime(data.trending || []);
+      data.latest = deduplicateAnime(data.latest || []);
+      data.popular = deduplicateAnime(data.popular || []);
+      data.movies = deduplicateAnime(data.movies || []);
+      data.upcoming = deduplicateAnime(data.upcoming || []);
+    }
+    return data;
   }
 
-  search(params) {
-    return this.trySources("search", params);
+  async search(params) {
+    const data = await this.trySources("search", params);
+    if (data && data.results) {
+      data.results = deduplicateAnime(data.results);
+    }
+    return data;
   }
 
   anime(slug) {
@@ -849,6 +990,10 @@ export class SourceManager {
 
   recommendations(title) {
     return this.trySources("recommendations", title);
+  }
+
+  listSources() {
+    return KNOWN_SOURCES;
   }
 
   apiStatus() {

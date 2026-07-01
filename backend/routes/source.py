@@ -22,6 +22,10 @@ from scrapers import (
     resolve_source,
     resolve_source_miruro,
     resolve_source_animenexus,
+    resolve_source_anikototv,
+    resolve_source_mkissa,
+    resolve_source_anineko,
+    resolve_source_anidb,
     resolve_hanime_source,
 )
 
@@ -66,6 +70,15 @@ def api_source(link_id):
     elif link_id.startswith("animenexus:"):
         source = "animenexus"
         stripped_link = link_id.split("animenexus:", 1)[1]
+    elif link_id.startswith("anikototv:"):
+        source = "anikototv"
+        stripped_link = link_id.split("anikototv:", 1)[1]
+    elif link_id.startswith("mkissa:"):
+        source = "mkissa"
+        stripped_link = link_id.split("mkissa:", 1)[1]
+    elif link_id.startswith("anineko:"):
+        source = "anineko"
+        stripped_link = link_id.split("anineko:", 1)[1]
     else:
         if "hanime" in link_id:
             source = "hanime"
@@ -75,6 +88,12 @@ def api_source(link_id):
             source = "miruro"
         elif "animenexus" in link_id:
             source = "animenexus"
+        elif "anikototv" in link_id:
+            source = "anikototv"
+        elif "mkissa" in link_id:
+            source = "mkissa"
+        elif "anineko" in link_id:
+            source = "anineko"
         else:
             source = "animekai"
 
@@ -86,6 +105,20 @@ def api_source(link_id):
         res = resolve_source_miruro(stripped_link)
     elif source == "animenexus":
         res = resolve_source_animenexus(stripped_link)
+    elif source == "anikototv":
+        res = resolve_source_anikototv(stripped_link)
+    elif source == "mkissa":
+        res = resolve_source_mkissa(stripped_link)
+    elif source == "anineko":
+        res = resolve_source_anineko(stripped_link)
+    elif source == "anidb":
+        res = resolve_source_anidb(stripped_link)
+    elif source == "senshi":
+        res = resolve_source_senshi(stripped_link)
+    elif source == "animotvslash":
+        res = resolve_source_animotvslash(stripped_link)
+    elif source == "animedekho":
+        res = resolve_source_animedekho(stripped_link)
     else:
         res = resolve_source(stripped_link)
 

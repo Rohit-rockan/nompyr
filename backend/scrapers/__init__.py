@@ -40,3 +40,37 @@ from scrapers.animenexus import (
     resolve_source_animenexus
 )
 
+from scrapers.anikototv import (
+    search_anikototv,
+    scrape_home_anikototv,
+    scrape_anime_info_anikototv,
+    fetch_episodes_anikototv,
+    fetch_servers_anikototv,
+    resolve_source_anikototv
+)
+
+from scrapers.mkissa import (
+    search_mkissa,
+    scrape_home_mkissa,
+    scrape_anime_info_mkissa,
+    fetch_episodes_mkissa,
+    fetch_servers_mkissa,
+    resolve_source_mkissa
+)
+
+from scrapers.anineko import (
+    search_anineko,
+    scrape_home_anineko,
+    scrape_anime_info_anineko,
+    fetch_episodes_anineko,
+    fetch_servers_anineko,
+    resolve_source_anineko
+)
+
+from scrapers.anidb import (
+    search_anidb,
+    scrape_home_anidb,
+    scrape_anime_info_anidb,
+    fetch_servers_anidb,
+    resolve_source_anidb
+)

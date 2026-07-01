@@ -35,6 +35,10 @@ from scrapers import (
     search_anime_hanime,
     search_anime_miruro,
     search_anime_animenexus,
+    search_anikototv,
+    search_mkissa,
+    search_anineko,
+    search_anidb,
     scrape_most_searched,
 )
 
@@ -179,6 +183,12 @@ def api_search():
         res = search_anime_miruro(kw, page)
     elif source == "animenexus":
         res = search_anime_animenexus(kw, page)
+    elif source == "anikototv":
+        res = search_anikototv(kw, page)
+    elif source == "mkissa":
+        res = search_mkissa(kw)
+    elif source == "anineko":
+        res = search_anineko(kw, page)
     elif source == "all" or not source:
         with ThreadPoolExecutor(max_workers=Config.MAX_SCRAPER_WORKERS) as executor:
             fut_kai = executor.submit(safe_run, search_anime, kw, page)
@@ -186,12 +196,26 @@ def api_search():
             fut_hanime = executor.submit(safe_run, search_anime_hanime, kw, page)
             fut_miruro = executor.submit(safe_run, search_anime_miruro, kw, page)
             fut_nexus = executor.submit(safe_run, search_anime_animenexus, kw, page)
+            fut_anikototv = executor.submit(safe_run, search_anikototv, kw)
+            fut_mkissa = executor.submit(safe_run, search_mkissa, kw)
+            fut_anineko = executor.submit(safe_run, search_anineko, kw)
+            fut_anidb = executor.submit(safe_run, search_anidb, kw)
+            fut_senshi = executor.submit(safe_run, search_senshi, kw)
+            fut_animotv = executor.submit(safe_run, search_animotvslash, kw)
+            fut_animedekho = executor.submit(safe_run, search_animedekho, kw)
 
             res_kai = fut_kai.result()
             res_watch = fut_watch.result()
             res_hanime = fut_hanime.result()
             res_miruro = fut_miruro.result()
             res_nexus = fut_nexus.result()
+            res_anikototv = fut_anikototv.result()
+            res_mkissa = fut_mkissa.result()
+            res_anineko = fut_anineko.result()
+            res_anidb = fut_anidb.result()
+            res_senshi = fut_senshi.result()
+            res_animotv = fut_animotv.result()
+            res_animedekho = fut_animedekho.result()
 
         def clean_res(r):
             if isinstance(r, tuple):
@@ -205,6 +229,13 @@ def api_search():
         hanime = clean_res(res_hanime)
         miruro = clean_res(res_miruro)
         nexus = clean_res(res_nexus)
+        anikototv = clean_res(res_anikototv)
+        mkissa = clean_res(res_mkissa)
+        anineko = clean_res(res_anineko)
+        anidb = clean_res(res_anidb)
+        senshi = clean_res(res_senshi)
+        animotv = clean_res(res_animotv)
+        animedekho = clean_res(res_animedekho)
 
         def prefix_list(lst, prefix):
             return [prefix_item(item, prefix) for item in lst] if lst else []
@@ -215,6 +246,13 @@ def api_search():
             prefix_list(hanime.get("results", []), "hanime"),
             prefix_list(miruro.get("results", []), "miruro"),
             prefix_list(nexus.get("results", []), "animenexus"),
+            prefix_list(anikototv if isinstance(anikototv, list) else [], "anikototv"),
+            prefix_list(mkissa if isinstance(mkissa, list) else [], "mkissa"),
+            prefix_list(anineko if isinstance(anineko, list) else [], "anineko"),
+            prefix_list(anidb if isinstance(anidb, list) else [], "anidb"),
+            prefix_list(senshi if isinstance(senshi, list) else [], "senshi"),
+            prefix_list(animotv if isinstance(animotv, list) else [], "animotvslash"),
+            prefix_list(animedekho if isinstance(animedekho, list) else [], "animedekho"),
         )
 
         total = (
