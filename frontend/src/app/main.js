@@ -1240,6 +1240,7 @@ const renderWatch = async (slug, episodeNo = "1") => {
 
   const subServers = servers.filter(s => s.mode.toLowerCase() === "sub");
   const dubServers = servers.filter(s => s.mode.toLowerCase() === "dub");
+  const externalUrl = (episode && episode.url) || anime.url || stream.external_url || "";
 
   view.innerHTML = `
     <!-- Taiga/MALSync Rich Presence Hooks -->
@@ -1294,6 +1295,7 @@ const renderWatch = async (slug, episodeNo = "1") => {
                 <h1>${anime.title}</h1>
                 <p>${stream.message || "Streaming is disabled/not resolved for this server."}</p>
                 <button class="button primary" id="simulateProgress">Simulate Watch Progress</button>
+                ${externalUrl ? `<br><a href="${externalUrl}" target="_blank" rel="noopener noreferrer" class="button" style="background:var(--card-bg); border: 1px solid var(--border); color:var(--text); text-decoration:none; display:inline-block; padding: 0.5rem 1rem; border-radius: 0.5rem; margin-top: 1rem;"><i class="fas fa-external-link-alt" style="margin-right:0.5rem;"></i>Watch on Original Site</a>` : ""}
               </div>
               <div class="progress"><span style="width:${progress}%"></span></div>
             `}
@@ -1309,6 +1311,7 @@ const renderWatch = async (slug, episodeNo = "1") => {
               <span style="cursor:pointer;" id="actionAutoSkip">⏩ Auto Skip Intro <strong>Off</strong></span>
             </div>
             <div style="display: flex; gap: 0.75rem; align-items: center;">
+              ${externalUrl ? `<a href="${externalUrl}" target="_blank" rel="noopener noreferrer" style="cursor:pointer; color: var(--accent); font-weight: bold; text-decoration: none; margin-right: 0.5rem;" title="Watch on Original Website"><i class="fas fa-external-link-alt"></i> External</a>` : ""}
               <a href="#/watch/${anime.id}/${Math.max(1, Number(episodeNo) - 1)}" style="cursor:pointer;" title="Previous Episode">⏮️</a>
               <a href="#/watch/${anime.id}/${Math.min(anime.episodes, Number(episodeNo) + 1)}" style="cursor:pointer;" title="Next Episode">⏭️</a>
               ${state.activeServerId ? `<span style="cursor:pointer;" data-download="${state.activeServerId}" title="Download">➕</span>` : ""}
@@ -1618,7 +1621,6 @@ const renderWatch = async (slug, episodeNo = "1") => {
     showToast(`Saved ${next}% progress`);
     renderWatch(slug, episodeNo);
   });
-
   // Setup Hls.js or Native Player
   const video = document.getElementById("videoPlayer");
   if (video) {
@@ -1638,6 +1640,7 @@ const renderWatch = async (slug, episodeNo = "1") => {
               <i class="fas fa-exclamation-triangle" style="font-size:2rem;color:var(--accent);"></i>
               <h3>Stream Failed</h3>
               <p style="opacity:0.7">This stream encountered a fatal error and the provider does not support external embedding. Please try selecting a different server below.</p>
+              ${externalUrl ? `<a href="${externalUrl}" target="_blank" rel="noopener noreferrer" style="margin-top:1rem; display:inline-block; padding:0.6rem 1.2rem; background:var(--accent); color:white; text-decoration:none; border-radius:4px; font-weight:bold;"><i class="fas fa-external-link-alt" style="margin-right:0.5rem;"></i>Watch on Original Website</a>` : ""}
             </div>`;
           showToast("Stream failed. Please switch servers.");
         } else {
