@@ -2721,8 +2721,8 @@ h2 {
 }
 
 .hianime-ep-list {
-  max-height: none;
-  overflow-y: visible;
+  max-height: 450px;
+  overflow-y: auto;
 }
 
 .hianime-ep-list a {
