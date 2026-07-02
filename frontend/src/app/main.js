@@ -1294,7 +1294,10 @@ const renderWatch = async (slug, episodeNo = "1") => {
                 <span>${stream.demoOnly ? "Demo Player" : "Player Notice"}</span>
                 <h1>${anime.title}</h1>
                 <p>${stream.message || "Streaming is disabled/not resolved for this server."}</p>
-                <button class="button primary" id="simulateProgress">Simulate Watch Progress</button>
+                <div style="display:flex; gap:1rem; justify-content:center; flex-wrap:wrap; margin-top:1rem;">
+                  <button class="button primary" id="simulateProgress" style="display:none;">Simulate Watch Progress</button>
+                  <button class="button" id="autoSwitchSourceBtn" style="background:var(--accent); border:none; color:white; padding:0.6rem 1.2rem; border-radius:0.5rem; font-weight:bold; cursor:pointer;"><i class="fas fa-search"></i> Auto-Find Working Source</button>
+                </div>
                 ${externalUrl ? `<br><a href="${externalUrl}" target="_blank" rel="noopener noreferrer" class="button" style="background:var(--card-bg); border: 1px solid var(--border); color:var(--text); text-decoration:none; display:inline-block; padding: 0.5rem 1rem; border-radius: 0.5rem; margin-top: 1rem;"><i class="fas fa-external-link-alt" style="margin-right:0.5rem;"></i>Watch on Original Site</a>` : ""}
               </div>
               <div class="progress"><span style="width:${progress}%"></span></div>
@@ -1620,6 +1623,44 @@ const renderWatch = async (slug, episodeNo = "1") => {
     });
     showToast(`Saved ${next}% progress`);
     renderWatch(slug, episodeNo);
+  });
+
+  document.querySelector("#autoSwitchSourceBtn")?.addEventListener("click", async (e) => {
+    const btn = e.target.closest("button");
+    btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Searching...`;
+    btn.style.opacity = "0.7";
+    btn.style.pointerEvents = "none";
+
+    const connectedSources = KNOWN_SOURCES.filter(s => s.status === "connected" && s.name !== state.activeSourceName);
+    let found = false;
+
+    for (const src of connectedSources) {
+      try {
+        showToast(`Searching on ${src.name}...`);
+        const srcQuery = src.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const searchRes = await sourceManager.search({ keyword: anime.title, source: srcQuery });
+        let newMatch = (searchRes.results || searchRes.data || []).find(r => r.id && r.id.startsWith(srcQuery + ":"));
+        if (!newMatch && (searchRes.results || searchRes.data || []).length > 0) {
+          newMatch = (searchRes.results || searchRes.data || [])[0];
+        }
+        
+        if (newMatch) {
+          found = true;
+          showToast(`Found on ${src.name}! Redirecting...`);
+          state.activeSourceName = src.name;
+          window.location.hash = `#/watch/${newMatch.id}/${episodeNo}`;
+          break;
+        }
+      } catch (err) {
+        console.warn("Auto-switch search failed for", src.name, err);
+      }
+    }
+    
+    if (!found) {
+      showToast("Could not find this anime on any other working sources.");
+      btn.innerHTML = `<i class="fas fa-times"></i> Not Found Elsewhere`;
+      btn.style.background = "#e74c3c";
+    }
   });
   // Setup Hls.js or Native Player
   const video = document.getElementById("videoPlayer");
