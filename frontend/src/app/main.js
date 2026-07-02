@@ -3148,7 +3148,7 @@ document.addEventListener("change", async (event) => {
     const { parts } = route();
     if (parts.length >= 2) {
        const currentSlug = parts[0];
-       const currentAnime = store.getAnime(currentSlug);
+       const currentAnime = store.getState().cachedAnime[currentSlug] || await sourceManager.anime(currentSlug).catch(()=>null);
        
        if (currentAnime && currentAnime.title) {
            showToast(`Switching... Searching for "${currentAnime.title}" on ${newSourceName}`);
