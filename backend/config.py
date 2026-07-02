@@ -34,7 +34,7 @@ class Config:
     # --------------------------------------------------------------------------
     # Network Timeouts (seconds)
     # --------------------------------------------------------------------------
-    SCRAPER_TIMEOUT = 15        # Timeout for scraper HTTP requests
+    SCRAPER_TIMEOUT = 8         # Timeout for scraper HTTP requests
     API_TIMEOUT = 10            # Timeout for external API calls (Jikan, AniList)
     PROXY_TIMEOUT = 20          # Timeout for media proxy streaming
     ANILIST_TIMEOUT = 4         # Timeout for AniList GraphQL queries (single)
@@ -43,7 +43,7 @@ class Config:
     # --------------------------------------------------------------------------
     # Thread Pool Configuration
     # --------------------------------------------------------------------------
-    MAX_SCRAPER_WORKERS = 5     # Max concurrent scraper threads for home/search
+    MAX_SCRAPER_WORKERS = 12    # Max concurrent scraper threads for home/search
     MAX_BATCH_WORKERS = 3       # Max parallel AniList batch resolution threads
 
     # --------------------------------------------------------------------------
