@@ -146,6 +146,7 @@ def api_anime_info(slug):
             "year": 2026,
             "schedule": "TBA",
             "sourceHealth": f"Fallback ({source})",
+            "is_fallback": True,
         }
 
     if isinstance(res, dict) and "ani_id" in res:
@@ -156,7 +157,7 @@ def api_anime_info(slug):
         res = enrich_detail_page(res, source)
 
     final_res = {"success": True, **res}
-    if "error" not in final_res:
+    if "error" not in final_res and not final_res.get("is_fallback"):
         cache.set(cache_key, final_res, timeout=Config.CACHE_TTL_DETAILS)
     return jsonify(final_res)
 
