@@ -39,6 +39,9 @@ from scrapers import (
     search_mkissa,
     search_anineko,
     search_anidb,
+    search_senshi,
+    search_animotvslash,
+    search_animedekho,
     scrape_most_searched,
 )
 
