@@ -1321,21 +1321,15 @@ const renderWatch = async (slug, episodeNo = "1") => {
 
           <!-- Source Selector & Server Groups -->
           <div class="hianime-servers-box">
-            <!-- Tier 1: Source Selector Pills -->
-            <div class="source-selector-row">
+            <!-- Tier 1: Source Selector Dropdown -->
+            <div class="source-selector-row" style="align-items: center; gap: 1rem; margin-bottom: 1rem;">
               <span style="font-size: 0.7rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); opacity: 0.7;">🌊 Active Source</span>
-              <div class="source-pills-wrap">
-                ${KNOWN_SOURCES.filter(s => s.status === "connected").map((src, i) => `
-                  <button class="source-pill ${(state.activeSourceName || KNOWN_SOURCES.filter(sx => sx.status === "connected")[0]?.name) === src.name ? 'active' : ''}" data-source-name="${src.name}">
-                    <span class="source-pill-dot ${src.status}"></span>
-                    ${src.name}
-                    ${src.tags.length ? `<span class="source-pill-tag">${src.tags[0]}</span>` : ''}
-                  </button>
-                `).join("")}
-                <button class="source-pill browse-all-toggle" id="toggleSourceDirectory" title="Browse all 90+ sources">
-                  + ${KNOWN_SOURCES.length - KNOWN_SOURCES.filter(s => s.status === "connected").length} more
-                </button>
-              </div>
+              <select class="source-dropdown" id="sourceSelectorDropdown" style="background: rgba(17, 22, 26, 0.85); color: var(--text); border: 1px solid var(--border); padding: 0.4rem 0.8rem; border-radius: 0.35rem; font-size: 0.85rem; outline: none; cursor: pointer; min-width: 200px;">
+                ${KNOWN_SOURCES.filter(s => s.status === "connected").map((src) => {
+                  const isActive = (state.activeSourceName || KNOWN_SOURCES.filter(sx => sx.status === "connected")[0]?.name) === src.name;
+                  return `<option value="${src.name}" ${isActive ? 'selected' : ''}>${src.name} ${src.tags.length ? `(${src.tags[0]})` : ''}</option>`;
+                }).join("")}
+              </select>
             </div>
 
             <!-- Alert Banner -->
@@ -2559,28 +2553,7 @@ document.addEventListener("click", async (event) => {
     renderWatch(parts[0], parts[1]);
   }
 
-  // Source directory toggle
-  const toggleDirBtn = event.target.closest("#toggleSourceDirectory");
-  if (toggleDirBtn) {
-    const panel = document.getElementById("sourceDirectoryPanel");
-    if (panel) panel.classList.toggle("hidden");
-  }
 
-  // Source pill active state
-  const sourcePill = event.target.closest(".source-pill:not(.browse-all-toggle)");
-  if (sourcePill) {
-    document.querySelectorAll(".source-pill").forEach(p => p.classList.remove("active"));
-    sourcePill.classList.add("active");
-    state.activeSourceName = sourcePill.dataset.sourceName;
-    showToast(`Switched to source: ${sourcePill.dataset.sourceName}`);
-    
-    // Trigger a re-fetch/re-render of the watch page servers
-    state.activeServerId = null;
-    const { parts } = route();
-    if (parts.length >= 2) {
-       renderWatch(parts[0], parts[1]);
-    }
-  }
 
   if (langTab) {
     state.activeLanguage = langTab.dataset.lang;
@@ -3165,5 +3138,19 @@ if (searchbarMicBtn) {
     });
   }
 }
+
+document.addEventListener("change", (event) => {
+  if (event.target.id === "sourceSelectorDropdown") {
+    state.activeSourceName = event.target.value;
+    showToast(`Switched to source: ${event.target.value}`);
+    
+    // Trigger a re-fetch/re-render of the watch page servers
+    state.activeServerId = null;
+    const { parts } = route();
+    if (parts.length >= 2) {
+       renderWatch(parts[0], parts[1]);
+    }
+  }
+});
 
 render();
