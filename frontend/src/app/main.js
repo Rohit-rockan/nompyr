@@ -3139,16 +3139,49 @@ if (searchbarMicBtn) {
   }
 }
 
-document.addEventListener("change", (event) => {
+document.addEventListener("change", async (event) => {
   if (event.target.id === "sourceSelectorDropdown") {
-    state.activeSourceName = event.target.value;
-    showToast(`Switched to source: ${event.target.value}`);
+    const newSourceName = event.target.value;
+    const oldSourceName = state.activeSourceName;
+    state.activeSourceName = newSourceName;
     
-    // Trigger a re-fetch/re-render of the watch page servers
-    state.activeServerId = null;
     const { parts } = route();
     if (parts.length >= 2) {
-       renderWatch(parts[0], parts[1]);
+       const currentSlug = parts[0];
+       const currentAnime = store.getAnime(currentSlug);
+       
+       if (currentAnime && currentAnime.title) {
+           showToast(`Switching... Searching for "${currentAnime.title}" on ${newSourceName}`);
+           
+           const srcMap = {
+               "Miruro": "miruro",
+               "Anikoto": "anikototv",
+               "MKissa": "mkissa",
+               "AniNeko": "anineko",
+               "Anime Nexus": "animenexus",
+               "Senshi": "senshi",
+               "AnimeDekho": "animedekho",
+               "HiAnime": "aniwatch"
+           };
+           const srcQuery = srcMap[newSourceName] || "";
+           
+           try {
+               const searchRes = await sourceManager.search({ query: currentAnime.title, source: srcQuery });
+               // Filter results to ensure we pick one from the selected source
+               const newMatch = (searchRes.results || []).find(r => srcQuery ? r.id.startsWith(srcQuery + ":") : true);
+               
+               if (newMatch) {
+                   showToast(`Found on ${newSourceName}! Redirecting...`);
+                   window.location.hash = `#/watch/${newMatch.id}/${parts[1]}`;
+               } else {
+                   showToast(`Could not find this anime on ${newSourceName}. Reverting to original source.`);
+                   event.target.value = state.activeSourceName = oldSourceName;
+               }
+           } catch (e) {
+               showToast("Error searching on new source.");
+               event.target.value = state.activeSourceName = oldSourceName;
+           }
+       }
     }
   }
 });

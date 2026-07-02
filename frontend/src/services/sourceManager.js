@@ -41,16 +41,16 @@ const deduplicateAnime = (list = []) => {
    KNOWN SOURCES DIRECTORY (90 sources from EverythingMoe + extras)
    =================================================================== */
 export const KNOWN_SOURCES = [
-  { name: "Anikoto", tags: [], status: "directory" },
+  { name: "Anikoto", tags: [], status: "connected" },
   { name: "Animepahe", tags: [], status: "directory" },
-  { name: "MKissa", tags: [], status: "directory" },
+  { name: "MKissa", tags: [], status: "connected" },
   { name: "Re:Anime", tags: [], status: "directory" },
-  { name: "Miruro", tags: ["MULT"], status: "directory" },
-  { name: "AniDB", tags: [], status: "directory" },
+  { name: "Miruro", tags: ["MULT"], status: "connected" },
+  { name: "AniDB", tags: [], status: "connected" },
   { name: "Animetsu", tags: ["MULT"], status: "directory" },
   { name: "AniZone", tags: [], status: "directory" },
-  { name: "AniNeko", tags: [], status: "directory" },
-  { name: "Senshi", tags: [], status: "directory" },
+  { name: "AniNeko", tags: [], status: "connected" },
+  { name: "Senshi", tags: [], status: "connected" },
   { name: "AnimeVerse", tags: [], status: "directory" },
   { name: "AnimeStream", tags: [], status: "directory" },
   { name: "KickAssAnime", tags: [], status: "directory" },
@@ -127,7 +127,7 @@ export const KNOWN_SOURCES = [
   { name: "AnimeEpisodeSeries", tags: [], status: "directory" },
   { name: "Kayoanimetv", tags: [], status: "directory" },
   { name: "AnimeWorld", tags: [], status: "directory" },
-  { name: "AnimeDekho", tags: [], status: "directory" },
+  { name: "AnimeDekho", tags: [], status: "connected" },
   // Meta/Tracking sources
   { name: "Jikan/MAL", tags: ["META"], status: "connected" },
   { name: "Nompyr Demo", tags: ["DEMO"], status: "connected" },
@@ -311,6 +311,7 @@ class RemoteApiSource {
     const payload = await this.request("/api/search", {
       keyword: query,
       page,
+      source: params.source || "",
       genre: params.genre || "",
       type: params.type || "",
       status: params.status || "",
