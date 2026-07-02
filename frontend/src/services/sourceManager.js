@@ -158,7 +158,7 @@ const splitGenres = (value) => {
 
 const getProxiedImageUrl = (imageUrl) => {
   if (!imageUrl) return imageUrl;
-  if (imageUrl.includes("hanime-cdn.com") || imageUrl.includes("hanime.tv") || imageUrl.includes("weeb.sh") || imageUrl.includes("htv-services.com")) {
+  if (imageUrl.includes("hanime-cdn.com") || imageUrl.includes("hanime.tv") || imageUrl.includes("weeb.sh") || imageUrl.includes("htv-services.com") || imageUrl.includes("cdn.anidb.app")) {
     const api = store.getState().api || {};
     const baseUrl = api.baseUrl || "http://127.0.0.1:5000";
     return `${baseUrl}/api/proxy-image?url=${encodeURIComponent(imageUrl)}`;
@@ -348,7 +348,11 @@ class RemoteApiSource {
   async episodes(slug) {
     try {
       const payload = await this.request(`/api/episodes/${encodeURIComponent(slug)}`);
-      const list = Array.isArray(payload) ? payload : payload?.episodes || payload?.items || [];
+      let list = Array.isArray(payload) ? payload : payload?.episodes || payload?.items;
+      if (list && typeof list === "object" && !Array.isArray(list)) {
+        list = Object.values(list);
+      }
+      list = list || [];
       if (list.length === 0) {
         throw new Error("No episodes returned from API");
       }
