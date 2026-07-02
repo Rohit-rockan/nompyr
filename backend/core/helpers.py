@@ -426,3 +426,26 @@ def get_proxy_session(url, headers):
         except Exception as e:
             print(f"Error loading animenexus cookies for proxy: {e}")
     return session
+
+def is_hentai(item):
+    """
+    Determine if an anime item is classified as hentai/adult content.
+    """
+    if not isinstance(item, dict):
+        return False
+    slug = str(item.get("slug", ""))
+    item_id = str(item.get("id", ""))
+    if slug.startswith("hanime:") or item_id.startswith("hanime:"):
+        return True
+    genres = [str(g).lower() for g in (item.get("genres") or [])]
+    if "hentai" in genres:
+        return True
+    tags = [str(t).lower() for t in (item.get("tags") or [])]
+    if "hentai" in tags:
+        return True
+    title = str(item.get("title", "")).lower()
+    desc = str(item.get("description", "") or item.get("synopsis", "")).lower()
+    if "hentai" in title or "hentai" in desc:
+        return True
+    return False
+

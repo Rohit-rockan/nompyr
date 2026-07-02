@@ -12,7 +12,7 @@
 #     mainstream discovery channels with NSFW material.
 # ==============================================================================
 
-from services.recommender import is_hentai
+from core.helpers import is_hentai
 from config import Config
 
 

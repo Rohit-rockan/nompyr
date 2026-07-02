@@ -36,7 +36,6 @@ def register_blueprints(app):
     from routes.anime import anime_bp
     from routes.source import source_bp
     from routes.proxy import proxy_bp
-    from routes.recommendations import recs_bp
     from routes.jikan_routes import jikan_bp
     from routes.admin import admin_bp
 
@@ -45,6 +44,5 @@ def register_blueprints(app):
     app.register_blueprint(anime_bp)
     app.register_blueprint(source_bp)
     app.register_blueprint(proxy_bp)
-    app.register_blueprint(recs_bp)
     app.register_blueprint(jikan_bp)
     app.register_blueprint(admin_bp)

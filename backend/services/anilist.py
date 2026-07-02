@@ -20,7 +20,7 @@ import datetime
 from config import Config
 from core.cache import cache
 from core.http_client import http_client
-from services.recommender import is_hentai
+from core.helpers import is_hentai
 
 
 # ==============================================================================

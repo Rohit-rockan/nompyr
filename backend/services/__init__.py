@@ -18,7 +18,7 @@ from services.content_filter import (
     should_keep_hentai,
     filter_and_demote_hentai,
 )
-from services.recommender import AnimeRecommender, is_hentai
+
 from services.anilist import (
     get_anilist_metadata,
     get_anilist_metadata_batch,
