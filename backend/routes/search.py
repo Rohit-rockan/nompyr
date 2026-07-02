@@ -187,7 +187,7 @@ def api_search():
     elif source == "animenexus":
         res = search_anime_animenexus(kw, page)
     elif source == "anikototv":
-        res = search_anikototv(kw, page)
+        res = search_anikototv(kw)
     elif source == "mkissa":
         res = search_mkissa(kw)
     elif source == "anineko":
@@ -243,19 +243,26 @@ def api_search():
         def prefix_list(lst, prefix):
             return [prefix_item(item, prefix) for item in lst] if lst else []
 
+        def extract_results(r):
+            if isinstance(r, dict):
+                return r.get("results") or r.get("data") or []
+            if isinstance(r, list):
+                return r
+            return []
+
         results = merge_lists(
-            prefix_list(kai.get("results", []), "animekai"),
-            prefix_list(watch.get("results", []), "aniwatch"),
-            prefix_list(hanime.get("results", []), "hanime"),
-            prefix_list(miruro.get("results", []), "miruro"),
-            prefix_list(nexus.get("results", []), "animenexus"),
-            prefix_list(anikototv if isinstance(anikototv, list) else [], "anikototv"),
-            prefix_list(mkissa if isinstance(mkissa, list) else [], "mkissa"),
-            prefix_list(anineko if isinstance(anineko, list) else [], "anineko"),
-            prefix_list(anidb if isinstance(anidb, list) else [], "anidb"),
-            prefix_list(senshi if isinstance(senshi, list) else [], "senshi"),
-            prefix_list(animotv if isinstance(animotv, list) else [], "animotvslash"),
-            prefix_list(animedekho if isinstance(animedekho, list) else [], "animedekho"),
+            prefix_list(extract_results(kai), "animekai"),
+            prefix_list(extract_results(watch), "aniwatch"),
+            prefix_list(extract_results(hanime), "hanime"),
+            prefix_list(extract_results(miruro), "miruro"),
+            prefix_list(extract_results(nexus), "animenexus"),
+            prefix_list(extract_results(anikototv), "anikototv"),
+            prefix_list(extract_results(mkissa), "mkissa"),
+            prefix_list(extract_results(anineko), "anineko"),
+            prefix_list(extract_results(anidb), "anidb"),
+            prefix_list(extract_results(senshi), "senshi"),
+            prefix_list(extract_results(animotv), "animotvslash"),
+            prefix_list(extract_results(animedekho), "animedekho"),
         )
 
         total = (
