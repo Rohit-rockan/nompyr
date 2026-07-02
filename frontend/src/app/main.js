@@ -2451,6 +2451,44 @@ const render = async () => {
     else await renderHome();
   } catch (error) {
     const api = sourceManager.apiStatus();
+    
+    // Check if it's a 404/Not Found error for an anime
+    const isNotFound = error.message.includes("404") || error.message.toLowerCase().includes("not found");
+    const isWatchRoute = page === "watch" || page === "anime";
+    
+    if (isNotFound && isWatchRoute) {
+      const failedTitle = parts[0] ? decodeURIComponent(parts[0]).split(":").pop().replace(/-/g, " ") : "this anime";
+      view.innerHTML = `
+        <div class="empty-state" style="max-width: 42rem; margin: 4rem auto; text-align: center; padding: 3rem 2rem; border: 1px solid var(--border); border-radius: 1rem; background: var(--panel-bg); backdrop-filter: blur(10px); box-shadow: var(--shadow);">
+          <img src="https://media1.tenor.com/m/lYhB0yE144oAAAAd/anime-bowing.gif" alt="Anime Girl Bowing" style="width: 250px; border-radius: 1rem; margin-bottom: 1.5rem; object-fit: cover; box-shadow: 0 8px 24px rgba(0,0,0,0.2);" onerror="this.src='https://media.tenor.com/tHq8c7f3FhgAAAAi/anime-bow.gif'" />
+          <h2 style="margin-bottom: 0.5rem; color: #e76f51; font-size: 2rem; font-weight: 800; letter-spacing: -0.02em;">Oops! Something went wrong</h2>
+          <p style="color: var(--muted); margin-bottom: 1.5rem; font-size: 1rem; line-height: 1.6;">
+            The page you're looking for doesn't exist or has been moved.<br>
+            <strong style="color: var(--text);">Error Code: 404</strong>
+          </p>
+          <div style="background: rgba(231,111,81,0.1); border: 1px solid rgba(231,111,81,0.2); padding: 1.5rem; border-radius: 0.75rem; margin-bottom: 2.5rem; text-align: left;">
+            <p style="margin: 0; color: var(--text); font-size: 1rem; line-height: 1.6; text-align: center;">
+              <strong>Gomen nasai! (Sorry!)</strong> We couldn't find <strong><span style="color:#e76f51; text-transform: capitalize;">"${failedTitle}"</span></strong> right now.<br>
+              In the future, we will try to add this anime to our source.<br><br>
+              <span style="opacity: 0.85;">For now, please redirect to one of our partners to watch it!</span>
+            </p>
+          </div>
+          <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+             <a href="https://aniwatch.to/search?keyword=${encodeURIComponent(failedTitle)}" target="_blank" rel="noopener noreferrer" class="search-submit-btn" style="display: inline-flex; text-decoration: none; font-size: 0.9rem; padding: 0.8rem 1.5rem; height: auto;">
+               WATCH ON ANIWATCH ↗
+             </a>
+             <a href="https://miruro.tv/search?q=${encodeURIComponent(failedTitle)}" target="_blank" rel="noopener noreferrer" class="search-submit-btn" style="display: inline-flex; text-decoration: none; font-size: 0.9rem; padding: 0.8rem 1.5rem; height: auto; background: var(--item-bg); color: var(--text); border: 1px solid var(--border); box-shadow: none;">
+               WATCH ON MIRURO ↗
+             </a>
+             <a href="#/" class="button ghost" style="display: inline-flex; text-decoration: none; font-size: 0.9rem; padding: 0.8rem 1.5rem; height: auto;">
+               RETURN HOME
+             </a>
+          </div>
+        </div>
+      `;
+      return;
+    }
+
     view.innerHTML = `
       <div class="empty-state" style="max-width: 36rem; margin: 5rem auto; text-align: center; padding: 3rem 2rem; border: 1px solid var(--border); border-radius: 1rem; background: var(--panel-bg); backdrop-filter: blur(10px); box-shadow: var(--shadow);">
         <div class="empty-icon" style="font-size: 3.5rem; margin-bottom: 1.5rem; color: #E76F51; filter: drop-shadow(0 4px 10px rgba(231, 111, 81, 0.2));">⚠️</div>
