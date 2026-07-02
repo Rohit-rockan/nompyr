@@ -3161,18 +3161,37 @@ document.addEventListener("change", async (event) => {
                "Anime Nexus": "animenexus",
                "Senshi": "senshi",
                "AnimeDekho": "animedekho",
-               "HiAnime": "aniwatch"
+               "HiAnime": "aniwatch",
+               "Aniwatch": "aniwatch",
+               "HAnime": "hanime"
            };
-           const srcQuery = srcMap[newSourceName] || "";
+           
+           const srcQuery = srcMap[newSourceName];
+           
+           if (!srcQuery && !newSourceName.includes("Demo")) {
+               showToast(`${newSourceName} is not currently supported for cross-switching.`);
+               event.target.value = state.activeSourceName = oldSourceName;
+               return;
+           }
            
            try {
-               const searchRes = await sourceManager.search({ query: currentAnime.title, source: srcQuery });
-               // Filter results to ensure we pick one from the selected source
-               const newMatch = (searchRes.results || []).find(r => srcQuery ? r.id.startsWith(srcQuery + ":") : true);
+               let newMatch = null;
                
-               if (newMatch) {
+               if (newSourceName.includes("Demo")) {
+                   // Demo source doesn't use the remote backend API
+                   showToast("Demo source does not contain full catalog.");
+                   event.target.value = state.activeSourceName = oldSourceName;
+                   return;
+               } else {
+                   const searchRes = await sourceManager.search({ query: currentAnime.title, source: srcQuery });
+                   newMatch = (searchRes.results || []).find(r => r.id.startsWith(srcQuery + ":"));
+               }
+               
+               if (newMatch && newMatch.id !== currentSlug) {
                    showToast(`Found on ${newSourceName}! Redirecting...`);
                    window.location.hash = `#/watch/${newMatch.id}/${parts[1]}`;
+               } else if (newMatch && newMatch.id === currentSlug) {
+                   showToast(`Already on the best match for ${newSourceName}.`);
                } else {
                    showToast(`Could not find this anime on ${newSourceName}. Reverting to original source.`);
                    event.target.value = state.activeSourceName = oldSourceName;
