@@ -274,7 +274,11 @@ class RemoteApiSource {
     if (!response.ok) {
       throw new Error(`Remote API returned ${response.status}`);
     }
-    return unwrap(await response.json());
+    const payload = unwrap(await response.json());
+    if (payload && payload.error) {
+      throw new Error(payload.error);
+    }
+    return payload;
   }
 
   normalizeList(payload) {
@@ -338,7 +342,11 @@ class RemoteApiSource {
   }
 
   async anime(slug) {
-    const anime = normalizeAnime(await this.request(`/api/anime/${encodeURIComponent(slug)}`), slug);
+    const payload = await this.request(`/api/anime/${encodeURIComponent(slug)}`);
+    if (!payload || (!payload.title && !payload.name)) {
+      throw new Error("404: Anime not found or invalid data returned from API");
+    }
+    const anime = normalizeAnime(payload, slug);
     anime.id = slug;
     if (anime.sourceAnimeId) this.animeIds.set(slug, anime.sourceAnimeId);
     this.animeCache.set(slug, anime);
