@@ -1286,7 +1286,10 @@ const renderWatch = async (slug, episodeNo = "1") => {
               <div class="player-message" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem; padding: 2rem;">
                 <h1 style="margin: 0; font-size: 1.5rem; text-align: center;">Watch on ${stream.provider || "External Provider"}</h1>
                 <p style="margin: 0; font-size: 1rem; text-align: center; color: var(--muted); max-width: 600px;">${stream.message || "Due to server protections, this episode must be watched directly on the provider's website."}</p>
-                <a href="${stream.external_url}" target="_blank" rel="noopener noreferrer" class="button primary" style="text-decoration: none; display: inline-flex; align-items: center; justify-content: center; padding: 0.75rem 1.5rem; font-size: 1rem; font-weight: bold; border-radius: 0.5rem;">Watch Episode ↗</a>
+                <div style="display:flex; gap:1rem; justify-content:center; flex-wrap:wrap; margin-top:1rem;">
+                  <a href="${stream.external_url}" target="_blank" rel="noopener noreferrer" class="button primary" style="text-decoration: none; display: inline-flex; align-items: center; justify-content: center; padding: 0.75rem 1.5rem; font-size: 1rem; font-weight: bold; border-radius: 0.5rem;">Watch Episode ↗</a>
+                  <button class="button" id="autoSwitchSourceBtn" style="background:var(--accent); border:none; color:white; padding:0.75rem 1.5rem; border-radius:0.5rem; font-size: 1rem; font-weight:bold; cursor:pointer;"><i class="fas fa-search"></i> Auto-Find Working Source</button>
+                </div>
               </div>
             ` : `
               <div class="player-art" style="background-image:var(--hero-overlay),url('${anime.banner}')"></div>
@@ -1662,6 +1665,17 @@ const renderWatch = async (slug, episodeNo = "1") => {
       btn.style.background = "#e74c3c";
     }
   });
+
+  // Automatically trigger auto-switch if stream failed to resolve and it's not a demo-only environment
+  if (!stream.hls && !stream.embed_url && !stream.embedUrl && !stream.demoOnly) {
+    const btn = document.getElementById("autoSwitchSourceBtn");
+    if (btn) {
+      setTimeout(() => {
+        btn.click();
+      }, 500); // Small delay to let the UI render first
+    }
+  }
+
   // Setup Hls.js or Native Player
   const video = document.getElementById("videoPlayer");
   if (video) {

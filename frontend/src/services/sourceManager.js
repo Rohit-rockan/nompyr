@@ -424,7 +424,9 @@ class RemoteApiSource {
         outro: payload?.skip?.outro || [0, 0],
         tracks: payload?.tracks || [],
         download: payload?.download || "",
-        message: (hlsSource?.file || payload?.embed_url) ? "" : "No source resolved."
+        external_url: payload?.external_url || "",
+        provider: payload?.provider || "",
+        message: payload?.message || ((hlsSource?.file || payload?.embed_url) ? "" : "No source resolved.")
       };
     } catch (error) {
       return {
