@@ -1,0 +1,15 @@
+{
+  "name": "nompyr",
+  "version": "1.0.0",
+  "description": "Your Gateway To Infinite Anime.",
+  "main": "index.js",
+  "scripts": {
+    "dev:backend": "cd backend && python app.py", "dev:frontend": "cd frontend && npm run dev", "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\""
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "concurrently": "^10.0.3"
+  }
+}

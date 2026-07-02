@@ -74,3 +74,24 @@ from scrapers.anidb import (
     fetch_servers_anidb,
     resolve_source_anidb
 )
+from scrapers.senshi import (
+    search_senshi,
+    scrape_home_senshi,
+    scrape_anime_info_senshi,
+    fetch_servers_senshi,
+    resolve_source_senshi
+)
+from scrapers.animotvslash import (
+    search_animotvslash,
+    scrape_home_animotvslash,
+    scrape_anime_info_animotvslash,
+    fetch_servers_animotvslash,
+    resolve_source_animotvslash
+)
+from scrapers.animedekho import (
+    search_animedekho,
+    scrape_home_animedekho,
+    scrape_anime_info_animedekho,
+    fetch_servers_animedekho,
+    resolve_source_animedekho
+)

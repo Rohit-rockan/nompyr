@@ -1,9 +1,9 @@
 import requests
 from bs4 import BeautifulSoup
-from core.config import Config
+from config import Config
 import re
 import urllib.parse
-from scrapers.base import get_headers
+
 
 BASE_URL = "https://anineko.to"
 
@@ -16,7 +16,7 @@ def get_anineko_headers():
 def scrape_home_anineko():
     url = f"{BASE_URL}/home"
     try:
-        r = requests.get(url, headers=get_anineko_headers(), timeout=Config.REQUEST_TIMEOUT)
+        r = requests.get(url, headers=get_anineko_headers(), timeout=Config.SCRAPER_TIMEOUT)
         r.raise_for_status()
         soup = BeautifulSoup(r.text, "html.parser")
         
@@ -85,7 +85,7 @@ def scrape_home_anineko():
 def search_anineko(keyword, page=1):
     url = f"{BASE_URL}/browser?keyword={urllib.parse.quote(keyword)}"
     try:
-        r = requests.get(url, headers=get_anineko_headers(), timeout=Config.REQUEST_TIMEOUT)
+        r = requests.get(url, headers=get_anineko_headers(), timeout=Config.SCRAPER_TIMEOUT)
         r.raise_for_status()
         soup = BeautifulSoup(r.text, "html.parser")
         
@@ -133,7 +133,7 @@ def search_anineko(keyword, page=1):
 def scrape_anime_info_anineko(slug):
     url = f"{BASE_URL}/watch/{slug}"
     try:
-        r = requests.get(url, headers=get_anineko_headers(), timeout=Config.REQUEST_TIMEOUT)
+        r = requests.get(url, headers=get_anineko_headers(), timeout=Config.SCRAPER_TIMEOUT)
         r.raise_for_status()
         soup = BeautifulSoup(r.text, "html.parser")
         
@@ -189,7 +189,7 @@ def fetch_servers_anineko(ep_token):
     # ep_token is expected to be `slug/ep-1`
     url = f"{BASE_URL}/watch/{ep_token}"
     try:
-        r = requests.get(url, headers=get_anineko_headers(), timeout=Config.REQUEST_TIMEOUT)
+        r = requests.get(url, headers=get_anineko_headers(), timeout=Config.SCRAPER_TIMEOUT)
         r.raise_for_status()
         soup = BeautifulSoup(r.text, "html.parser")
         

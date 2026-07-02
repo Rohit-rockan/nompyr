@@ -1,9 +1,9 @@
 import cloudscraper
 from bs4 import BeautifulSoup
-from core.config import Config
+from config import Config
 import re
 import urllib.parse
-from scrapers.base import get_headers
+
 
 BASE_URL = "https://anidb.app"
 
@@ -14,7 +14,7 @@ def scrape_home_anidb():
     url = f"{BASE_URL}/home"
     try:
         scraper = get_scraper()
-        r = scraper.get(url, timeout=Config.REQUEST_TIMEOUT)
+        r = scraper.get(url, timeout=Config.SCRAPER_TIMEOUT)
         r.raise_for_status()
         soup = BeautifulSoup(r.text, 'html.parser')
         
@@ -77,7 +77,7 @@ def search_anidb(query):
     results = []
     try:
         scraper = get_scraper()
-        r = scraper.get(url, timeout=Config.REQUEST_TIMEOUT)
+        r = scraper.get(url, timeout=Config.SCRAPER_TIMEOUT)
         r.raise_for_status()
         soup = BeautifulSoup(r.text, 'html.parser')
         
@@ -118,7 +118,7 @@ def scrape_anime_info_anidb(anime_id):
     }
     try:
         scraper = get_scraper()
-        r = scraper.get(url, timeout=Config.REQUEST_TIMEOUT)
+        r = scraper.get(url, timeout=Config.SCRAPER_TIMEOUT)
         r.raise_for_status()
         soup = BeautifulSoup(r.text, 'html.parser')
         
@@ -140,7 +140,7 @@ def scrape_anime_info_anidb(anime_id):
         if numeric_id_match:
             num_id = numeric_id_match.group(1)
             eps_url = f"{BASE_URL}/api/frontend/anime/{num_id}/episodes"
-            eps_r = scraper.get(eps_url, timeout=Config.REQUEST_TIMEOUT)
+            eps_r = scraper.get(eps_url, timeout=Config.SCRAPER_TIMEOUT)
             if eps_r.status_code == 200:
                 eps_data = eps_r.json()
                 for ep in eps_data.get('episodes', []):
@@ -161,7 +161,7 @@ def fetch_servers_anidb(anime_id, episode_id):
         scraper = get_scraper()
         # Episode languages API gives us the embed URLs directly
         lang_url = f"{BASE_URL}/api/frontend/episode/{episode_id}/languages"
-        r = scraper.get(lang_url, timeout=Config.REQUEST_TIMEOUT)
+        r = scraper.get(lang_url, timeout=Config.SCRAPER_TIMEOUT)
         if r.status_code == 200:
             lang_data = r.json()
             for lang in lang_data.get('languages', []):
@@ -181,7 +181,7 @@ def resolve_source_anidb(server_id):
     # Server_id is the embed URL
     try:
         scraper = get_scraper()
-        r = scraper.get(server_id, timeout=Config.REQUEST_TIMEOUT)
+        r = scraper.get(server_id, timeout=Config.SCRAPER_TIMEOUT)
         if r.status_code == 200:
             # Look for the .m3u8 file in the script block
             m3u8_match = re.search(r'file:\s*[\'\"]([^\'\"]+\.m3u8[^\'\"]*)[\'\"]', r.text)

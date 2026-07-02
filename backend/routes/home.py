@@ -31,6 +31,9 @@ from scrapers import (
     scrape_home_mkissa,
     scrape_home_anineko,
     scrape_home_anidb,
+    scrape_home_senshi,
+    scrape_home_animotvslash,
+    scrape_home_animedekho,
 )
 
 home_bp = Blueprint("home", __name__)
