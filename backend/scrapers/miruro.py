@@ -18,8 +18,8 @@ def _translate_id(encoded_id: str) -> str:
         if ':' in decoded:
             return decoded
         return encoded_id
-    except Exception:
-        return encoded_id
+    except Exception as e:
+        return {"error": str(e)}, 500
 
 def _deep_translate(obj):
     """Recursively walk a JSON structure and decode any base64 'id' fields."""
@@ -44,8 +44,8 @@ def _decode_pipe_response(encoded_str: str) -> dict:
         encoded_str += '=' * (4 - len(encoded_str) % 4)
         compressed = base64.urlsafe_b64decode(encoded_str)
         return _json.loads(gzip.decompress(compressed).decode('utf-8'))
-    except Exception:
-        raise ValueError("Failed to decode pipe response")
+    except Exception as e:
+        return {"error": str(e)}, 500
 
 def _anilist_query(query: str, variables: dict = None):
     """Execute an AniList GraphQL query synchronously and return the data."""
@@ -164,7 +164,6 @@ def search_anime_miruro(keyword, page=1):
             "results": results
         }
     except Exception as e:
-        print(f"Error searching anime on Miruro: {e}")
         return {"error": str(e)}, 500
 
 def scrape_home_miruro():
@@ -245,7 +244,6 @@ def scrape_home_miruro():
             "upcoming": upcoming_mapped
         }
     except Exception as e:
-        print(f"Error scraping home on Miruro: {e}")
         return {"error": str(e)}, 500
 
 def scrape_anime_info_miruro(slug):
@@ -331,7 +329,6 @@ def scrape_anime_info_miruro(slug):
             "seasons": [],
         }
     except Exception as e:
-        print(f"Error fetching Miruro anime info: {e}")
         return {"error": str(e)}, 500
 
 def _fetch_raw_episodes_miruro(anilist_id):
@@ -411,7 +408,6 @@ def fetch_episodes_miruro(ani_id):
         sorted_keys = sorted(episode_map.keys(), key=lambda x: float(x) if x.replace('.', '', 1).isdigit() else 9999)
         return [episode_map[k] for k in sorted_keys]
     except Exception as e:
-        print(f"Error fetching episodes for Miruro: {e}")
         return {"error": str(e)}, 500
 
 def fetch_servers_miruro(ep_token):
@@ -482,7 +478,6 @@ def fetch_servers_miruro(ep_token):
             }
         }
     except Exception as e:
-        print(f"Error fetching servers for Miruro: {e}")
         return {"error": str(e)}, 500
 
 def resolve_source_miruro(link_id):
@@ -556,5 +551,4 @@ def resolve_source_miruro(link_id):
             "message": "Stream interception failed. Due to server protections, this episode must be watched directly on the provider's website."
         }
     except Exception as e:
-        print(f"Error resolving source for Miruro: {e}")
         return {"error": str(e)}, 500

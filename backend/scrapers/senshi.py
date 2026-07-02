@@ -55,8 +55,7 @@ def scrape_home_senshi():
             })
             
     except Exception as e:
-        print(f"Error fetching senshi home: {e}")
-        
+        return {"error": str(e)}, 500
     return sections
 
 def search_senshi(query):
@@ -80,8 +79,7 @@ def search_senshi(query):
             })
         return results
     except Exception as e:
-        print(f"Senshi search error: {e}")
-        return []
+        return {"error": str(e)}, 500
 
 def scrape_anime_info_senshi(anime_id):
     scraper = get_scraper()
@@ -142,8 +140,7 @@ def fetch_servers_senshi(episode_id):
                 })
         return servers
     except Exception as e:
-        print(f"Senshi server fetch error: {e}")
-        return []
+        return {"error": str(e)}, 500
 
 def resolve_source_senshi(server_url):
     return server_url

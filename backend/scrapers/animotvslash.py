@@ -70,8 +70,7 @@ def scrape_home_animotvslash():
                 if parsed_items:
                     sections["latest_updates"].extend(parsed_items)
     except Exception as e:
-        print(f"Error fetching animotvslash home: {e}")
-        
+        return {"error": str(e)}, 500
     return sections
 
 def search_animotvslash(query):
@@ -120,8 +119,7 @@ def search_animotvslash(query):
             
         return results
     except Exception as e:
-        print(f"animotvslash search error: {e}")
-        return []
+        return {"error": str(e)}, 500
 
 def scrape_anime_info_animotvslash(anime_id):
     scraper = get_scraper()
@@ -201,8 +199,7 @@ def fetch_servers_animotvslash(episode_id):
             
         return servers
     except Exception as e:
-        print(f"animotvslash server fetch error: {e}")
-        return []
+        return {"error": str(e)}, 500
 
 def resolve_source_animotvslash(server_url):
     return server_url

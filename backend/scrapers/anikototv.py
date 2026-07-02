@@ -103,7 +103,7 @@ def scrape_home_anikototv():
             
         return {"success": True, "data": {"banner": banner, "latest_updates": latest}}
     except Exception as e:
-        return {"success": False, "error": str(e)}
+        return {"error": str(e)}, 500
 
 def search_anikototv(query):
     try:
@@ -143,7 +143,7 @@ def search_anikototv(query):
         
         return {"success": True, "data": results}
     except Exception as e:
-        return {"success": False, "error": str(e)}
+        return {"error": str(e)}, 500
 
 def scrape_anime_info_anikototv(slug):
     try:
@@ -181,7 +181,7 @@ def scrape_anime_info_anikototv(slug):
         
         return {"success": True, "data": info, "data_id": data_id}
     except Exception as e:
-        return {"success": False, "error": str(e)}
+        return {"error": str(e)}, 500
 
 def fetch_episodes_anikototv(slug):
     # To fetch episodes, we first need the data_id
@@ -220,7 +220,7 @@ def fetch_episodes_anikototv(slug):
             
         return {"success": True, "data": eps}
     except Exception as e:
-        return {"success": False, "error": str(e)}
+        return {"error": str(e)}, 500
 
 def fetch_servers_anikototv(episode_id):
     # episode_id here is data_ids
@@ -260,7 +260,7 @@ def fetch_servers_anikototv(episode_id):
                     
         return {"success": True, "data": {"sub": sub_servers, "dub": dub_servers}}
     except Exception as e:
-        return {"success": False, "error": str(e)}
+        return {"error": str(e)}, 500
 
 def resolve_source_anikototv(server_id, episode_id=None):
     # server_id is the data-link-id
@@ -277,7 +277,7 @@ def resolve_source_anikototv(server_id, episode_id=None):
             }
         }
     except Exception as e:
-        return {"success": False, "error": str(e)}
+        return {"error": str(e)}, 500
 
 if __name__ == "__main__":
     print("Testing Home...")

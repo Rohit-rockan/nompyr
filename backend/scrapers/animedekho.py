@@ -65,8 +65,7 @@ def scrape_home_animedekho():
             if parsed_items:
                 sections["latest_updates"].extend(parsed_items)
     except Exception as e:
-        print(f"Error fetching animedekho home: {e}")
-        
+        return {"error": str(e)}, 500
     return sections
 
 def search_animedekho(query):
@@ -110,8 +109,7 @@ def search_animedekho(query):
             
         return results
     except Exception as e:
-        print(f"animedekho search error: {e}")
-        return []
+        return {"error": str(e)}, 500
 
 def scrape_anime_info_animedekho(anime_id):
     scraper = get_scraper()

@@ -101,7 +101,6 @@ def search_anime_animenexus(keyword, page=1):
             "results": results
         }
     except Exception as e:
-        print(f"Error searching Anime Nexus: {e}")
         return {"error": str(e)}, 500
 
 def scrape_home_animenexus():
@@ -174,7 +173,6 @@ def scrape_home_animenexus():
             "upcoming": latest_mapped[:24]
         }
     except Exception as e:
-        print(f"Error scraping Anime Nexus home: {e}")
         return {"error": str(e)}, 500
 
 def scrape_anime_info_animenexus(slug):
@@ -290,7 +288,6 @@ def scrape_anime_info_animenexus(slug):
             "seasons": [],
         }
     except Exception as e:
-        print(f"Error scraping Anime Nexus info: {e}")
         return {"error": str(e)}, 500
 
 def fetch_episodes_animenexus(show_id):
@@ -342,7 +339,6 @@ def fetch_episodes_animenexus(show_id):
             
         return episode_list
     except Exception as e:
-        print(f"Error fetching Anime Nexus episodes: {e}")
         return {"error": str(e)}, 500
 
 def fetch_servers_animenexus(ep_token):
@@ -403,7 +399,6 @@ def fetch_servers_animenexus(ep_token):
             }
         }
     except Exception as e:
-        print(f"Error fetching servers for Anime Nexus: {e}")
         return {"error": str(e)}, 500
 
 def refresh_cf_cookies(show_id, episode_id, episode_slug):
@@ -575,5 +570,4 @@ def resolve_source_animenexus(link_id):
             "message": "Stream intercepted successfully. If it fails to play, you can still watch directly on the provider."
         }
     except Exception as e:
-        print(f"Error resolving source for Anime Nexus: {e}")
         return {"error": str(e)}, 500

@@ -17,7 +17,7 @@ def _gql_request(variables, hash_val):
         r.raise_for_status()
         return r.json()
     except Exception as e:
-        return {"error": str(e)}
+        return {"error": str(e)}, 500
 
 def scrape_home_mkissa():
     try:
@@ -46,7 +46,7 @@ def scrape_home_mkissa():
             
         return {"success": True, "data": {"banner": [], "latest_updates": latest}}
     except Exception as e:
-        return {"success": False, "error": str(e)}
+        return {"error": str(e)}, 500
 
 def search_mkissa(query):
     try:
@@ -75,7 +75,7 @@ def search_mkissa(query):
             
         return {"success": True, "data": results}
     except Exception as e:
-        return {"success": False, "error": str(e)}
+        return {"error": str(e)}, 500
 
 def scrape_anime_info_mkissa(slug):
     try:
@@ -103,7 +103,7 @@ def scrape_anime_info_mkissa(slug):
         
         return {"success": True, "data": info}
     except Exception as e:
-        return {"success": False, "error": str(e)}
+        return {"error": str(e)}, 500
 
 def fetch_episodes_mkissa(slug):
     try:
@@ -132,7 +132,7 @@ def fetch_episodes_mkissa(slug):
             
         return {"success": True, "data": eps}
     except Exception as e:
-        return {"success": False, "error": str(e)}
+        return {"error": str(e)}, 500
 
 def fetch_servers_mkissa(episode_id):
     # Mkissa is a catalog site and does not offer streaming directly.

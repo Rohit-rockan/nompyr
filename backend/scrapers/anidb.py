@@ -69,8 +69,7 @@ def scrape_home_anidb():
             
         return home_data
     except Exception as e:
-        print(f"Error scraping anidb home: {e}")
-        return {"trending": [], "latest": [], "top": []}
+        return {"error": str(e)}, 500
 
 def search_anidb(query):
     url = f"{BASE_URL}/browse?q={urllib.parse.quote(query)}"
@@ -104,7 +103,7 @@ def search_anidb(query):
                     "url": href
                 })
     except Exception as e:
-        print(f"Error searching anidb: {e}")
+        return {"error": str(e)}, 500
     return results
 
 def scrape_anime_info_anidb(anime_id):
@@ -152,7 +151,7 @@ def scrape_anime_info_anidb(anime_id):
                     })
                     
     except Exception as e:
-        print(f"Error scraping anidb info: {e}")
+        return {"error": str(e)}, 500
     return info
 
 def fetch_servers_anidb(anime_id, episode_id):
@@ -174,7 +173,7 @@ def fetch_servers_anidb(anime_id, episode_id):
                         "server_id": embed_url
                     })
     except Exception as e:
-        print(f"Error fetching servers for anidb: {e}")
+        return {"error": str(e)}, 500
     return servers
 
 def resolve_source_anidb(server_id):
@@ -192,5 +191,5 @@ def resolve_source_anidb(server_id):
                     "subtitles": []
                 }
     except Exception as e:
-        print(f"Error resolving source for anidb: {e}")
+        return {"error": str(e)}, 500
     return None

@@ -79,8 +79,7 @@ def scrape_home_anineko():
             "top_trending": trending,
         }
     except Exception as e:
-        print(f"anineko scrape_home error: {e}")
-        return {"error": str(e)}
+        return {"error": str(e)}, 500
 
 def search_anineko(keyword, page=1):
     url = f"{BASE_URL}/browser?keyword={urllib.parse.quote(keyword)}"
@@ -127,8 +126,7 @@ def search_anineko(keyword, page=1):
             "total_pages": 1, 
         }
     except Exception as e:
-        print(f"anineko search error: {e}")
-        return {"error": str(e)}
+        return {"error": str(e)}, 500
 
 def scrape_anime_info_anineko(slug):
     url = f"{BASE_URL}/watch/{slug}"
@@ -176,8 +174,7 @@ def scrape_anime_info_anineko(slug):
             "episodes": episodes
         }
     except Exception as e:
-        print(f"anineko info error: {e}")
-        return {"error": str(e)}
+        return {"error": str(e)}, 500
 
 def fetch_episodes_anineko(slug):
     res = scrape_anime_info_anineko(slug)
@@ -214,8 +211,7 @@ def fetch_servers_anineko(ep_token):
         
         return {"servers": servers}
     except Exception as e:
-        print(f"anineko servers error: {e}")
-        return {"error": str(e)}
+        return {"error": str(e)}, 500
 
 def resolve_source_anineko(source_id):
     # The source_id is directly the URL provided in data-video!

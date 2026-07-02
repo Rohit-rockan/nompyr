@@ -39,8 +39,8 @@ def encode_token(text):
         r.raise_for_status()
         data = r.json()
         return data.get("result") if data.get("status") == 200 else None
-    except Exception:
-        return None
+    except Exception as e:
+        return {"error": str(e)}, 500
 
 def decode_kai(text):
     try:
@@ -48,8 +48,8 @@ def decode_kai(text):
         r.raise_for_status()
         data = r.json()
         return data.get("result") if data.get("status") == 200 else None
-    except Exception:
-        return None
+    except Exception as e:
+        return {"error": str(e)}, 500
 
 def decode_mega(text):
     try:
@@ -60,8 +60,8 @@ def decode_mega(text):
         r.raise_for_status()
         data = r.json()
         return data.get("result") if data.get("status") == 200 else None
-    except Exception:
-        return None
+    except Exception as e:
+        return {"error": str(e)}, 500
 
 def parse_info_spans(info_el):
     sub_eps = ""
