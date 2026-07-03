@@ -870,20 +870,27 @@ const renderAnime = async (slug) => {
   const isFavorite = store.getState().favorites.includes(anime.id);
   view.innerHTML = `
     <section class="detail-hero" style="--hero-color:${anime.color};background-image:var(--detail-hero-overlay), url('${anime.banner}')">
-      ${img(anime.poster, anime.title, "detail-poster")}
-      <div class="detail-copy">
+        ${img(anime.poster, anime.title, "detail-poster")}
+        <div class="detail-copy">
         <span class="eyebrow">${anime.jpTitle}</span>
         <h1>${anime.title}</h1>
         <p>${anime.description}</p>
         <div class="hero-pills">${metaPills(anime)}<span class="pill">${anime.studio}</span></div>
         <div class="hero-actions">
-          <a class="button primary" href="#/watch/${anime.id}/${Math.max(1, anime.latestEpisode)}">▶ Watch Latest</a>
+          ${episodes.length > 0 ? `
+            <a class="button primary" href="#/watch/${anime.id}/${Math.max(1, anime.latestEpisode)}">▶ Watch Latest</a>
+          ` : `
+            <a class="button primary" href="${anime.url || '#'}" target="_blank" rel="noopener noreferrer">
+              Watch on Original Site
+            </a>
+          `}
           <button class="button ghost" data-favorite="${anime.id}">${isFavorite ? "♥ Favorited" : "♡ Favorite"}</button>
         </div>
       </div>
     </section>
     <div class="two-column">
       <section class="panel" style="display:flex; flex-direction:column; gap:1.5rem;">
+        ${episodes.length > 0 ? `
         <div style="display:flex; flex-direction:column; gap:0.5rem;">
           <div class="section-head" style="margin-bottom:0.25rem;">
             <h2>Select Episode</h2>
@@ -900,6 +907,7 @@ const renderAnime = async (slug) => {
             `).join("")}
           </div>
         </div>
+        ` : ''}
         
         <div style="display:flex; flex-direction:column; gap:0.5rem;">
           <div class="section-head"><h2>Official Trailer</h2></div>
@@ -1281,30 +1289,50 @@ const renderWatch = async (slug, episodeNo = "1") => {
               <div class="player-container" style="width:100%; height:100%;">
                 <iframe src="${stream.embed_url || stream.embedUrl}" class="video-player" allow="autoplay; fullscreen" style="width:100%;height:100%;border:none;" allowfullscreen="true" scrolling="no" frameborder="0"></iframe>
               </div>
-            ` : stream.external_url ? `
-              <div class="player-art" style="background-image:var(--hero-overlay),url('${anime.banner}')"></div>
-              <div class="player-message" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem; padding: 2rem;">
-                <h1 style="margin: 0; font-size: 1.5rem; text-align: center;">Watch on ${stream.provider || "External Provider"}</h1>
-                <p style="margin: 0; font-size: 1rem; text-align: center; color: var(--muted); max-width: 600px;">${stream.message || "Due to server protections, this episode must be watched directly on the provider's website."}</p>
-                <div style="display:flex; gap:1rem; justify-content:center; flex-wrap:wrap; margin-top:1rem;">
-                  <a href="${stream.external_url}" target="_blank" rel="noopener noreferrer" class="button primary" style="text-decoration: none; display: inline-flex; align-items: center; justify-content: center; padding: 0.75rem 1.5rem; font-size: 1rem; font-weight: bold; border-radius: 0.5rem;">Watch Episode ↗</a>
-                  <button class="button" id="autoSwitchSourceBtn" style="background:var(--accent); border:none; color:white; padding:0.75rem 1.5rem; border-radius:0.5rem; font-size: 1rem; font-weight:bold; cursor:pointer;"><i class="fas fa-search"></i> Auto-Find Working Source</button>
+            ` : stream.demoOnly ? `
+              <div class="hianime-video-placeholder">
+                <div class="hianime-demo-overlay">
+                  <span style="font-size: 0.9rem; margin-bottom: 0.5rem;">Demo Player</span>
+                  <h2 style="margin: 0 0 1rem 0; font-size: 2.5rem; text-shadow: 0 2px 10px rgba(0,0,0,0.5);">${anime.title}</h2>
+                  <p style="margin: 0 0 2rem 0; max-width: 80%; line-height: 1.5; color: rgba(255,255,255,0.8);">${stream.message}</p>
+                  <div style="display:flex; gap:1rem;">
+                    <button class="search-submit-btn" id="autoSwitchSourceBtn" style="height: auto; padding: 0.8rem 2rem; font-size: 1rem; border-radius: 2rem;">
+                      Auto-Find Working Source
+                    </button>
+                    <a href="${anime.url || '#'}" target="_blank" rel="noopener noreferrer" class="search-submit-btn" style="height: auto; padding: 0.8rem 2rem; font-size: 1rem; border-radius: 2rem; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);">
+                      <i class="fas fa-external-link-alt"></i> Watch on Original Site
+                    </a>
+                  </div>
+                </div>
+              </div>
+            ` : stream.message && stream.message.includes("server protections") ? `
+              <div class="hianime-video-placeholder">
+                <div class="player-art" style="background-image:var(--hero-overlay),url('${anime.banner}')"></div>
+                <div class="player-message" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem; padding: 2rem;">
+                  <h1 style="margin: 0; font-size: 1.5rem; text-align: center;">Watch on ${stream.provider || "External Provider"}</h1>
+                  <p style="margin: 0; font-size: 1rem; text-align: center; color: var(--muted); max-width: 600px;">${stream.message || "Due to server protections, this episode must be watched directly on the provider's website."}</p>
+                  <div style="display:flex; gap:1rem; justify-content:center; flex-wrap:wrap; margin-top:1rem;">
+                    <a href="${stream.external_url}" target="_blank" rel="noopener noreferrer" class="button primary" style="text-decoration: none; display: inline-flex; align-items: center; justify-content: center; padding: 0.75rem 1.5rem; font-size: 1rem; font-weight: bold; border-radius: 0.5rem;">Watch Episode ↗</a>
+                    <button class="button" id="autoSwitchSourceBtn" style="background:var(--accent); border:none; color:white; padding:0.75rem 1.5rem; border-radius:0.5rem; font-size: 1rem; font-weight:bold; cursor:pointer;"><i class="fas fa-search"></i> Auto-Find Working Source</button>
+                  </div>
                 </div>
               </div>
             ` : `
-              <div class="player-art" style="background-image:var(--hero-overlay),url('${anime.banner}')"></div>
-              <div class="player-message">
-                <span>${stream.demoOnly ? "Demo Player" : "Player Notice"}</span>
-                <h1>${anime.title}</h1>
-                <p>${stream.message || "Streaming is disabled/not resolved for this server."}</p>
-                <div style="display:flex; gap:1rem; justify-content:center; flex-wrap:wrap; margin-top:1rem;">
-                  <button class="button primary" id="simulateProgress" style="display:none;">Simulate Watch Progress</button>
-                  <button class="button" id="autoSwitchSourceBtn" style="background:var(--accent); border:none; color:white; padding:0.6rem 1.2rem; border-radius:0.5rem; font-weight:bold; cursor:pointer;"><i class="fas fa-search"></i> Auto-Find Working Source</button>
+              <div class="hianime-video-placeholder">
+                <div class="player-art" style="background-image:var(--hero-overlay),url('${anime.banner}')"></div>
+                <div class="player-message">
+                  <span>${stream.demoOnly ? "Demo Player" : "Player Notice"}</span>
+                  <h1>${anime.title}</h1>
+                  <p>${stream.message || "Streaming is disabled/not resolved for this server."}</p>
+                  <div style="display:flex; gap:1rem; justify-content:center; flex-wrap:wrap; margin-top:1rem;">
+                    <button class="button primary" id="simulateProgress" style="display:none;">Simulate Watch Progress</button>
+                    <button class="button" id="autoSwitchSourceBtn" style="background:var(--accent); border:none; color:white; padding:0.6rem 1.2rem; border-radius:0.5rem; font-weight:bold; cursor:pointer;"><i class="fas fa-search"></i> Auto-Find Working Source</button>
+                  </div>
+                  ${externalUrl ? `<br><a href="${externalUrl}" target="_blank" rel="noopener noreferrer" class="button" style="background:var(--card-bg); border: 1px solid var(--border); color:var(--text); text-decoration:none; display:inline-block; padding: 0.5rem 1rem; border-radius: 0.5rem; margin-top: 1rem;"><i class="fas fa-external-link-alt" style="margin-right:0.5rem;"></i>Watch on Original Site</a>` : ""}
                 </div>
-                ${externalUrl ? `<br><a href="${externalUrl}" target="_blank" rel="noopener noreferrer" class="button" style="background:var(--card-bg); border: 1px solid var(--border); color:var(--text); text-decoration:none; display:inline-block; padding: 0.5rem 1rem; border-radius: 0.5rem; margin-top: 1rem;"><i class="fas fa-external-link-alt" style="margin-right:0.5rem;"></i>Watch on Original Site</a>` : ""}
               </div>
-              <div class="progress"><span style="width:${progress}%"></span></div>
             `}
+            <div class="progress"><span style="width:${progress}%"></span></div>
           </div>
 
           <!-- Player Control Options Bar -->
