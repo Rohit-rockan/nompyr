@@ -829,6 +829,8 @@ h2 {
   gap: 0.8rem;
   align-self: start;
   padding: 1rem;
+  max-height: calc(100vh - 6.5rem);
+  overflow-y: auto;
 }
 
 .detail-hero {
