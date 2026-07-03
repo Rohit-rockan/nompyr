@@ -211,7 +211,7 @@ const card = (anime, compact = false) => {
         <a href="${targetHash}" ${targetAttr} class="card-title">${anime.title}</a>
         <div class="card-meta">
           <span class="badge-cc">CC ${sub}</span>
-          ${dub ? `<span class="badge-dub">🎙️ ${dub}</span>` : ""}
+          ${dub ? `<span class="badge-dub"><i class="fas fa-microphone-alt"></i> ${dub}</span>` : ""}
           <span class="type-tag">${anime.type}</span>
         </div>
         <button class="mini-action" data-favorite="${anime.id}" aria-label="Toggle favorite">${isFavorite ? "♥" : "♡"}</button>
@@ -454,7 +454,7 @@ const renderHome = async () => {
         <div class="three-col-list-widget">
           <!-- Column 1: New Releases -->
           <div class="list-widget-col">
-            <h3 class="list-widget-col-title">🚀 New Releases</h3>
+            <h3 class="list-widget-col-title"><i class="fas fa-rocket"></i> New Releases</h3>
             <div class="list-widget-items">
               ${newReleases.map(anime => `
                 <div class="list-widget-item">
@@ -465,7 +465,7 @@ const renderHome = async () => {
                     <a href="#/anime/${anime.id}" class="list-widget-title">${anime.title}</a>
                     <div class="list-widget-meta">
                       <span class="badge-cc">CC ${anime.latestEpisode}</span>
-                      ${anime.language.includes("Dub") ? `<span class="badge-dub">🎙️ Dub</span>` : ""}
+                      ${anime.language.includes("Dub") ? `<span class="badge-dub"><i class="fas fa-microphone-alt"></i> Dub</span>` : ""}
                       <span class="type-tag">${anime.type}</span>
                     </div>
                   </div>
@@ -476,7 +476,7 @@ const renderHome = async () => {
 
           <!-- Column 2: Upcoming -->
           <div class="list-widget-col">
-            <h3 class="list-widget-col-title">📅 Upcoming Anime</h3>
+            <h3 class="list-widget-col-title"><i class="fas fa-calendar-alt"></i> Upcoming Anime</h3>
             <div class="list-widget-items">
               ${upcomingAnime.map(anime => `
                 <div class="list-widget-item">
@@ -497,7 +497,7 @@ const renderHome = async () => {
 
           <!-- Column 3: Completed -->
           <div class="list-widget-col">
-            <h3 class="list-widget-col-title">✅ Completed</h3>
+            <h3 class="list-widget-col-title"><i class="fas fa-check-circle"></i> Completed</h3>
             <div class="list-widget-items">
               ${completedAnime.map(anime => `
                 <div class="list-widget-item">
@@ -508,7 +508,7 @@ const renderHome = async () => {
                     <a href="#/anime/${anime.id}" class="list-widget-title">${anime.title}</a>
                     <div class="list-widget-meta">
                       <span class="badge-cc">CC ${anime.episodes}</span>
-                      ${anime.language.includes("Dub") ? `<span class="badge-dub">🎙️ Dub</span>` : ""}
+                      ${anime.language.includes("Dub") ? `<span class="badge-dub"><i class="fas fa-microphone-alt"></i> Dub</span>` : ""}
                       <span class="type-tag">${anime.type}</span>
                     </div>
                   </div>
@@ -559,7 +559,7 @@ const renderHome = async () => {
                     <span class="trending-item-title">${item.title}</span>
                     <div class="trending-item-meta" style="display:flex;align-items:center;gap:0.35rem;margin-top:0.2rem;">
                       <span class="badge-cc">CC ${sub}</span>
-                      ${dub ? `<span class="badge-dub">🎙️ ${dub}</span>` : ""}
+                      ${dub ? `<span class="badge-dub"><i class="fas fa-microphone-alt"></i> ${dub}</span>` : ""}
                       <span class="type-tag">${item.type}</span>
                     </div>
                   </div>
@@ -1346,20 +1346,20 @@ const renderWatch = async (slug, episodeNo = "1") => {
           <!-- Player Control Options Bar -->
           <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(17, 22, 26, 0.85); padding: 0.75rem 1rem; border-radius: 0.5rem; border: 1px solid var(--border); font-size: 0.8rem; color: var(--muted); flex-wrap: wrap; gap: 0.5rem;">
             <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
-              <span style="cursor:pointer;" id="actionExpand">🔍 Expand</span>
-              <span style="cursor:pointer;" id="actionLight">💡 Light <strong>On</strong></span>
-              <span style="cursor:pointer;" id="actionAutoplay">🔄 Auto Play <strong>Off</strong></span>
-              <span style="cursor:pointer;" id="actionAutonext">⏭️ Auto Next <strong>Off</strong></span>
-              <span style="cursor:pointer;" id="actionAutoSkip">⏩ Auto Skip Intro <strong>Off</strong></span>
+              <span style="cursor:pointer;" id="actionExpand"><i class="fas fa-expand"></i> Expand</span>
+              <span style="cursor:pointer;" id="actionLight"><i class="fas fa-lightbulb"></i> Light <strong>On</strong></span>
+              <span style="cursor:pointer;" id="actionAutoplay"><i class="fas fa-play-circle"></i> Auto Play <strong>Off</strong></span>
+              <span style="cursor:pointer;" id="actionAutonext"><i class="fas fa-step-forward"></i> Auto Next <strong>Off</strong></span>
+              <span style="cursor:pointer;" id="actionAutoSkip"><i class="fas fa-fast-forward"></i> Auto Skip Intro <strong>Off</strong></span>
             </div>
             <div style="display: flex; gap: 0.75rem; align-items: center;">
               ${externalUrl ? `<a href="${externalUrl}" target="_blank" rel="noopener noreferrer" style="cursor:pointer; color: var(--accent); font-weight: bold; text-decoration: none; margin-right: 0.5rem;" title="Watch on Original Website"><i class="fas fa-external-link-alt"></i> External</a>` : ""}
-              <a href="#/watch/${anime.id}/${Math.max(1, Number(episodeNo) - 1)}" style="cursor:pointer;" title="Previous Episode">⏮️</a>
-              <a href="#/watch/${anime.id}/${Math.min(anime.episodes, Number(episodeNo) + 1)}" style="cursor:pointer;" title="Next Episode">⏭️</a>
-              ${state.activeServerId ? `<span style="cursor:pointer;" data-download="${state.activeServerId}" title="Download">➕</span>` : ""}
+              <a href="#/watch/${anime.id}/${Math.max(1, Number(episodeNo) - 1)}" style="cursor:pointer;" title="Previous Episode"><i class="fas fa-step-backward"></i></a>
+              <a href="#/watch/${anime.id}/${Math.min(anime.episodes, Number(episodeNo) + 1)}" style="cursor:pointer;" title="Next Episode"><i class="fas fa-step-forward"></i></a>
+              ${state.activeServerId ? `<span style="cursor:pointer;" data-download="${state.activeServerId}" title="Download"><i class="fas fa-download"></i></span>` : ""}
               ${stream.hls ? `
-                <span style="cursor:pointer;" data-pip="true" title="Picture in Picture">📶</span>
-                <span style="cursor:pointer;" data-fullscreen="true" title="Fullscreen">⛶</span>
+                <span style="cursor:pointer;" data-pip="true" title="Picture in Picture"><i class="fas fa-clone"></i></span>
+                <span style="cursor:pointer;" data-fullscreen="true" title="Fullscreen"><i class="fas fa-expand-arrows-alt"></i></span>
               ` : ""}
             </div>
           </div>
@@ -1368,7 +1368,7 @@ const renderWatch = async (slug, episodeNo = "1") => {
           <div class="hianime-servers-box">
             <!-- Tier 1: Source Selector Dropdown -->
             <div class="source-selector-row" style="align-items: center; gap: 1rem; margin-bottom: 1rem;">
-              <span style="font-size: 0.7rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); opacity: 0.7;">🌊 Active Source</span>
+              <span style="font-size: 0.7rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); opacity: 0.7;"><i class="fas fa-server"></i> Active Source</span>
               <select class="source-dropdown" id="sourceSelectorDropdown" style="background: rgba(17, 22, 26, 0.85); color: var(--text); border: 1px solid var(--border); padding: 0.4rem 0.8rem; border-radius: 0.35rem; font-size: 0.85rem; outline: none; cursor: pointer; min-width: 200px;">
                 ${KNOWN_SOURCES.filter(s => s.status === "connected").map((src) => {
                   const isActive = (state.activeSourceName || KNOWN_SOURCES.filter(sx => sx.status === "connected")[0]?.name) === src.name;
@@ -1435,7 +1435,7 @@ const renderWatch = async (slug, episodeNo = "1") => {
                 <span style="background: var(--item-bg); color: var(--text); font-size: 0.65rem; padding: 0.15rem 0.35rem; border-radius: 0.2rem; font-weight: bold; border: 1px solid var(--border);">G</span>
                 <span style="background: #e76f51; color:#fff; font-size: 0.65rem; padding: 0.15rem 0.35rem; border-radius: 0.2rem; font-weight: bold;">HD</span>
                 <span style="background: #2a9d8f; color:#fff; font-size: 0.65rem; padding: 0.15rem 0.35rem; border-radius: 0.2rem; font-weight: bold;">CC ${anime.sub_episodes || 1}</span>
-                ${anime.dub_episodes ? `<span style="background: #457b9d; color:#fff; font-size: 0.65rem; padding: 0.15rem 0.35rem; border-radius: 0.2rem; font-weight: bold;">🎙️ ${anime.dub_episodes}</span>` : ""}
+                ${anime.dub_episodes ? `<span style="background: #457b9d; color:#fff; font-size: 0.65rem; padding: 0.15rem 0.35rem; border-radius: 0.2rem; font-weight: bold;"><i class="fas fa-microphone-alt"></i> ${anime.dub_episodes}</span>` : ""}
                 <span style="background: var(--item-bg); color: var(--text); font-size: 0.65rem; padding: 0.15rem 0.35rem; border-radius: 0.2rem; border: 1px solid var(--border);">${anime.type}</span>
               </div>
             </div>
@@ -1511,7 +1511,7 @@ const renderWatch = async (slug, episodeNo = "1") => {
                   <div class="hianime-popular-title" title="${item.title}">${item.title}</div>
                   <div class="hianime-popular-meta">
                     <span style="background: var(--item-bg); color: var(--muted); font-size: 0.65rem; padding: 0.1rem 0.3rem; border-radius: 0.15rem; font-weight: bold;">CC ${item.sub_episodes || item.episodes || 1}</span>
-                    ${item.dub_episodes ? `<span style="background: rgba(124,58,237,0.15); color: #c084fc; font-size: 0.65rem; padding: 0.1rem 0.3rem; border-radius: 0.15rem; font-weight: bold;">🎙️ ${item.dub_episodes}</span>` : ""}
+                    ${item.dub_episodes ? `<span style="background: rgba(124,58,237,0.15); color: #c084fc; font-size: 0.65rem; padding: 0.1rem 0.3rem; border-radius: 0.15rem; font-weight: bold;"><i class="fas fa-microphone-alt"></i> ${item.dub_episodes}</span>` : ""}
                     <span style="font-size: 0.7rem; color: var(--muted); margin-left: 0.25rem;">${item.type || "TV"}</span>
                   </div>
                 </div>
@@ -3232,7 +3232,7 @@ if (searchbarMicBtn) {
     recognition.interimResults = false;
     
     recognition.onstart = () => {
-      showToast("🎙️ Listening... Speak now!");
+      showToast("Listening... Speak now!");
       searchbarMicBtn.style.color = "#E76F51";
       searchbarMicBtn.style.transform = "scale(1.2)";
     };
