@@ -8,7 +8,6 @@ try:
 except ImportError:
     sync_playwright = None
 
-
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
     "Origin": "https://anime.nexus",
@@ -19,7 +18,7 @@ PLAYWRIGHT_LOCK = Lock()
 CF_COOKIES = []
 CF_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 
-def map_animenexus_item(show):
+def map_search_item(show):
     if not show:
         return {}
     
@@ -32,45 +31,49 @@ def map_animenexus_item(show):
     if show.get("poster") and show["poster"].get("resized"):
         poster_path = show["poster"]["resized"].get("640x960") or show["poster"]["resized"].get("480x720") or show["poster"]["resized"].get("240x360")
         
-    bg_path = None
-    if show.get("background") and show["background"].get("resized"):
-        bg_path = show["background"]["resized"].get("1920x1080") or show["background"]["resized"].get("1360x768") or show["background"]["resized"].get("960x540")
-        
     release_date = show.get("release_date") or ""
     year = release_date[:4] if release_date else ""
     
     genres = [g.get("name") for g in show.get("genres", []) if isinstance(g, dict) and g.get("name")]
     
-    status_map = {
-        "Finished Airing": "Completed",
-        "Currently Airing": "Ongoing",
-        "Not Yet Aired": "Upcoming"
-    }
-    status = status_map.get(show.get("status"), "Completed")
-    
     return {
-        "id": f"animenexus:{show_id}",
-        "ani_id": f"animenexus:{show_id}",
-        "slug": slug,
         "title": name,
         "japanese_title": name_alt,
+        "slug": slug,
+        "url": f"https://anime.nexus/series/{show_id}/{slug}",
         "poster": f"https://anime.delivery{poster_path}" if poster_path else "",
-        "banner": f"https://anime.delivery{bg_path}" if bg_path else (f"https://anime.delivery{poster_path}" if poster_path else ""),
-        "type": show.get("type") or "TV",
-        "status": status,
-        "year": year,
-        "season": "TBA",
-        "rating": show.get("parental_rating") or "PG-13",
-        "score": "N/A",
-        "duration": "24m",
-        "studio": "Unknown",
-        "genres": genres,
         "sub_episodes": str(show.get("episode_count") or 0),
         "dub_episodes": "",
         "total_episodes": str(show.get("episode_count") or 0),
+        "year": year,
+        "type": show.get("type") or "TV",
+        "rating": show.get("parental_rating") or "PG-13",
+        "genres": genres
+    }
+
+def map_latest_item(show):
+    if not show:
+        return {}
+    
+    show_id = show.get("id")
+    slug = show.get("slug")
+    name = show.get("name")
+    name_alt = show.get("name_alt") or name
+    
+    poster_path = None
+    if show.get("poster") and show["poster"].get("resized"):
+        poster_path = show["poster"]["resized"].get("640x960") or show["poster"]["resized"].get("480x720") or show["poster"]["resized"].get("240x360")
+        
+    return {
+        "title": name,
+        "japanese_title": name_alt,
+        "poster": f"https://anime.delivery{poster_path}" if poster_path else "",
+        "url": f"https://anime.nexus/series/{show_id}/{slug}",
+        "slug": slug,
         "current_episode": str(show.get("episode_count") or 0),
-        "description": show.get("description") or "",
-        "url": f"https://anime.nexus/series/{show_id}/{slug}"
+        "sub_episodes": str(show.get("episode_count") or 0),
+        "dub_episodes": "",
+        "type": show.get("type") or "TV"
     }
 
 def search_anime_animenexus(keyword, page=1):
@@ -89,7 +92,7 @@ def search_anime_animenexus(keyword, page=1):
             
         data = r.json()
         items = data.get("data", [])
-        results = [map_animenexus_item(show) for show in items]
+        results = [map_search_item(show) for show in items]
         
         meta = data.get("meta", {})
         total = meta.get("total", len(results))
@@ -155,7 +158,7 @@ def scrape_home_animenexus():
                 "quality": "HD"
             })
             
-        latest_mapped = [map_animenexus_item(show) for show in latest_items]
+        latest_mapped = [map_latest_item(show) for show in latest_items]
         
         trending_list = latest_mapped[:15]
         trending = {
@@ -182,7 +185,6 @@ def scrape_anime_info_animenexus(slug):
         search_query = slug
         details_show_obj = None
         
-        # Check if the slug is a UUID (36-character string like 019b3b1a-9986-70f5-bc64-33b408d3986d)
         if re.match(r'^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$', slug, re.IGNORECASE):
             target_id = slug
             try:
@@ -207,7 +209,6 @@ def scrape_anime_info_animenexus(slug):
             data = r.json()
             items = data.get("data", [])
             
-        # Find exact match
         show = None
         if target_id:
             for item in items:
@@ -231,8 +232,6 @@ def scrape_anime_info_animenexus(slug):
             
         show_id = show.get("id")
         
-        mapped = map_animenexus_item(show)
-        
         score = "N/A"
         try:
             stats_url = f"https://api.anime.nexus/api/anime/details/statistics?id={show_id}"
@@ -245,8 +244,6 @@ def scrape_anime_info_animenexus(slug):
         except Exception as e:
             print(f"Failed to fetch statistics: {e}")
             
-        mapped["score"] = score
-        
         sub_count = 0
         dub_count = 0
         try:
@@ -260,29 +257,46 @@ def scrape_anime_info_animenexus(slug):
         if sub_count == 0:
             sub_count = show.get("episode_count") or 1
             
-        mapped["sub_episodes"] = str(sub_count)
-        mapped["dub_episodes"] = str(dub_count) if dub_count > 0 else ""
+        poster_path = None
+        if show.get("poster") and show["poster"].get("resized"):
+            poster_path = show["poster"]["resized"].get("640x960") or show["poster"]["resized"].get("480x720")
         
+        bg_path = None
+        if show.get("background") and show["background"].get("resized"):
+            bg_path = show["background"]["resized"].get("1920x1080") or show["background"]["resized"].get("1360x768")
+            
+        poster = f"https://anime.delivery{poster_path}" if poster_path else ""
+        banner = f"https://anime.delivery{bg_path}" if bg_path else poster
+            
         released = show.get("release_date") or "Unknown"
+        status_map = {
+            "Finished Airing": "Completed",
+            "Currently Airing": "Ongoing",
+            "Not Yet Aired": "Upcoming"
+        }
+        genres = [g.get("name") for g in show.get("genres", []) if isinstance(g, dict) and g.get("name")]
+        
         detail = {
+            "studio": "Unknown",
             "released": released,
-            "rating": mapped["rating"],
-            "score": score,
-            "genres": mapped["genres"],
-            "status": mapped["status"]
+            "views": "0",
+            "likes": "0",
+            "dislikes": "0",
+            "downloads": "0",
+            "genres": genres
         }
         
         return {
-            "ani_id": f"animenexus:{show_id}",
-            "title": mapped["title"],
-            "japanese_title": mapped["japanese_title"],
-            "description": mapped["description"],
-            "poster": mapped["poster"],
-            "banner": mapped["banner"],
+            "ani_id": str(show_id),
+            "title": show.get("name"),
+            "japanese_title": show.get("name_alt") or show.get("name"),
+            "description": show.get("description") or "",
+            "poster": poster,
+            "banner": banner,
             "sub_episodes": str(sub_count),
             "dub_episodes": str(dub_count) if dub_count > 0 else "",
-            "type": mapped["type"],
-            "rating": mapped["rating"],
+            "type": show.get("type") or "TV",
+            "rating": show.get("parental_rating") or "PG-13",
             "mal_score": score,
             "detail": detail,
             "seasons": [],
@@ -290,11 +304,11 @@ def scrape_anime_info_animenexus(slug):
     except Exception as e:
         return {"error": str(e)}, 500
 
-def fetch_episodes_animenexus(show_id):
+def fetch_episodes_animenexus(slug):
     try:
         url = "https://api.anime.nexus/api/anime/details/episodes"
         params = {
-            "id": show_id,
+            "id": slug,
             "page": 1,
             "perPage": 500,
             "order": "asc",
@@ -325,7 +339,7 @@ def fetch_episodes_animenexus(show_id):
             has_sub = True
             has_dub = any("eng" in a or "english" in a for a in audio_langs)
             
-            token = f"animenexus:{show_id}:{ep_id}:{ep_slug}"
+            token = f"animenexus:{slug}:{ep_id}:{ep_slug}"
             
             episode_list.append({
                 "number": num_str,
@@ -505,7 +519,6 @@ def make_stream_request_via_playwright(show_id, episode_id, episode_slug):
                 print(f"Playwright navigating to watch: {watch_url}")
                 page.goto(watch_url, timeout=30000)
                 
-                # Wait up to 15 seconds for the API response to be captured
                 for _ in range(15):
                     if captured_json is not None:
                         break
@@ -518,28 +531,26 @@ def make_stream_request_via_playwright(show_id, episode_id, episode_slug):
             print(f"Failed to capture stream via Playwright: {e}")
             return None
 
-def resolve_source_animenexus(link_id):
+def resolve_animenexus_source(link_id):
     try:
         parts = link_id.split(":")
         if len(parts) < 4:
             return {"error": "Invalid link_id format"}, 400
             
-        show_id = parts[0]
-        episode_id = parts[1]
-        episode_slug = parts[2]
-        lang = parts[3]
+        show_id = parts[1]
+        episode_id = parts[2]
+        episode_slug = parts[3]
         
         watch_url = f"https://anime.nexus/watch/{episode_id}/{episode_slug}"
-        
-        # We also pass the external_url back in case the user prefers to use the button fallback
-        # However, we will try to resolve the actual stream first!
         
         data = make_stream_request_via_playwright(show_id, episode_id, episode_slug)
         if not data:
             return {
-                "external_url": watch_url,
-                "provider": "Anime Nexus",
-                "message": "Stream interception failed. Due to server protections, this episode must be watched directly on the provider's website."
+                "embed_url": watch_url,
+                "skip": {},
+                "sources": [],
+                "tracks": [],
+                "download": ""
             }
 
         stream_data = data.get("data", {})
@@ -563,11 +574,11 @@ def resolve_source_animenexus(link_id):
                 })
 
         return {
-            "sources": [{"file": hls_url, "type": "hls"}],
+            "embed_url": watch_url,
+            "skip": {},
+            "sources": [{"file": hls_url, "type": "hls", "label": "Auto"}],
             "tracks": tracks,
-            "embed_url": watch_url, # Fallback button
-            "provider": "Anime Nexus",
-            "message": "Stream intercepted successfully. If it fails to play, you can still watch directly on the provider."
+            "download": ""
         }
     except Exception as e:
         return {"error": str(e)}, 500

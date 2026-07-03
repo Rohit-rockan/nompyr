@@ -13,7 +13,7 @@ from scrapers.miruro import (
     scrape_anime_info_miruro,
     fetch_episodes_miruro,
     fetch_servers_miruro,
-    resolve_source_miruro
+    resolve_miruro_source
 )
 
 from scrapers.aniwatch import (
@@ -37,61 +37,65 @@ from scrapers.animenexus import (
     scrape_anime_info_animenexus,
     fetch_episodes_animenexus,
     fetch_servers_animenexus,
-    resolve_source_animenexus
+    resolve_animenexus_source
 )
 
 from scrapers.anikototv import (
-    search_anikototv,
+    search_anime_anikototv,
     scrape_home_anikototv,
     scrape_anime_info_anikototv,
     fetch_episodes_anikototv,
     fetch_servers_anikototv,
-    resolve_source_anikototv
+    resolve_anikototv_source
 )
 
 from scrapers.mkissa import (
-    search_mkissa,
+    search_anime_mkissa,
     scrape_home_mkissa,
     scrape_anime_info_mkissa,
     fetch_episodes_mkissa,
     fetch_servers_mkissa,
-    resolve_source_mkissa
+    resolve_mkissa_source
 )
 
 from scrapers.anineko import (
-    search_anineko,
+    search_anime_anineko,
     scrape_home_anineko,
     scrape_anime_info_anineko,
     fetch_episodes_anineko,
     fetch_servers_anineko,
-    resolve_source_anineko
+    resolve_anineko_source
 )
 
 from scrapers.anidb import (
-    search_anidb,
+    search_anime_anidb,
     scrape_home_anidb,
     scrape_anime_info_anidb,
+    fetch_episodes_anidb,
     fetch_servers_anidb,
-    resolve_source_anidb
+    resolve_anidb_source
 )
 from scrapers.senshi import (
-    search_senshi,
+    search_anime_senshi,
     scrape_home_senshi,
     scrape_anime_info_senshi,
+    fetch_episodes_senshi,
     fetch_servers_senshi,
-    resolve_source_senshi
+    resolve_senshi_source
 )
 from scrapers.animotvslash import (
-    search_animotvslash,
+    search_anime_animotvslash,
     scrape_home_animotvslash,
     scrape_anime_info_animotvslash,
+    fetch_episodes_animotvslash,
     fetch_servers_animotvslash,
-    resolve_source_animotvslash
+    resolve_animotvslash_source
 )
 from scrapers.animedekho import (
-    search_animedekho,
+    search_anime_animedekho,
     scrape_home_animedekho,
     scrape_anime_info_animedekho,
+    fetch_episodes_animedekho,
     fetch_servers_animedekho,
-    resolve_source_animedekho
+    resolve_animedekho_source
 )

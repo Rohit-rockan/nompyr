@@ -16,15 +16,24 @@ def get_scraper():
 def scrape_home_animotvslash():
     scraper = get_scraper()
     
-    sections = {"latest_updates": []}
+    sections = {
+        "banner": [],
+        "latest_updates": [],
+        "top_trending": {
+            "NOW": [],
+            "DAY": [],
+            "WEEK": [],
+            "MONTH": []
+        },
+        "popular": [],
+        "upcoming": []
+    }
     
     try:
         req = scraper.get(BASE_URL)
         if req.status_code == 200:
             soup = BeautifulSoup(req.text, 'html.parser')
             
-            # Find widgets or latest updates
-            # Often .bixbox is used in this theme
             bixboxes = soup.select('.bixbox')
             
             for box in bixboxes:
@@ -51,35 +60,50 @@ def scrape_home_animotvslash():
                         title = title_tt.text.strip() if title_tt else "Unknown"
                         
                     img_tag = item.select_one('img')
-                    image = img_tag.get('src') if img_tag else None
+                    image = img_tag.get('src') if img_tag else ""
                     if image and image.startswith('//'):
                         image = "https:" + image
                         
-                    # Extract ID from URL (e.g. /anime/naruto-x-ut/ or /episode-1/)
                     slug = href.rstrip('/').split('/')[-1]
                     url = f"/anime/animotvslash/{slug}"
                     
                     parsed_items.append({
-                        "id": slug,
                         "title": title,
-                        "image": image,
+                        "japanese_title": "",
+                        "poster": image,
                         "url": url,
+                        "slug": slug,
+                        "current_episode": "",
+                        "sub_episodes": "",
+                        "dub_episodes": "",
                         "type": "TV"
                     })
                     
                 if parsed_items:
-                    sections["latest_updates"].extend(parsed_items)
+                    if "latest" in section_title.lower() or "recent" in section_title.lower():
+                        sections["latest_updates"].extend(parsed_items)
+                        sections["top_trending"]["NOW"] = parsed_items
+                        sections["top_trending"]["DAY"] = parsed_items
+                        sections["top_trending"]["WEEK"] = parsed_items
+                        sections["top_trending"]["MONTH"] = parsed_items
+                    else:
+                        sections["latest_updates"].extend(parsed_items)
     except Exception as e:
         return {"error": str(e)}, 500
     return sections
 
-def search_animotvslash(query):
+def search_anime_animotvslash(keyword, page=1):
     scraper = get_scraper()
     
     try:
-        req = scraper.get(f"{BASE_URL}/?s={query}")
+        req = scraper.get(f"{BASE_URL}/?s={keyword}")
         if req.status_code != 200:
-            return []
+            return {
+                "total": 0,
+                "page": page,
+                "per_page": 0,
+                "results": []
+            }
             
         soup = BeautifulSoup(req.text, 'html.parser')
         items = soup.select('article.bs')
@@ -97,57 +121,94 @@ def search_animotvslash(query):
                 title = title_tt.text.strip() if title_tt else "Unknown"
                 
             img_tag = item.select_one('img')
-            image = img_tag.get('src') if img_tag else None
+            image = img_tag.get('src') if img_tag else ""
             if image and image.startswith('//'):
                 image = "https:" + image
                 
             slug = href.rstrip('/').split('/')[-1]
-            # Since WP search can return posts/episodes instead of anime, check if it's anime
-            if '/anime/' not in href:
-                # we just skip or treat it as anime, but typically better to skip
-                pass 
                 
             url = f"/anime/animotvslash/{slug}"
             
             results.append({
-                "id": slug,
                 "title": title,
-                "image": image,
+                "japanese_title": "",
+                "slug": slug,
                 "url": url,
-                "type": "TV"
+                "poster": image,
+                "sub_episodes": "",
+                "dub_episodes": "",
+                "total_episodes": "",
+                "year": "",
+                "type": "TV",
+                "rating": "",
+                "genres": []
             })
             
-        return results
+        return {
+            "total": len(results),
+            "page": page,
+            "per_page": len(results),
+            "results": results
+        }
     except Exception as e:
         return {"error": str(e)}, 500
 
-def scrape_anime_info_animotvslash(anime_id):
+def scrape_anime_info_animotvslash(slug):
     scraper = get_scraper()
     
-    info_url = f"{BASE_URL}/anime/{anime_id}/"
+    info_url = f"{BASE_URL}/anime/{slug}/"
     req = scraper.get(info_url)
     
     if req.status_code != 200:
-        return None
+        return {"error": "Not found"}, 404
         
     soup = BeautifulSoup(req.text, 'html.parser')
     
     title_elem = soup.select_one('.infox h1')
-    title = title_elem.text.strip() if title_elem else anime_id
+    title = title_elem.text.strip() if title_elem else slug
     
     img_elem = soup.select_one('.thumb img')
-    image = img_elem.get('src') if img_elem else None
+    image = img_elem.get('src') if img_elem else ""
+    if image and image.startswith('//'):
+        image = "https:" + image
     
     desc_elem = soup.select_one('.entry-content')
     description = desc_elem.text.strip() if desc_elem else ""
     
-    info = {
-        "id": anime_id,
+    return {
+        "ani_id": slug,
         "title": title,
-        "image": image,
+        "japanese_title": "",
         "description": description,
-        "episodes": []
+        "poster": image,
+        "banner": image,
+        "sub_episodes": "",
+        "dub_episodes": "",
+        "type": "TV",
+        "rating": "",
+        "mal_score": "",
+        "detail": {
+            "studio": "",
+            "released": "",
+            "views": "",
+            "likes": "",
+            "dislikes": "",
+            "downloads": "",
+            "genres": []
+        },
+        "seasons": []
     }
+
+def fetch_episodes_animotvslash(slug):
+    scraper = get_scraper()
+    info_url = f"{BASE_URL}/anime/{slug}/"
+    req = scraper.get(info_url)
+    
+    if req.status_code != 200:
+        return []
+        
+    soup = BeautifulSoup(req.text, 'html.parser')
+    episodes_list = []
     
     episodes = soup.select('.eplister li')
     for ep in episodes:
@@ -164,42 +225,66 @@ def scrape_anime_info_animotvslash(anime_id):
         title_e = ep.select_one('.epl-title')
         ep_title = title_e.text.strip() if title_e else f"Episode {num}"
         
-        info["episodes"].append({
-            "id": ep_slug,
-            "number": num,
-            "title": ep_title
+        episodes_list.append({
+            "number": str(num),
+            "slug": ep_slug,
+            "title": ep_title,
+            "japanese_title": "",
+            "token": f"animotvslash:{ep_slug}",
+            "has_sub": True,
+            "has_dub": False
         })
         
-    info["totalEpisodes"] = len(info["episodes"])
-    # Theme episode lists are usually descending, reverse them to ascending
-    info["episodes"].reverse()
-        
-    return info
+    episodes_list.reverse()
+    return episodes_list
 
-def fetch_servers_animotvslash(episode_id):
+def fetch_servers_animotvslash(ep_token):
     scraper = get_scraper()
     
-    # URL is base_url/episode_id/
-    url = f"{BASE_URL}/{episode_id}/"
     try:
+        if not ep_token.startswith("animotvslash:"):
+            return {"error": "Invalid token"}, 400
+        episode_id = ep_token.split("animotvslash:")[1]
+            
+        url = f"{BASE_URL}/{episode_id}/"
         req = scraper.get(url)
         if req.status_code != 200:
-            return []
+            return {"error": "Not found"}, 404
             
         soup = BeautifulSoup(req.text, 'html.parser')
         iframe = soup.select_one('iframe')
         
         servers = []
         if iframe and iframe.get('src'):
+            src = iframe.get('src')
             servers.append({
                 "name": "HD Server (Animotvslash)",
-                "url": iframe.get('src'),
-                "type": "iframe"
+                "server_id": src,
+                "episode_id": episode_id,
+                "link_id": f"animotvslash_server:{src}"
             })
             
-        return servers
+        return {
+            "watching": "Animotvslash",
+            "servers": {
+                "sub": servers,
+                "dub": []
+            }
+        }
     except Exception as e:
         return {"error": str(e)}, 500
 
-def resolve_source_animotvslash(server_url):
-    return server_url
+def resolve_animotvslash_source(link_id):
+    try:
+        if not link_id.startswith("animotvslash_server:"):
+            return {"error": "Invalid token"}, 400
+        server_url = link_id.split("animotvslash_server:")[1]
+        return {
+            "embed_url": server_url,
+            "skip": {},
+            "sources": [],
+            "tracks": [],
+            "download": ""
+        }
+    except Exception as e:
+        return {"error": str(e)}, 500

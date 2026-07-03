@@ -1,6 +1,5 @@
 import requests
 from bs4 import BeautifulSoup
-from config import Config
 import re
 import urllib.parse
 
@@ -16,7 +15,7 @@ def get_anineko_headers():
 def scrape_home_anineko():
     url = f"{BASE_URL}/home"
     try:
-        r = requests.get(url, headers=get_anineko_headers(), timeout=Config.SCRAPER_TIMEOUT)
+        r = requests.get(url, headers=get_anineko_headers(), timeout=10)
         r.raise_for_status()
         soup = BeautifulSoup(r.text, "html.parser")
         
@@ -36,10 +35,15 @@ def scrape_home_anineko():
             desc = desc_el.text.strip() if desc_el else ""
             
             banner.append({
-                "id": slug,
                 "title": title,
-                "img": img_url,
-                "description": desc,
+                "japanese_title": "",
+                "poster": img_url,
+                "url": f"/anime/anineko/{slug}",
+                "slug": slug,
+                "current_episode": "",
+                "sub_episodes": "",
+                "dub_episodes": "",
+                "type": "TV"
             })
             
         latest = []
@@ -52,9 +56,15 @@ def scrape_home_anineko():
             slug = href.split("/watch/")[-1].split("/ep-")[0] if "/watch/" in href else ""
             
             latest.append({
-                "id": slug,
                 "title": title,
-                "img": img_url,
+                "japanese_title": "",
+                "poster": img_url,
+                "url": f"/anime/anineko/{slug}",
+                "slug": slug,
+                "current_episode": "",
+                "sub_episodes": "",
+                "dub_episodes": "",
+                "type": "TV"
             })
             
         trending = []
@@ -67,24 +77,36 @@ def scrape_home_anineko():
             slug = href.split("/watch/")[-1] if "/watch/" in href else ""
             
             trending.append({
-                "id": slug,
                 "title": title,
-                "img": img_url,
-                "rank": item.select_one(".nv-rank").text.strip() if item.select_one(".nv-rank") else ""
+                "japanese_title": "",
+                "poster": img_url,
+                "url": f"/anime/anineko/{slug}",
+                "slug": slug,
+                "current_episode": "",
+                "sub_episodes": "",
+                "dub_episodes": "",
+                "type": "TV"
             })
             
         return {
             "banner": banner,
             "latest_updates": latest,
-            "top_trending": trending,
+            "top_trending": {
+                "NOW": trending,
+                "DAY": trending,
+                "WEEK": trending,
+                "MONTH": trending
+            },
+            "popular": trending,
+            "upcoming": []
         }
     except Exception as e:
         return {"error": str(e)}, 500
 
-def search_anineko(keyword, page=1):
+def search_anime_anineko(keyword, page=1):
     url = f"{BASE_URL}/browser?keyword={urllib.parse.quote(keyword)}"
     try:
-        r = requests.get(url, headers=get_anineko_headers(), timeout=Config.SCRAPER_TIMEOUT)
+        r = requests.get(url, headers=get_anineko_headers(), timeout=10)
         r.raise_for_status()
         soup = BeautifulSoup(r.text, "html.parser")
         
@@ -113,17 +135,25 @@ def search_anineko(keyword, page=1):
                     if nums: dub_count = int(nums[0])
                     
             results.append({
-                "id": slug,
                 "title": title,
-                "img": img_url,
-                "sub": sub_count,
-                "dub": dub_count,
+                "japanese_title": "",
+                "slug": slug,
+                "url": f"/anime/anineko/{slug}",
+                "poster": img_url,
+                "sub_episodes": str(sub_count),
+                "dub_episodes": str(dub_count),
+                "total_episodes": str(sub_count),
+                "year": "",
+                "type": "TV",
+                "rating": "",
+                "genres": []
             })
             
         return {
-            "data": results,
+            "total": len(results),
             "page": page,
-            "total_pages": 1, 
+            "per_page": len(results),
+            "results": results
         }
     except Exception as e:
         return {"error": str(e)}, 500
@@ -131,8 +161,10 @@ def search_anineko(keyword, page=1):
 def scrape_anime_info_anineko(slug):
     url = f"{BASE_URL}/watch/{slug}"
     try:
-        r = requests.get(url, headers=get_anineko_headers(), timeout=Config.SCRAPER_TIMEOUT)
-        r.raise_for_status()
+        r = requests.get(url, headers=get_anineko_headers(), timeout=10)
+        if r.status_code != 200:
+            return {"error": "Not found"}, 404
+            
         soup = BeautifulSoup(r.text, "html.parser")
         
         title_el = soup.select_one(".nv-info-main h1")
@@ -146,52 +178,80 @@ def scrape_anime_info_anineko(slug):
             desc_el = soup.select_one(".nv-info-desc")
         desc = desc_el.text.strip() if desc_el else ""
         
-        # Tags/Genres
-        genres = []
-        # Usually they don't explicitly list genres in the info header in Anineko, but let's grab what we can
-        
-        # Episodes
-        episodes = []
-        for ep_card in soup.select(".nv-info-episode-item"):
-            ep_link = ep_card.select_one("a.nv-info-episode-main")
-            if not ep_link: continue
-            ep_id = ep_link["href"].split("/watch/")[-1] # will look like slug/ep-1
-            num_text = ep_link.select_one("strong").text.strip() if ep_link.select_one("strong") else ""
-            num = num_text.replace("Episode", "").strip()
-            if not num: num = ep_id.split("-")[-1]
-            
-            episodes.append({
-                "id": ep_id,
-                "number": int(num) if num.isdigit() else float(num) if '.' in num else num,
-                "title": f"Episode {num}"
-            })
-            
         return {
-            "id": slug,
+            "ani_id": slug,
             "title": title,
-            "img": img_url,
+            "japanese_title": "",
             "description": desc,
-            "episodes": episodes
+            "poster": img_url,
+            "banner": img_url,
+            "sub_episodes": "",
+            "dub_episodes": "",
+            "type": "TV",
+            "rating": "",
+            "mal_score": "",
+            "detail": {
+                "studio": "",
+                "released": "",
+                "views": "",
+                "likes": "",
+                "dislikes": "",
+                "downloads": "",
+                "genres": []
+            },
+            "seasons": []
         }
     except Exception as e:
         return {"error": str(e)}, 500
 
 def fetch_episodes_anineko(slug):
-    res = scrape_anime_info_anineko(slug)
-    if "error" in res:
-        return res
-    return {"episodes": res.get("episodes", [])}
-
-def fetch_servers_anineko(ep_token):
-    # ep_token is expected to be `slug/ep-1`
-    url = f"{BASE_URL}/watch/{ep_token}"
+    url = f"{BASE_URL}/watch/{slug}"
     try:
-        r = requests.get(url, headers=get_anineko_headers(), timeout=Config.SCRAPER_TIMEOUT)
-        r.raise_for_status()
+        r = requests.get(url, headers=get_anineko_headers(), timeout=10)
+        if r.status_code != 200:
+            return []
+            
         soup = BeautifulSoup(r.text, "html.parser")
         
-        servers = []
-        # group by sub/dub tab
+        episodes = []
+        for ep_card in soup.select(".nv-info-episode-item"):
+            ep_link = ep_card.select_one("a.nv-info-episode-main")
+            if not ep_link: continue
+            ep_id = ep_link["href"].split("/watch/")[-1] 
+            num_text = ep_link.select_one("strong").text.strip() if ep_link.select_one("strong") else ""
+            num = num_text.replace("Episode", "").strip()
+            if not num: num = ep_id.split("-")[-1]
+            
+            episodes.append({
+                "number": str(num),
+                "slug": ep_id,
+                "title": f"Episode {num}",
+                "japanese_title": "",
+                "token": f"anineko:{ep_id}",
+                "has_sub": True,
+                "has_dub": False
+            })
+            
+        return episodes
+    except Exception as e:
+        return []
+
+def fetch_servers_anineko(ep_token):
+    try:
+        if not ep_token.startswith("anineko:"):
+            return {"error": "Invalid token"}, 400
+        episode_id = ep_token.split("anineko:")[1]
+        
+        url = f"{BASE_URL}/watch/{episode_id}"
+        r = requests.get(url, headers=get_anineko_headers(), timeout=10)
+        if r.status_code != 200:
+            return {"error": "Not found"}, 404
+            
+        soup = BeautifulSoup(r.text, "html.parser")
+        
+        sub_servers = []
+        dub_servers = []
+        
         for panel in soup.select(".nv-server-panel"):
             kind = panel.get("data-id", "sub").lower()
             kind = "dub" if "dub" in kind else "sub"
@@ -200,23 +260,41 @@ def fetch_servers_anineko(ep_token):
                 data_video = btn.get("data-video", "")
                 if not data_video: continue
                 
-                # Server name is usually directly inside the button text before span
                 name = btn.contents[0].strip() if btn.contents else ""
                 
-                servers.append({
-                    "id": data_video, # raw URL is the ID!
-                    "name": f"{name} ({kind})".strip(),
-                    "type": kind
-                })
+                server = {
+                    "name": name,
+                    "server_id": data_video,
+                    "episode_id": episode_id,
+                    "link_id": f"anineko_server:{data_video}"
+                }
+                
+                if kind == "sub":
+                    sub_servers.append(server)
+                else:
+                    dub_servers.append(server)
         
-        return {"servers": servers}
+        return {
+            "watching": "Anineko",
+            "servers": {
+                "sub": sub_servers,
+                "dub": dub_servers
+            }
+        }
     except Exception as e:
         return {"error": str(e)}, 500
 
-def resolve_source_anineko(source_id):
-    # The source_id is directly the URL provided in data-video!
-    return {
-        "sources": [],
-        "link": source_id,
-        "direct": False
-    }
+def resolve_anineko_source(link_id):
+    try:
+        if not link_id.startswith("anineko_server:"):
+            return {"error": "Invalid token"}, 400
+        server_url = link_id.split("anineko_server:")[1]
+        return {
+            "embed_url": server_url,
+            "skip": {},
+            "sources": [],
+            "tracks": [],
+            "download": ""
+        }
+    except Exception as e:
+        return {"error": str(e)}, 500

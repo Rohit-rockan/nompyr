@@ -21,13 +21,12 @@ def _gql_request(variables, hash_val):
 
 def scrape_home_mkissa():
     try:
-        # Search/Recent hash: a24c500a1b765c68ae1d8dd85174931f661c71369c89b92b88b75a725afc471c
-        variables = {"search": {"sortBy": "Recent"}, "limit": 20, "page": 1, "translationType": "sub"}
+        variables = {"search": {"sortBy": "Recent"}, "limit": 24, "page": 1, "translationType": "sub"}
         hash_val = "a24c500a1b765c68ae1d8dd85174931f661c71369c89b92b88b75a725afc471c"
         
         data = _gql_request(variables, hash_val)
         if "error" in data:
-            return {"success": False, "error": data["error"]}
+            return {"error": data["error"]}, 500
             
         edges = data.get("data", {}).get("shows", {}).get("edges", [])
         
@@ -37,26 +36,37 @@ def scrape_home_mkissa():
                 "title": edge.get("englishName") or edge.get("name") or "",
                 "japanese_title": edge.get("nativeName") or "",
                 "poster": edge.get("thumbnail", ""),
-                "url": f"{MKISSA_URL}anime/{edge.get('_id')}",
+                "url": f"/anime/mkissa/{edge.get('_id')}",
                 "slug": edge.get("_id"),
-                "type": "TV",
+                "current_episode": "",
                 "sub_episodes": str(edge.get("availableEpisodes", {}).get("sub", "")),
                 "dub_episodes": str(edge.get("availableEpisodes", {}).get("dub", "")),
+                "type": "TV"
             })
             
-        return {"success": True, "data": {"banner": [], "latest_updates": latest}}
+        return {
+            "banner": [],
+            "latest_updates": latest,
+            "top_trending": {
+                "NOW": latest[:15],
+                "DAY": latest[:15],
+                "WEEK": latest[:15],
+                "MONTH": latest[:15]
+            },
+            "popular": latest[:15],
+            "upcoming": []
+        }
     except Exception as e:
         return {"error": str(e)}, 500
 
-def search_mkissa(query):
+def search_anime_mkissa(keyword, page=1):
     try:
-        # We can use the same hash but provide query
-        variables = {"search": {"query": query}, "limit": 20, "page": 1, "translationType": "sub"}
+        variables = {"search": {"query": keyword}, "limit": 20, "page": page, "translationType": "sub"}
         hash_val = "a24c500a1b765c68ae1d8dd85174931f661c71369c89b92b88b75a725afc471c"
         
         data = _gql_request(variables, hash_val)
         if "error" in data:
-            return {"success": False, "error": data["error"]}
+            return {"error": data["error"]}, 500
             
         edges = data.get("data", {}).get("shows", {}).get("edges", [])
         
@@ -65,15 +75,24 @@ def search_mkissa(query):
             results.append({
                 "title": edge.get("englishName") or edge.get("name") or "",
                 "japanese_title": edge.get("nativeName") or "",
-                "poster": edge.get("thumbnail", ""),
-                "url": f"{MKISSA_URL}anime/{edge.get('_id')}",
                 "slug": edge.get("_id"),
-                "type": "TV",
+                "url": f"/anime/mkissa/{edge.get('_id')}",
+                "poster": edge.get("thumbnail", ""),
                 "sub_episodes": str(edge.get("availableEpisodes", {}).get("sub", "")),
                 "dub_episodes": str(edge.get("availableEpisodes", {}).get("dub", "")),
+                "total_episodes": "",
+                "year": "",
+                "type": "TV",
+                "rating": "",
+                "genres": []
             })
             
-        return {"success": True, "data": results}
+        return {
+            "total": len(results),
+            "page": page,
+            "per_page": len(results),
+            "results": results
+        }
     except Exception as e:
         return {"error": str(e)}, 500
 
@@ -84,24 +103,37 @@ def scrape_anime_info_mkissa(slug):
         
         data = _gql_request(variables, hash_val)
         if "error" in data:
-            return {"success": False, "error": data["error"]}
+            return {"error": data["error"]}, 500
             
         show = data.get("data", {}).get("show", {})
+        if not show:
+            return {"error": "Not found"}, 404
         
         info = {
+            "ani_id": slug,
             "title": show.get("englishName") or show.get("name") or "",
             "japanese_title": show.get("nativeName") or "",
-            "poster": show.get("thumbnail", ""),
             "description": show.get("description", ""),
-            "url": f"{MKISSA_URL}anime/{slug}",
-            "slug": slug,
+            "poster": show.get("thumbnail", ""),
+            "banner": show.get("thumbnail", ""),
+            "sub_episodes": str(show.get("availableEpisodes", {}).get("sub", "")),
+            "dub_episodes": str(show.get("availableEpisodes", {}).get("dub", "")),
             "type": show.get("type", "TV"),
-            "release": show.get("season", {}).get("year", ""),
-            "status": show.get("status", ""),
-            "genres": show.get("genres", []),
+            "rating": "",
+            "mal_score": "",
+            "detail": {
+                "studio": "",
+                "released": str(show.get("season", {}).get("year", "")),
+                "views": "",
+                "likes": "",
+                "dislikes": "",
+                "downloads": "",
+                "genres": show.get("genres", []),
+            },
+            "seasons": [],
         }
         
-        return {"success": True, "data": info}
+        return info
     except Exception as e:
         return {"error": str(e)}, 500
 
@@ -112,50 +144,40 @@ def fetch_episodes_mkissa(slug):
         
         data = _gql_request(variables, hash_val)
         if "error" in data:
-            return {"success": False, "error": data["error"]}
+            return []
             
         show = data.get("data", {}).get("show", {})
+        if not show:
+            return []
+            
         available = show.get("availableEpisodesDetail", {}).get("sub", [])
         
         eps = []
         for ep in available:
             eps.append({
-                "number": ep,
+                "number": str(ep),
+                "slug": str(ep),
                 "title": f"Episode {ep}",
-                "id": ep,
-                "url": f"{MKISSA_URL}watch/{slug}/ep-{ep}"
+                "japanese_title": "",
+                "token": f"mkissa:{slug}:{ep}",
+                "has_sub": True,
+                "has_dub": False
             })
             
-        eps.reverse() # typically APIs return newest first or oldest first. 
-        # let's sort them numerically
-        eps.sort(key=lambda x: float(x["number"]) if x["number"].replace('.','').isdigit() else 0)
+        eps.sort(key=lambda x: float(x["number"]) if x["number"].replace('.','',1).isdigit() else 0)
             
-        return {"success": True, "data": eps}
+        return eps
     except Exception as e:
-        return {"error": str(e)}, 500
+        return []
 
-def fetch_servers_mkissa(episode_id):
-    # Mkissa is a catalog site and does not offer streaming directly.
-    return {"success": True, "data": {"sub": [], "dub": []}}
+def fetch_servers_mkissa(ep_token):
+    return {
+        "watching": "Mkissa (No Streaming)",
+        "servers": {
+            "sub": [],
+            "dub": []
+        }
+    }
 
-def resolve_source_mkissa(server_id, episode_id=None):
-    return {"success": False, "error": "No streaming available on Mkissa"}
-
-if __name__ == "__main__":
-    print("Testing Home...")
-    home = scrape_home_mkissa()
-    print("Latest:", len(home.get("data", {}).get("latest_updates", [])))
-    
-    print("\\nTesting Search...")
-    search = search_mkissa("naruto")
-    print("Found:", len(search.get("data", [])))
-    if search.get("data"):
-        print("First:", search["data"][0])
-        
-    print("\\nTesting Info...")
-    info = scrape_anime_info_mkissa("DN3dcZSKe2tDtPsny")
-    print(info.get("data", {}).get("title"))
-    
-    print("\\nTesting Episodes...")
-    eps = fetch_episodes_mkissa("DN3dcZSKe2tDtPsny")
-    print("Found:", len(eps.get("data", [])))
+def resolve_mkissa_source(link_id):
+    return {"error": "No streaming available on Mkissa"}, 400

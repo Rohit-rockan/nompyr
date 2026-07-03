@@ -33,7 +33,6 @@ def scrape_home_anikototv():
             title_tag = slide.select_one(".title")
             title = title_tag.get_text(strip=True) if title_tag else ""
             
-            # The background image is in the style of div inside .image
             img_div = slide.select_one(".image div")
             img_src = ""
             if img_div and "background-image: url" in img_div.get("style", ""):
@@ -65,9 +64,7 @@ def scrape_home_anikototv():
                     "quality": "HD",
                 })
         
-        # Latest updates
         latest = []
-        # exclude swiper slides
         other_items = [i for i in soup.select(".item") if "swiper-slide" not in i.get("class", [])]
         for item in other_items:
             title_tag = item.select_one(".name")
@@ -101,13 +98,24 @@ def scrape_home_anikototv():
                 "type": anime_type,
             })
             
-        return {"success": True, "data": {"banner": banner, "latest_updates": latest}}
+        return {
+            "banner": banner, 
+            "latest_updates": latest,
+            "top_trending": {
+                "NOW": [],
+                "DAY": [],
+                "WEEK": [],
+                "MONTH": []
+            },
+            "popular": [],
+            "upcoming": []
+        }
     except Exception as e:
         return {"error": str(e)}, 500
 
-def search_anikototv(query):
+def search_anime_anikototv(keyword, page=1):
     try:
-        url = f"{ANIKOTO_URL}filter?keyword={requests.utils.quote(query)}"
+        url = f"{ANIKOTO_URL}filter?keyword={requests.utils.quote(keyword)}"
         r = requests.get(url, headers=HEADERS, timeout=15)
         r.raise_for_status()
         soup = BeautifulSoup(r.text, "html.parser")
@@ -138,10 +146,19 @@ def search_anikototv(query):
                 "slug": slug,
                 "sub_episodes": sub,
                 "dub_episodes": dub,
+                "total_episodes": "",
+                "year": "",
                 "type": "TV",
+                "rating": "",
+                "genres": []
             })
         
-        return {"success": True, "data": results}
+        return {
+            "total": len(results),
+            "page": page,
+            "per_page": len(results),
+            "results": results
+        }
     except Exception as e:
         return {"error": str(e)}, 500
 
@@ -162,38 +179,46 @@ def scrape_anime_info_anikototv(slug):
         desc_tag = soup.select_one(".film-description .text")
         description = desc_tag.get_text(strip=True) if desc_tag else ""
         
-        info = {
+        return {
+            "ani_id": slug,
             "title": title,
             "japanese_title": "",
-            "poster": poster,
             "description": description,
-            "url": url,
-            "slug": slug,
+            "poster": poster,
+            "banner": poster,
+            "sub_episodes": "",
+            "dub_episodes": "",
             "type": "TV",
-            "release": "",
-            "status": "",
-            "genres": [],
+            "rating": "",
+            "mal_score": "",
+            "detail": {
+                "studio": "",
+                "released": "",
+                "views": "",
+                "likes": "",
+                "dislikes": "",
+                "downloads": "",
+                "genres": []
+            },
+            "seasons": []
         }
-        
-        # The main data-id for the anime is in a div
-        watch_main = soup.select_one("#watch-main")
-        data_id = watch_main.get("data-id") if watch_main else None
-        
-        return {"success": True, "data": info, "data_id": data_id}
     except Exception as e:
         return {"error": str(e)}, 500
 
+def _get_data_id(slug):
+    url = f"{ANIKOTO_URL}watch/{slug}"
+    r = requests.get(url, headers=HEADERS, timeout=15)
+    r.raise_for_status()
+    soup = BeautifulSoup(r.text, "html.parser")
+    watch_main = soup.select_one("#watch-main")
+    return watch_main.get("data-id") if watch_main else None
+
 def fetch_episodes_anikototv(slug):
-    # To fetch episodes, we first need the data_id
-    info_res = scrape_anime_info_anikototv(slug)
-    if not info_res.get("success"):
-        return info_res
-    
-    data_id = info_res.get("data_id")
-    if not data_id:
-        return {"success": False, "error": "Could not find data-id on watch page"}
-        
     try:
+        data_id = _get_data_id(slug)
+        if not data_id:
+            return []
+            
         ajax_url = f"{ANIKOTO_URL}ajax/episode/list/{data_id}"
         r = requests.get(ajax_url, headers={**HEADERS, "X-Requested-With": "XMLHttpRequest"}, timeout=15)
         r.raise_for_status()
@@ -205,33 +230,37 @@ def fetch_episodes_anikototv(slug):
         for a in soup.select("ul.episodes li a") or soup.find_all("a", {"data-ids": True}):
             data_num = a.get("data-num")
             data_ids = a.get("data-ids") # THIS IS WHAT WE NEED
-            data_ep_id = a.get("data-id")
             
-            # Text could be in a child div like .name
             name_el = a.select_one(".name")
             title = name_el.get_text(strip=True) if name_el else a.get_text(strip=True)
             
             eps.append({
                 "number": data_num,
+                "slug": data_ids,
                 "title": title,
-                "id": data_ids, # we pass data-ids as the episode id
-                "url": ""
+                "japanese_title": "",
+                "token": f"anikototv:{data_ids}",
+                "has_sub": True,
+                "has_dub": False
             })
             
-        return {"success": True, "data": eps}
+        return eps
     except Exception as e:
         return {"error": str(e)}, 500
 
-def fetch_servers_anikototv(episode_id):
-    # episode_id here is data_ids
+def fetch_servers_anikototv(ep_token):
     try:
+        if not ep_token.startswith("anikototv:"):
+            return {"error": "Invalid episode token"}, 400
+        episode_id = ep_token.split("anikototv:")[1]
+            
         ajax_url = f"{ANIKOTO_URL}ajax/server/list?servers={episode_id}"
         r = requests.get(ajax_url, headers={**HEADERS, "X-Requested-With": "XMLHttpRequest"}, timeout=15)
         r.raise_for_status()
         
         data = r.json()
         if data.get("status") != 200:
-            return {"success": False, "error": f"Bad status: {data.get('status')}"}
+            return {"error": f"Bad status: {data.get('status')}"}, 400
             
         html = data.get("result", "")
         soup = BeautifulSoup(html, "html.parser")
@@ -247,10 +276,10 @@ def fetch_servers_anikototv(episode_id):
                 data_link_id = li.get("data-link-id")
                 
                 server_obj = {
-                    "server": server_name,
-                    "id": data_link_id, # THIS is what we decode!
-                    "type": type_type,
-                    "url": ""
+                    "name": server_name,
+                    "server_id": data_link_id,
+                    "episode_id": episode_id,
+                    "link_id": f"anikototv_server:{data_link_id}"
                 }
                 
                 if type_type == "dub":
@@ -258,53 +287,31 @@ def fetch_servers_anikototv(episode_id):
                 else:
                     sub_servers.append(server_obj)
                     
-        return {"success": True, "data": {"sub": sub_servers, "dub": dub_servers}}
-    except Exception as e:
-        return {"error": str(e)}, 500
-
-def resolve_source_anikototv(server_id, episode_id=None):
-    # server_id is the data-link-id
-    try:
-        padded = server_id + "=" * ((4 - len(server_id) % 4) % 4)
-        decoded = base64.b64decode(padded).decode("utf-8")
-        
         return {
-            "success": True,
-            "data": {
-                "source_url": decoded, # Emphasize that it is an iframe URL!
-                "headers": {},
-                "subtitles": []
+            "watching": "AnikotoTV",
+            "servers": {
+                "sub": sub_servers,
+                "dub": dub_servers
             }
         }
     except Exception as e:
         return {"error": str(e)}, 500
 
-if __name__ == "__main__":
-    print("Testing Home...")
-    home = scrape_home_anikototv()
-    print("Spotlight:", len(home.get("data", {}).get("spotlight", [])))
-    print("Latest:", len(home.get("data", {}).get("latest", [])))
-    
-    print("\\nTesting Search...")
-    search = search_anikototv("naruto")
-    print("Found:", len(search.get("data", [])))
-    if search.get("data"):
-        print("First:", search["data"][0])
-        
-    print("\\nTesting Episodes...")
-    # naruto-shippuuden-movie-6-road-to-ninja-w2wqq
-    # solo-leveling-ilh08
-    eps = fetch_episodes_anikototv("solo-leveling-ilh08")
-    print("Found:", len(eps.get("data", [])))
-    if eps.get("data"):
-        print("First:", eps["data"][0])
-        
-        print("\\nTesting Servers...")
-        servers = fetch_servers_anikototv(eps["data"][0]["id"])
-        print("Sub servers:", len(servers.get("data", {}).get("sub", [])))
-        if servers.get("data", {}).get("sub"):
-            print("First:", servers["data"]["sub"][0])
+def resolve_anikototv_source(link_id):
+    try:
+        if not link_id.startswith("anikototv_server:"):
+            return {"error": "Invalid link id"}, 400
+        server_id = link_id.split("anikototv_server:")[1]
             
-            print("\\nTesting Source...")
-            src = resolve_source_anikototv(servers["data"]["sub"][0]["id"])
-            print("Resolved URL:", src.get("data", {}).get("source_url"))
+        padded = server_id + "=" * ((4 - len(server_id) % 4) % 4)
+        decoded = base64.b64decode(padded).decode("utf-8")
+        
+        return {
+            "embed_url": decoded,
+            "skip": {},
+            "sources": [],
+            "tracks": [],
+            "download": ""
+        }
+    except Exception as e:
+        return {"error": str(e)}, 500

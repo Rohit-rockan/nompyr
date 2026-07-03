@@ -12,7 +12,6 @@ MIRURO_HEADERS = {
 ANILIST_URL = "https://graphql.anilist.co"
 
 def _translate_id(encoded_id: str) -> str:
-    """Decode a base64-encoded episode ID back to plain text."""
     try:
         decoded = base64.urlsafe_b64decode(encoded_id + '=' * (4 - len(encoded_id) % 4)).decode()
         if ':' in decoded:
@@ -22,7 +21,6 @@ def _translate_id(encoded_id: str) -> str:
         return {"error": str(e)}, 500
 
 def _deep_translate(obj):
-    """Recursively walk a JSON structure and decode any base64 'id' fields."""
     if isinstance(obj, dict):
         for key, value in obj.items():
             if key == 'id' and isinstance(value, str):
@@ -35,11 +33,9 @@ def _deep_translate(obj):
                 _deep_translate(item)
 
 def _encode_pipe_request(payload: dict) -> str:
-    """Encode a dict into the base64 format expected by the pipe endpoint."""
     return base64.urlsafe_b64encode(_json.dumps(payload).encode()).decode().rstrip('=')
 
 def _decode_pipe_response(encoded_str: str) -> dict:
-    """Decode a base64+gzip pipe response into a plain dict."""
     try:
         encoded_str += '=' * (4 - len(encoded_str) % 4)
         compressed = base64.urlsafe_b64decode(encoded_str)
@@ -48,7 +44,6 @@ def _decode_pipe_response(encoded_str: str) -> dict:
         return {"error": str(e)}, 500
 
 def _anilist_query(query: str, variables: dict = None):
-    """Execute an AniList GraphQL query synchronously and return the data."""
     body = {"query": query}
     if variables:
         body["variables"] = variables
@@ -82,7 +77,7 @@ MEDIA_LIST_FIELDS = """
     endDate { year month day }
 """
 
-def map_miruro_item(media):
+def map_search_item(media):
     if not media:
         return {}
     anilist_id = media.get("id")
@@ -93,51 +88,46 @@ def map_miruro_item(media):
     cover_image = media.get("coverImage") or {}
     poster = cover_image.get("extraLarge") or cover_image.get("large") or ""
     
-    banner = media.get("bannerImage") or poster
-    
-    studios_nodes = media.get("studios", {}).get("nodes", []) if media.get("studios") else []
-    studio = next((s.get("name") for s in studios_nodes if s.get("isAnimationStudio")), None) or (studios_nodes[0].get("name") if studios_nodes else "Unknown")
-    
     episodes_count = media.get("episodes") or 1
-    
-    status_map = {
-        "FINISHED": "Completed",
-        "RELEASING": "Ongoing",
-        "NOT_YET_RELEASED": "Upcoming",
-        "CANCELLED": "Cancelled",
-        "HIATUS": "Hiatus"
-    }
-    status = status_map.get(media.get("status"), "Unknown")
-    
-    score = media.get("averageScore")
-    if score is not None:
-        score = f"{score / 10:.1f}"
-    else:
-        score = "N/A"
         
     return {
-        "id": f"miruro:{anilist_id}",
-        "ani_id": f"miruro:{anilist_id}",
-        "slug": str(anilist_id),
         "title": title,
         "japanese_title": jp_title,
+        "slug": str(anilist_id),
+        "url": f"/anime/miruro/{anilist_id}",
         "poster": poster,
-        "banner": banner,
-        "type": media.get("format") or "TV",
-        "status": status,
-        "year": str(media.get("seasonYear") or ""),
-        "season": media.get("season") or "TBA",
-        "rating": "PG-13" if not media.get("isAdult") else "R+",
-        "score": score,
-        "duration": f"{media.get('duration') or 24}m",
-        "studio": studio,
-        "genres": media.get("genres") or [],
         "sub_episodes": str(episodes_count),
         "dub_episodes": "",
         "total_episodes": str(episodes_count),
+        "year": str(media.get("seasonYear") or ""),
+        "type": media.get("format") or "TV",
+        "rating": "PG-13" if not media.get("isAdult") else "R+",
+        "genres": media.get("genres") or []
+    }
+
+def map_latest_item(media):
+    if not media:
+        return {}
+    anilist_id = media.get("id")
+    title_data = media.get("title") or {}
+    title = title_data.get("english") or title_data.get("romaji") or title_data.get("native") or "Untitled"
+    jp_title = title_data.get("romaji") or title_data.get("native") or title
+    
+    cover_image = media.get("coverImage") or {}
+    poster = cover_image.get("extraLarge") or cover_image.get("large") or ""
+    
+    episodes_count = media.get("episodes") or 1
+        
+    return {
+        "title": title,
+        "japanese_title": jp_title,
+        "poster": poster,
+        "url": f"/anime/miruro/{anilist_id}",
+        "slug": str(anilist_id),
         "current_episode": str(episodes_count),
-        "description": media.get("description") or "",
-        "url": f"https://www.miruro.tv/details/{anilist_id}"
+        "sub_episodes": str(episodes_count),
+        "dub_episodes": "",
+        "type": media.get("format") or "TV"
     }
 
 def search_anime_miruro(keyword, page=1):
@@ -155,7 +145,7 @@ def search_anime_miruro(keyword, page=1):
         data = _anilist_query(gql, {"search": keyword, "page": page, "perPage": 24})
         page_data = data.get("Page", {})
         page_info = page_data.get("pageInfo", {})
-        results = [map_miruro_item(m) for m in page_data.get("media", [])]
+        results = [map_search_item(m) for m in page_data.get("media", [])]
         
         return {
             "total": page_info.get("total", len(results)),
@@ -200,19 +190,23 @@ def scrape_home_miruro():
         latest_raw = data.get("latest", {}).get("media", [])
         upcoming_raw = data.get("upcoming", {}).get("media", [])
         
-        trending_mapped = [map_miruro_item(m) for m in trending_raw]
-        popular_mapped = [map_miruro_item(m) for m in popular_raw]
-        latest_mapped = [map_miruro_item(m) for m in latest_raw]
-        upcoming_mapped = [map_miruro_item(m) for m in upcoming_raw]
+        trending_mapped = [map_latest_item(m) for m in trending_raw]
+        popular_mapped = [map_latest_item(m) for m in popular_raw]
+        latest_mapped = [map_latest_item(m) for m in latest_raw]
+        upcoming_mapped = [map_latest_item(m) for m in upcoming_raw]
         
         banner = []
         for m in trending_raw[:5]:
-            mapped = map_miruro_item(m)
+            mapped = map_latest_item(m)
             desc = m.get("description") or ""
             if desc:
                 desc = re.sub('<[^<]+?>', '', desc).strip()
                 if len(desc) > 200:
                     desc = desc[:200] + "..."
+            
+            genres = m.get("genres") or []
+            year = str(m.get("seasonYear") or "")
+            rating = "PG-13" if not m.get("isAdult") else "R+"
             banner.append({
                 "title": mapped["title"],
                 "japanese_title": mapped["japanese_title"],
@@ -223,9 +217,9 @@ def scrape_home_miruro():
                 "sub_episodes": mapped["sub_episodes"],
                 "dub_episodes": "",
                 "type": mapped["type"],
-                "genres": ", ".join(mapped["genres"]),
-                "rating": mapped["rating"],
-                "release": mapped["year"],
+                "genres": ", ".join(genres),
+                "rating": rating,
+                "release": year,
                 "quality": "HD"
             })
             
@@ -280,11 +274,35 @@ def scrape_anime_info_miruro(slug):
         if not media:
             return {"error": "Anime not found"}, 404
             
-        mapped = map_miruro_item(media)
+        title_data = media.get("title") or {}
+        title = title_data.get("english") or title_data.get("romaji") or title_data.get("native") or "Untitled"
+        jp_title = title_data.get("romaji") or title_data.get("native") or title
+        
+        cover_image = media.get("coverImage") or {}
+        poster = cover_image.get("extraLarge") or cover_image.get("large") or ""
+        banner = media.get("bannerImage") or poster
+        
+        studios_nodes = media.get("studios", {}).get("nodes", []) if media.get("studios") else []
+        studio = next((s.get("name") for s in studios_nodes if s.get("isAnimationStudio")), None) or (studios_nodes[0].get("name") if studios_nodes else "Unknown")
         
         start_date = media.get("startDate") or {}
         released = f"{start_date.get('year', 'Unknown')}-{start_date.get('month', 'Unknown')}-{start_date.get('day', 'Unknown')}"
         
+        status_map = {
+            "FINISHED": "Completed",
+            "RELEASING": "Ongoing",
+            "NOT_YET_RELEASED": "Upcoming",
+            "CANCELLED": "Cancelled",
+            "HIATUS": "Hiatus"
+        }
+        status = status_map.get(media.get("status"), "Unknown")
+        
+        score = media.get("averageScore")
+        if score is not None:
+            score = f"{score / 10:.1f}"
+        else:
+            score = "N/A"
+            
         sub_count = 0
         dub_count = 0
         try:
@@ -306,25 +324,27 @@ def scrape_anime_info_miruro(slug):
             sub_count = media.get("episodes") or 1
 
         detail = {
+            "studio": studio,
             "released": released,
-            "rating": mapped["rating"],
-            "score": mapped["score"],
-            "genres": mapped["genres"],
-            "status": mapped["status"]
+            "views": "0",
+            "likes": "0",
+            "dislikes": "0",
+            "downloads": "0",
+            "genres": media.get("genres") or []
         }
         
         return {
-            "ani_id": f"miruro:{anilist_id}",
-            "title": mapped["title"],
-            "japanese_title": mapped["japanese_title"],
-            "description": mapped["description"],
-            "poster": mapped["poster"],
-            "banner": mapped["banner"],
+            "ani_id": str(anilist_id),
+            "title": title,
+            "japanese_title": jp_title,
+            "description": media.get("description") or "",
+            "poster": poster,
+            "banner": banner,
             "sub_episodes": str(sub_count),
             "dub_episodes": str(dub_count) if dub_count > 0 else "",
-            "type": mapped["type"],
-            "rating": mapped["rating"],
-            "mal_score": mapped["score"],
+            "type": media.get("format") or "TV",
+            "rating": "PG-13" if not media.get("isAdult") else "R+",
+            "mal_score": score,
             "detail": detail,
             "seasons": [],
         }
@@ -349,15 +369,11 @@ def _fetch_raw_episodes_miruro(anilist_id):
     _deep_translate(data)
     return data
 
-def fetch_episodes_miruro(ani_id):
+def fetch_episodes_miruro(slug):
     try:
-        parts = ani_id.split(":")
-        if len(parts) >= 2:
-            anilist_id = int(parts[1])
-        else:
-            anilist_id = int(ani_id)
+        anilist_id = int(slug)
     except ValueError:
-        return {"error": "Invalid AniList ID format"}, 400
+        return []
         
     try:
         data = _fetch_raw_episodes_miruro(anilist_id)
@@ -408,7 +424,7 @@ def fetch_episodes_miruro(ani_id):
         sorted_keys = sorted(episode_map.keys(), key=lambda x: float(x) if x.replace('.', '', 1).isdigit() else 9999)
         return [episode_map[k] for k in sorted_keys]
     except Exception as e:
-        return {"error": str(e)}, 500
+        return []
 
 def fetch_servers_miruro(ep_token):
     try:
@@ -419,7 +435,7 @@ def fetch_servers_miruro(ep_token):
         else:
             return {"error": "Invalid ep_token format"}, 400
     except ValueError:
-        return {"error": "Invalid AniList ID"}, 400
+        return {"error": "Invalid token"}, 400
         
     try:
         data = _fetch_raw_episodes_miruro(anilist_id)
@@ -457,7 +473,7 @@ def fetch_servers_miruro(ep_token):
                         if not orig_id:
                             continue
                             
-                        link_id = f"miruro:{prov_name}:{cat}:{anilist_id}:{ep_num}:{orig_id}"
+                        link_id = f"miruro_server:{prov_name}:{cat}:{anilist_id}:{ep_num}:{orig_id}"
                         
                         server_info = {
                             "name": f"{prov_name.capitalize()} ({cat.capitalize()})",
@@ -480,11 +496,15 @@ def fetch_servers_miruro(ep_token):
     except Exception as e:
         return {"error": str(e)}, 500
 
-def resolve_source_miruro(link_id):
+def resolve_miruro_source(link_id):
     try:
+        if not link_id.startswith("miruro_server:"):
+            return {"error": "Invalid link_id format"}, 400
+        
         parts = link_id.split(":")
         if len(parts) < 6:
             return {"error": "Invalid link_id format"}, 400
+            
         provider = parts[1]
         category = parts[2]
         anilist_id = parts[3]
@@ -532,23 +552,22 @@ def resolve_source_miruro(link_id):
                                 "default": label.lower() == "english"
                             })
                             
-                    # Miruro provides streams that work perfectly with bysekoze referer via our proxy
-                    # So we mark embed_url to pass the proxy referer logic downstream
                     return {
-                        "sources": [{"file": stream_url, "type": "mp4"}], # Force mp4 to use proxy-media, since HLS via proxy is trickier unless m3u8 uses absolute paths
-                        "tracks": tracks,
                         "embed_url": "https://bysekoze.com/",
-                        "external_url": watch_url,
-                        "provider": "Miruro"
+                        "skip": {},
+                        "sources": [{"file": stream_url, "type": "mp4", "label": "Auto"}],
+                        "tracks": tracks,
+                        "download": ""
                     }
         except Exception as api_err:
-            print(f"Miruro pipe API failed to fetch stream: {api_err}")
+            pass
 
-        # Fallback to external url if stream fetch fails
         return {
-            "external_url": watch_url,
-            "provider": "Miruro",
-            "message": "Stream interception failed. Due to server protections, this episode must be watched directly on the provider's website."
+            "embed_url": watch_url,
+            "skip": {},
+            "sources": [],
+            "tracks": [],
+            "download": ""
         }
     except Exception as e:
         return {"error": str(e)}, 500

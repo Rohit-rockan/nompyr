@@ -4,7 +4,6 @@ from config import Config
 import re
 import urllib.parse
 
-
 BASE_URL = "https://anidb.app"
 
 def get_scraper():
@@ -19,15 +18,18 @@ def scrape_home_anidb():
         soup = BeautifulSoup(r.text, 'html.parser')
         
         home_data = {
-            "top_trending": {"NOW": []},
+            "banner": [],
             "latest_updates": [],
-            "popular": []
+            "top_trending": {
+                "NOW": [],
+                "DAY": [],
+                "WEEK": [],
+                "MONTH": []
+            },
+            "popular": [],
+            "upcoming": []
         }
         
-        # In anidb.app, home page has multiple sections
-        # Example parsing trending (we'll look for sections with swiper containers)
-        # Note: anidb's home is heavily styled. We'll pick cards with class "anime-card"
-        # We can just return a generic list for now as 'latest'
         sections = soup.select('section')
         for idx, section in enumerate(sections):
             cards = section.select('.anime-card')
@@ -41,24 +43,31 @@ def scrape_home_anidb():
                 title = title_elem.text.strip() if title_elem else "Unknown"
                 
                 img_elem = card.select_one('img')
-                image = img_elem.get('src') if img_elem else None
+                image = img_elem.get('src') if img_elem else ""
                 
-                # Extract ID
                 m = re.search(r'/anime/([^/]+)', href)
-                anime_id = m.group(1) if m else None
+                anime_id = m.group(1) if m else ""
                 
                 if not anime_id:
                     continue
                     
                 section_list.append({
-                    "id": anime_id,
                     "title": title,
-                    "image": image,
-                    "url": href
+                    "japanese_title": "",
+                    "poster": image,
+                    "url": href,
+                    "slug": anime_id,
+                    "current_episode": "",
+                    "sub_episodes": "",
+                    "dub_episodes": "",
+                    "type": "TV"
                 })
             
             if idx == 0:
                 home_data['top_trending']["NOW"] = section_list
+                home_data['top_trending']["DAY"] = section_list
+                home_data['top_trending']["WEEK"] = section_list
+                home_data['top_trending']["MONTH"] = section_list
             elif idx == 1:
                 home_data['latest_updates'] = section_list
             elif idx == 2:
@@ -71,9 +80,8 @@ def scrape_home_anidb():
     except Exception as e:
         return {"error": str(e)}, 500
 
-def search_anidb(query):
-    url = f"{BASE_URL}/browse?q={urllib.parse.quote(query)}"
-    results = []
+def search_anime_anidb(keyword, page=1):
+    url = f"{BASE_URL}/browse?q={urllib.parse.quote(keyword)}"
     try:
         scraper = get_scraper()
         r = scraper.get(url, timeout=Config.SCRAPER_TIMEOUT)
@@ -81,6 +89,7 @@ def search_anidb(query):
         soup = BeautifulSoup(r.text, 'html.parser')
         
         cards = soup.select('.anime-card')
+        results = []
         for card in cards:
             href = card.get('href') or ''
             if not href.startswith('http'):
@@ -90,31 +99,38 @@ def search_anidb(query):
             title = title_elem.text.strip() if title_elem else "Unknown"
             
             img_elem = card.select_one('img')
-            image = img_elem.get('src') if img_elem else None
+            image = img_elem.get('src') if img_elem else ""
             
             m = re.search(r'/anime/([^/]+)', href)
-            anime_id = m.group(1) if m else None
+            anime_id = m.group(1) if m else ""
             
             if anime_id:
                 results.append({
-                    "id": anime_id,
                     "title": title,
-                    "image": image,
-                    "url": href
+                    "japanese_title": "",
+                    "slug": anime_id,
+                    "url": href,
+                    "poster": image,
+                    "sub_episodes": "",
+                    "dub_episodes": "",
+                    "total_episodes": "",
+                    "year": "",
+                    "type": "TV",
+                    "rating": "",
+                    "genres": []
                 })
+                
+        return {
+            "total": len(results),
+            "page": page,
+            "per_page": len(results),
+            "results": results
+        }
     except Exception as e:
         return {"error": str(e)}, 500
-    return results
 
-def scrape_anime_info_anidb(anime_id):
-    url = f"{BASE_URL}/anime/{anime_id}"
-    info = {
-        "id": anime_id,
-        "title": "Unknown",
-        "image": None,
-        "description": "",
-        "episodes": []
-    }
+def scrape_anime_info_anidb(slug):
+    url = f"{BASE_URL}/anime/{slug}"
     try:
         scraper = get_scraper()
         r = scraper.get(url, timeout=Config.SCRAPER_TIMEOUT)
@@ -122,43 +138,79 @@ def scrape_anime_info_anidb(anime_id):
         soup = BeautifulSoup(r.text, 'html.parser')
         
         title_elem = soup.select_one('h1')
-        if title_elem:
-            info['title'] = title_elem.text.strip()
+        title = title_elem.text.strip() if title_elem else "Unknown"
             
         img_elem = soup.select_one('img.object-cover')
-        if img_elem:
-            info['image'] = img_elem.get('src')
+        image = img_elem.get('src') if img_elem else ""
             
         desc_elem = soup.select_one('div.text-muted') # approximate description block
-        if desc_elem:
-            info['description'] = desc_elem.text.strip()
+        description = desc_elem.text.strip() if desc_elem else ""
             
-        # To get episodes, we need the numeric ID
-        # anime_id usually looks like "naruto-3686"
-        numeric_id_match = re.search(r'-(\d+)$', anime_id)
-        if numeric_id_match:
-            num_id = numeric_id_match.group(1)
-            eps_url = f"{BASE_URL}/api/frontend/anime/{num_id}/episodes"
-            eps_r = scraper.get(eps_url, timeout=Config.SCRAPER_TIMEOUT)
-            if eps_r.status_code == 200:
-                eps_data = eps_r.json()
-                for ep in eps_data.get('episodes', []):
-                    info['episodes'].append({
-                        "id": str(ep['id']),
-                        "number": ep.get('number', 0),
-                        "title": f"Episode {ep.get('number', 0)}",
-                        "is_filler": ep.get('filler', False)
-                    })
-                    
+        return {
+            "ani_id": slug,
+            "title": title,
+            "japanese_title": "",
+            "description": description,
+            "poster": image,
+            "banner": image,
+            "sub_episodes": "",
+            "dub_episodes": "",
+            "type": "TV",
+            "rating": "",
+            "mal_score": "",
+            "detail": {
+                "studio": "",
+                "released": "",
+                "views": "",
+                "likes": "",
+                "dislikes": "",
+                "downloads": "",
+                "genres": []
+            },
+            "seasons": []
+        }
     except Exception as e:
         return {"error": str(e)}, 500
-    return info
 
-def fetch_servers_anidb(anime_id, episode_id):
-    servers = []
+def fetch_episodes_anidb(slug):
     try:
         scraper = get_scraper()
-        # Episode languages API gives us the embed URLs directly
+        numeric_id_match = re.search(r'-(\d+)$', slug)
+        if not numeric_id_match:
+            return []
+            
+        num_id = numeric_id_match.group(1)
+        eps_url = f"{BASE_URL}/api/frontend/anime/{num_id}/episodes"
+        eps_r = scraper.get(eps_url, timeout=Config.SCRAPER_TIMEOUT)
+        
+        episodes = []
+        if eps_r.status_code == 200:
+            eps_data = eps_r.json()
+            for ep in eps_data.get('episodes', []):
+                ep_id = str(ep['id'])
+                episodes.append({
+                    "number": str(ep.get('number', 0)),
+                    "slug": ep_id,
+                    "title": f"Episode {ep.get('number', 0)}",
+                    "japanese_title": "",
+                    "token": f"anidb:{slug}:{ep_id}",
+                    "has_sub": True,
+                    "has_dub": False
+                })
+        return episodes
+    except Exception as e:
+        return {"error": str(e)}, 500
+
+def fetch_servers_anidb(ep_token):
+    try:
+        if not ep_token.startswith("anidb:"):
+            return {"error": "Invalid episode token"}, 400
+            
+        parts = ep_token.split(":")
+        episode_id = parts[2]
+        
+        servers = []
+        scraper = get_scraper()
         lang_url = f"{BASE_URL}/api/frontend/episode/{episode_id}/languages"
         r = scraper.get(lang_url, timeout=Config.SCRAPER_TIMEOUT)
         if r.status_code == 200:
@@ -168,28 +220,48 @@ def fetch_servers_anidb(anime_id, episode_id):
                 if embed_url:
                     servers.append({
                         "name": f"AniDB ({lang.get('name', 'Sub')})",
-                        "type": "embed",
-                        "url": embed_url,
-                        "server_id": embed_url
+                        "server_id": embed_url,
+                        "episode_id": episode_id,
+                        "link_id": f"anidb_server:{embed_url}"
                     })
+                    
+        return {
+            "watching": "AniDB",
+            "servers": {
+                "sub": servers,
+                "dub": []
+            }
+        }
     except Exception as e:
         return {"error": str(e)}, 500
-    return servers
 
-def resolve_source_anidb(server_id):
-    # Server_id is the embed URL
+def resolve_anidb_source(link_id):
     try:
+        if not link_id.startswith("anidb_server:"):
+            return {"error": "Invalid link id"}, 400
+            
+        server_url = link_id.split("anidb_server:")[1]
+        
         scraper = get_scraper()
-        r = scraper.get(server_id, timeout=Config.SCRAPER_TIMEOUT)
+        r = scraper.get(server_url, timeout=Config.SCRAPER_TIMEOUT)
+        sources = []
         if r.status_code == 200:
-            # Look for the .m3u8 file in the script block
             m3u8_match = re.search(r'file:\s*[\'\"]([^\'\"]+\.m3u8[^\'\"]*)[\'\"]', r.text)
             if m3u8_match:
                 stream_url = m3u8_match.group(1)
-                return {
-                    "sources": [{"url": stream_url, "type": "hls"}],
-                    "subtitles": []
-                }
+                sources.append({
+                    "file": stream_url,
+                    "type": "hls",
+                    "label": "Auto"
+                })
+                
+        return {
+            "embed_url": server_url,
+            "skip": {},
+            "sources": sources,
+            "tracks": [],
+            "download": ""
+        }
     except Exception as e:
         return {"error": str(e)}, 500
-    return None
+
