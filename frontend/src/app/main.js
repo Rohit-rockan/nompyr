@@ -1703,7 +1703,7 @@ const renderWatch = async (slug, episodeNo = "1") => {
   });
 
   // Automatically trigger auto-switch if stream failed to resolve and it's not a demo-only environment
-  if (!stream.hls && !stream.embed_url && !stream.embedUrl && !stream.demoOnly) {
+  if (!stream.hls && !stream.embed_url && !stream.embedUrl) {
     const btn = document.getElementById("autoSwitchSourceBtn");
     if (btn) {
       setTimeout(() => {
