@@ -35,13 +35,13 @@ from scrapers import (
     search_anime_hanime,
     search_anime_miruro,
     search_anime_animenexus,
-    search_anikototv,
-    search_mkissa,
-    search_anineko,
-    search_anidb,
-    search_senshi,
-    search_animotvslash,
-    search_animedekho,
+    search_anime_anikototv,
+    search_anime_mkissa,
+    search_anime_anineko,
+    search_anime_anidb,
+    search_anime_senshi,
+    search_anime_animotvslash,
+    search_anime_animedekho,
     scrape_most_searched,
 )
 
@@ -187,11 +187,11 @@ def api_search():
     elif source == "animenexus":
         res = search_anime_animenexus(kw, page)
     elif source == "anikototv":
-        res = search_anikototv(kw)
+        res = search_anime_anikototv(kw)
     elif source == "mkissa":
-        res = search_mkissa(kw)
+        res = search_anime_mkissa(kw)
     elif source == "anineko":
-        res = search_anineko(kw, page)
+        res = search_anime_anineko(kw, page)
     elif source == "all" or not source:
         with ThreadPoolExecutor(max_workers=Config.MAX_SCRAPER_WORKERS) as executor:
             fut_kai = executor.submit(safe_run, search_anime, kw, page)
@@ -199,13 +199,13 @@ def api_search():
             fut_hanime = executor.submit(safe_run, search_anime_hanime, kw, page)
             fut_miruro = executor.submit(safe_run, search_anime_miruro, kw, page)
             fut_nexus = executor.submit(safe_run, search_anime_animenexus, kw, page)
-            fut_anikototv = executor.submit(safe_run, search_anikototv, kw)
-            fut_mkissa = executor.submit(safe_run, search_mkissa, kw)
-            fut_anineko = executor.submit(safe_run, search_anineko, kw)
-            fut_anidb = executor.submit(safe_run, search_anidb, kw)
-            fut_senshi = executor.submit(safe_run, search_senshi, kw)
-            fut_animotv = executor.submit(safe_run, search_animotvslash, kw)
-            fut_animedekho = executor.submit(safe_run, search_animedekho, kw)
+            fut_anikototv = executor.submit(safe_run, search_anime_anikototv, kw)
+            fut_mkissa = executor.submit(safe_run, search_anime_mkissa, kw)
+            fut_anineko = executor.submit(safe_run, search_anime_anineko, kw)
+            fut_anidb = executor.submit(safe_run, search_anime_anidb, kw)
+            fut_senshi = executor.submit(safe_run, search_anime_senshi, kw)
+            fut_animotv = executor.submit(safe_run, search_anime_animotvslash, kw)
+            fut_animedekho = executor.submit(safe_run, search_anime_animedekho, kw)
 
             res_kai = fut_kai.result()
             res_watch = fut_watch.result()

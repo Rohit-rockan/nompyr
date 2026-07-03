@@ -20,13 +20,16 @@ from core import cache
 from core.helpers import get_base_origin
 from scrapers import (
     resolve_source,
-    resolve_source_miruro,
-    resolve_source_animenexus,
-    resolve_source_anikototv,
-    resolve_source_mkissa,
-    resolve_source_anineko,
-    resolve_source_anidb,
+    resolve_miruro_source,
+    resolve_animenexus_source,
+    resolve_anikototv_source,
+    resolve_mkissa_source,
+    resolve_anineko_source,
+    resolve_anidb_source,
     resolve_hanime_source,
+    resolve_senshi_source,
+    resolve_animotvslash_source,
+    resolve_animedekho_source,
 )
 
 source_bp = Blueprint("source", __name__)
@@ -102,23 +105,23 @@ def api_source(link_id):
     elif source == "aniwatch":
         res = resolve_source(stripped_link)
     elif source == "miruro":
-        res = resolve_source_miruro(stripped_link)
+        res = resolve_miruro_source(stripped_link)
     elif source == "animenexus":
-        res = resolve_source_animenexus(stripped_link)
+        res = resolve_animenexus_source(stripped_link)
     elif source == "anikototv":
-        res = resolve_source_anikototv(stripped_link)
+        res = resolve_anikototv_source(stripped_link)
     elif source == "mkissa":
-        res = resolve_source_mkissa(stripped_link)
+        res = resolve_mkissa_source(stripped_link)
     elif source == "anineko":
-        res = resolve_source_anineko(stripped_link)
+        res = resolve_anineko_source(stripped_link)
     elif source == "anidb":
-        res = resolve_source_anidb(stripped_link)
+        res = resolve_anidb_source(stripped_link)
     elif source == "senshi":
-        res = resolve_source_senshi(stripped_link)
+        res = resolve_senshi_source(stripped_link)
     elif source == "animotvslash":
-        res = resolve_source_animotvslash(stripped_link)
+        res = resolve_animotvslash_source(stripped_link)
     elif source == "animedekho":
-        res = resolve_source_animedekho(stripped_link)
+        res = resolve_animedekho_source(stripped_link)
     else:
         res = resolve_source(stripped_link)
 

@@ -45,7 +45,17 @@ from scrapers import (
     fetch_episodes_anineko,
     fetch_servers_anineko,
     scrape_anime_info_anidb,
+    fetch_episodes_anidb,
     fetch_servers_anidb,
+    scrape_anime_info_senshi,
+    fetch_episodes_senshi,
+    fetch_servers_senshi,
+    scrape_anime_info_animotvslash,
+    fetch_episodes_animotvslash,
+    fetch_servers_animotvslash,
+    scrape_anime_info_animedekho,
+    fetch_episodes_animedekho,
+    fetch_servers_animedekho,
 )
 
 anime_bp = Blueprint("anime", __name__)
@@ -204,6 +214,12 @@ def api_episodes(ani_id):
     elif source == "anidb":
         # anidb info fetches episodes directly in the info scraper
         res = []
+    elif source == "senshi":
+        res = fetch_episodes_senshi(stripped_id)
+    elif source == "animotvslash":
+        res = fetch_episodes_animotvslash(stripped_id)
+    elif source == "animedekho":
+        res = fetch_episodes_animedekho(stripped_id)
     elif source == "jikan":
         res = fetch_episodes_jikan(stripped_id)
     else:
