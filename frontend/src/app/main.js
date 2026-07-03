@@ -1641,7 +1641,7 @@ const renderWatch = async (slug, episodeNo = "1") => {
       try {
         showToast(`Searching on ${src.name}...`);
         const srcQuery = src.name.toLowerCase().replace(/[^a-z0-9]/g, '');
-        const searchRes = await sourceManager.search({ keyword: anime.title, source: srcQuery });
+        const searchRes = await sourceManager.search({ query: anime.title, source: srcQuery });
         let newMatch = (searchRes.results || searchRes.data || []).find(r => r.id && r.id.startsWith(srcQuery + ":"));
         if (!newMatch && (searchRes.results || searchRes.data || []).length > 0) {
           newMatch = (searchRes.results || searchRes.data || [])[0];
