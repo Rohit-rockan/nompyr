@@ -64,7 +64,10 @@ anime_bp = Blueprint("anime", __name__)
 # ------------------------------------------------------------------------------
 # Helper: Parse source prefix from a prefixed identifier
 # ------------------------------------------------------------------------------
-_SOURCE_PREFIXES = ("hanime:", "aniwatch:", "animekai:", "miruro:", "animenexus:", "jikan:", "anikototv:", "allanime:", "anineko:", "anidb:")
+_SOURCE_PREFIXES = (
+    "hanime:", "aniwatch:", "animekai:", "miruro:", "animenexus:", "jikan:", 
+    "anikototv:", "allanime:", "anineko:", "anidb:", "senshi:", "animotvslash:", "animedekho:"
+)
 
 
 def _parse_source_prefix(identifier):
