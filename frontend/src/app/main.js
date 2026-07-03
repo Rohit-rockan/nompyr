@@ -1250,6 +1250,14 @@ const renderWatch = async (slug, episodeNo = "1") => {
   const dubServers = servers.filter(s => s.mode.toLowerCase() === "dub");
   const externalUrl = (episode && episode.url) || anime.url || stream.external_url || "";
 
+  // Automatically redirect if stream cannot be played natively
+  if (stream.demoOnly || (stream.message && stream.message.includes("server protections"))) {
+    if (externalUrl) {
+      window.location.href = externalUrl;
+      return;
+    }
+  }
+
   view.innerHTML = `
     <!-- Taiga/MALSync Rich Presence Hooks -->
     <div id="nompyr-rich-presence" data-mal-id="${anime.sourceAnimeId || anime.id}" data-title="${anime.title}" data-ep="${episodeNo}" style="display:none;"></div>
