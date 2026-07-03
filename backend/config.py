@@ -39,6 +39,7 @@ class Config:
     PROXY_TIMEOUT = 20          # Timeout for media proxy streaming
     ANILIST_TIMEOUT = 4         # Timeout for AniList GraphQL queries (single)
     ANILIST_BATCH_TIMEOUT = 6   # Timeout for AniList GraphQL batch queries
+    SCRAPER_PROXY_URL = os.environ.get("SCRAPER_PROXY_URL", "") # Proxy for Cloudflare bypass
 
     # --------------------------------------------------------------------------
     # Thread Pool Configuration

@@ -106,6 +106,11 @@ class HttpClient:
         session.headers.update({
             "User-Agent": Config.DEFAULT_USER_AGENT,
         })
+        if Config.SCRAPER_PROXY_URL:
+            session.proxies = {
+                "http": Config.SCRAPER_PROXY_URL,
+                "https": Config.SCRAPER_PROXY_URL,
+            }
         return session
 
     @property

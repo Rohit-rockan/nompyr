@@ -49,13 +49,13 @@ from scrapers.anikototv import (
     resolve_anikototv_source
 )
 
-from scrapers.mkissa import (
-    search_anime_mkissa,
-    scrape_home_mkissa,
-    scrape_anime_info_mkissa,
-    fetch_episodes_mkissa,
-    fetch_servers_mkissa,
-    resolve_mkissa_source
+from scrapers.allanime import (
+    search_anime_allanime,
+    scrape_home_allanime,
+    scrape_anime_info_allanime,
+    fetch_episodes_allanime,
+    fetch_servers_allanime,
+    resolve_allanime_source
 )
 
 from scrapers.anineko import (

@@ -354,46 +354,23 @@ class RemoteApiSource {
   }
 
   async episodes(slug) {
-    try {
-      const payload = await this.request(`/api/episodes/${encodeURIComponent(slug)}`);
-      let list = Array.isArray(payload) ? payload : payload?.episodes || payload?.items;
-      if (list && typeof list === "object" && !Array.isArray(list)) {
-        list = Object.values(list);
-      }
-      list = list || [];
-      if (list.length === 0) {
-        throw new Error("No episodes returned from API");
-      }
-      return list.map((episode, index) => ({
-        id: episode.id || episode.token || episode.ep_token || `${slug}-ep-${episode.number || index + 1}`,
-        animeId: slug,
-        number: episode.number || episode.episode || index + 1,
-        title: episode.title || `Episode ${episode.number || index + 1}`,
-        released: episode.released !== false,
-        duration: episode.duration || "24m"
-      }));
-    } catch (error) {
-      console.warn("Failed to fetch episodes from API, falling back to dummy list:", error);
-      if (!this.animeCache.has(slug)) {
-        try {
-          await this.anime(slug);
-        } catch (e) {}
-      }
-      const anime = this.animeCache.get(slug);
-      const total = Math.max(1, Number(anime?.episodes || anime?.latestEpisode || 1));
-      const start = Math.max(1, total - 99);
-      return Array.from({ length: total - start + 1 }, (_, index) => {
-        const number = start + index;
-        return {
-          id: `${slug}-ep-${number}`,
-          animeId: slug,
-          number,
-          title: anime?.type === "Movie" ? "Full Movie" : `Episode ${number}`,
-          released: true,
-          duration: anime?.duration || "24m"
-        };
-      }).reverse();
+    const payload = await this.request(`/api/episodes/${encodeURIComponent(slug)}`);
+    let list = Array.isArray(payload) ? payload : payload?.episodes || payload?.items;
+    if (list && typeof list === "object" && !Array.isArray(list)) {
+      list = Object.values(list);
     }
+    list = list || [];
+    if (list.length === 0) {
+      throw new Error("No episodes returned from API");
+    }
+    return list.map((episode, index) => ({
+      id: episode.id || episode.token || episode.ep_token || `${slug}-ep-${episode.number || index + 1}`,
+      animeId: slug,
+      number: episode.number || episode.episode || index + 1,
+      title: episode.title || `Episode ${episode.number || index + 1}`,
+      released: episode.released !== false,
+      duration: episode.duration || "24m"
+    }));
   }
 
   async servers(episodeId) {
@@ -936,8 +913,75 @@ class DemoSource {
   }
 }
 
+class ConsumetSource {
+  constructor() {
+    this.name = "Consumet Fallback API";
+    this.priority = 50;
+    this.baseUrl = "https://api.consumet.org/anime/gogoanime";
+  }
+
+  async searchAnime(slug) {
+    let query = slug;
+    if (slug.includes(":")) query = slug.split(":").slice(1).join(":");
+    query = query.replace(/-/g, " ");
+    const res = await fetch(`${this.baseUrl}/${encodeURIComponent(query)}`);
+    const data = await res.json();
+    if (data.results && data.results.length > 0) {
+      return data.results[0].id;
+    }
+    throw new Error("Anime not found on Consumet");
+  }
+
+  async home() { throw new Error("Not implemented"); }
+  async search() { throw new Error("Not implemented"); }
+  async anime() { throw new Error("Not implemented"); }
+
+  async episodes(slug) {
+    const consumetId = await this.searchAnime(slug);
+    const res = await fetch(`${this.baseUrl}/info/${consumetId}`);
+    const data = await res.json();
+    if (!data.episodes || data.episodes.length === 0) {
+      throw new Error("No episodes returned from Consumet API");
+    }
+    return data.episodes.map(ep => ({
+      id: ep.id,
+      animeId: slug,
+      number: ep.number,
+      title: `Episode ${ep.number}`,
+      released: true,
+      duration: "24m"
+    })).reverse();
+  }
+
+  async servers(episodeId) {
+    if (episodeId.includes("-ep-")) throw new Error("Not a Consumet episode ID");
+    return [
+      { id: episodeId, label: "Consumet (GogoAnime)", mode: "Sub", quality: ["Auto", "1080p", "720p"] }
+    ];
+  }
+
+  async stream(serverId) {
+    if (serverId.includes("-ep-")) throw new Error("Not a Consumet server ID");
+    const res = await fetch(`${this.baseUrl}/watch/${serverId}`);
+    const data = await res.json();
+    const source = data.sources?.find(s => s.quality === "default" || s.quality === "auto") || data.sources?.[0];
+    if (source) {
+      return {
+        serverId,
+        hls: source.url,
+        demoOnly: false,
+        message: "Streaming via Consumet Fallback API"
+      };
+    }
+    throw new Error("Stream not found on Consumet");
+  }
+
+  async download() { throw new Error("Not implemented"); }
+  async schedule() { throw new Error("Not implemented"); }
+}
+
 export class SourceManager {
-  constructor(sources = [new RemoteApiSource(), new DemoSource()]) {
+  constructor(sources = [new RemoteApiSource(), new ConsumetSource(), new DemoSource()]) {
     this.sources = sources.sort((a, b) => a.priority - b.priority);
   }
 

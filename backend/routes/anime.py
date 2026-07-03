@@ -38,9 +38,9 @@ from scrapers import (
     scrape_anime_info_anikototv,
     fetch_episodes_anikototv,
     fetch_servers_anikototv,
-    scrape_anime_info_mkissa,
-    fetch_episodes_mkissa,
-    fetch_servers_mkissa,
+    scrape_anime_info_allanime,
+    fetch_episodes_allanime,
+    fetch_servers_allanime,
     scrape_anime_info_anineko,
     fetch_episodes_anineko,
     fetch_servers_anineko,
@@ -64,7 +64,7 @@ anime_bp = Blueprint("anime", __name__)
 # ------------------------------------------------------------------------------
 # Helper: Parse source prefix from a prefixed identifier
 # ------------------------------------------------------------------------------
-_SOURCE_PREFIXES = ("hanime:", "aniwatch:", "animekai:", "miruro:", "animenexus:", "jikan:", "anikototv:", "mkissa:", "anineko:", "anidb:")
+_SOURCE_PREFIXES = ("hanime:", "aniwatch:", "animekai:", "miruro:", "animenexus:", "jikan:", "anikototv:", "allanime:", "anineko:", "anidb:")
 
 
 def _parse_source_prefix(identifier):
@@ -116,8 +116,8 @@ def api_anime_info(slug):
         res = scrape_anime_info_animenexus(stripped_slug)
     elif source == "anikototv":
         res = scrape_anime_info_anikototv(stripped_slug)
-    elif source == "mkissa":
-        res = scrape_anime_info_mkissa(stripped_slug)
+    elif source == "allanime":
+        res = scrape_anime_info_allanime(stripped_slug)
     elif source == "anineko":
         res = scrape_anime_info_anineko(stripped_slug)
     elif source == "anidb":
@@ -207,8 +207,8 @@ def api_episodes(ani_id):
         res = fetch_episodes_animenexus(stripped_id)
     elif source == "anikototv":
         res = fetch_episodes_anikototv(stripped_id)
-    elif source == "mkissa":
-        res = fetch_episodes_mkissa(stripped_id)
+    elif source == "allanime":
+        res = fetch_episodes_allanime(stripped_id)
     elif source == "anineko":
         res = fetch_episodes_anineko(stripped_id)
     elif source == "anidb":
@@ -285,9 +285,9 @@ def api_servers(ep_token):
     elif ep_token.startswith("animekai:"):
         source = "animekai"
         stripped_token = ep_token.split("animekai:", 1)[1]
-    elif ep_token.startswith("mkissa:"):
-        source = "mkissa"
-        stripped_token = ep_token.split("mkissa:", 1)[1]
+    elif ep_token.startswith("allanime:"):
+        source = "allanime"
+        stripped_token = ep_token.split("allanime:", 1)[1]
     elif ep_token.startswith("anineko:"):
         source = "anineko"
         stripped_token = ep_token.split("anineko:", 1)[1]
@@ -312,8 +312,8 @@ def api_servers(ep_token):
         res = fetch_servers_animenexus(ep_token)
     elif source == "anikototv":
         res = fetch_servers_anikototv(ep_token)
-    elif source == "mkissa":
-        res = fetch_servers_mkissa(ep_token)
+    elif source == "allanime":
+        res = fetch_servers_allanime(ep_token)
     elif source == "anineko":
         res = fetch_servers_anineko(None, ep_token)
     elif source == "anidb":

@@ -28,7 +28,7 @@ from scrapers import (
     scrape_home_miruro,
     scrape_home_animenexus,
     scrape_home_anikototv,
-    scrape_home_mkissa,
+    scrape_home_allanime,
     scrape_home_anineko,
     scrape_home_anidb,
     scrape_home_senshi,
@@ -102,8 +102,8 @@ def api_home():
         res = scrape_home_animenexus()
     elif source == "anikototv":
         res = scrape_home_anikototv()
-    elif source == "mkissa":
-        res = scrape_home_mkissa()
+    elif source == "allanime":
+        res = scrape_home_allanime()
     elif source == "anineko":
         res = scrape_home_anineko()
     elif source == "senshi":
@@ -120,7 +120,7 @@ def api_home():
             fut_miruro = executor.submit(safe_run, scrape_home_miruro)
             fut_nexus = executor.submit(safe_run, scrape_home_animenexus)
             fut_anikototv = executor.submit(safe_run, scrape_home_anikototv)
-            fut_mkissa = executor.submit(safe_run, scrape_home_mkissa)
+            fut_allanime = executor.submit(safe_run, scrape_home_allanime)
             fut_anineko = executor.submit(safe_run, scrape_home_anineko)
             fut_anidb = executor.submit(safe_run, scrape_home_anidb)
             fut_senshi = executor.submit(safe_run, scrape_home_senshi)
@@ -133,7 +133,7 @@ def api_home():
             res_miruro = fut_miruro.result()
             res_nexus = fut_nexus.result()
             res_anikototv = fut_anikototv.result()
-            res_mkissa = fut_mkissa.result()
+            res_allanime = fut_allanime.result()
             res_anineko = fut_anineko.result()
             res_anidb = fut_anidb.result()
             res_senshi = fut_senshi.result()
@@ -153,7 +153,7 @@ def api_home():
         miruro = clean_res(res_miruro)
         nexus = clean_res(res_nexus)
         anikototv = clean_res(res_anikototv)
-        mkissa = clean_res(res_mkissa)
+        allanime = clean_res(res_allanime)
         anineko = clean_res(res_anineko)
         anidb = clean_res(res_anidb)
         senshi = clean_res(res_senshi)
@@ -170,7 +170,7 @@ def api_home():
             prefix_list(miruro.get("banner", []), "miruro"),
             prefix_list(nexus.get("banner", []), "animenexus"),
             prefix_list(anikototv.get("banner", []), "anikototv"),
-            prefix_list(mkissa.get("banner", []), "mkissa"),
+            prefix_list(allanime.get("banner", []), "allanime"),
             prefix_list(anineko.get("banner", []), "anineko"),
             prefix_list(anidb.get("banner", []), "anidb"),
             prefix_list(senshi.get("banner", []), "senshi"),
@@ -185,7 +185,7 @@ def api_home():
             prefix_list(miruro.get("latest_updates", []), "miruro"),
             prefix_list(nexus.get("latest_updates", []), "animenexus"),
             prefix_list(anikototv.get("latest_updates", []), "anikototv"),
-            prefix_list(mkissa.get("latest_updates", []), "mkissa"),
+            prefix_list(allanime.get("latest_updates", []), "allanime"),
             prefix_list(anineko.get("latest_updates", []), "anineko"),
         )
 

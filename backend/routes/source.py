@@ -23,7 +23,7 @@ from scrapers import (
     resolve_miruro_source,
     resolve_animenexus_source,
     resolve_anikototv_source,
-    resolve_mkissa_source,
+    resolve_allanime_source,
     resolve_anineko_source,
     resolve_anidb_source,
     resolve_hanime_source,
@@ -76,9 +76,9 @@ def api_source(link_id):
     elif link_id.startswith("anikototv:"):
         source = "anikototv"
         stripped_link = link_id.split("anikototv:", 1)[1]
-    elif link_id.startswith("mkissa:"):
-        source = "mkissa"
-        stripped_link = link_id.split("mkissa:", 1)[1]
+    elif link_id.startswith("allanime:"):
+        source = "allanime"
+        stripped_link = link_id.split("allanime:", 1)[1]
     elif link_id.startswith("anineko:"):
         source = "anineko"
         stripped_link = link_id.split("anineko:", 1)[1]
@@ -93,8 +93,8 @@ def api_source(link_id):
             source = "animenexus"
         elif "anikototv" in link_id:
             source = "anikototv"
-        elif "mkissa" in link_id:
-            source = "mkissa"
+        elif "allanime" in link_id:
+            source = "allanime"
         elif "anineko" in link_id:
             source = "anineko"
         else:
@@ -110,8 +110,8 @@ def api_source(link_id):
         res = resolve_animenexus_source(stripped_link)
     elif source == "anikototv":
         res = resolve_anikototv_source(stripped_link)
-    elif source == "mkissa":
-        res = resolve_mkissa_source(stripped_link)
+    elif source == "allanime":
+        res = resolve_allanime_source(stripped_link)
     elif source == "anineko":
         res = resolve_anineko_source(stripped_link)
     elif source == "anidb":

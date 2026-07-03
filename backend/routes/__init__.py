@@ -38,6 +38,8 @@ def register_blueprints(app):
     from routes.proxy import proxy_bp
     from routes.jikan_routes import jikan_bp
     from routes.admin import admin_bp
+    from routes.reviews import reviews_bp
+    from routes.recommendations import recommendations_bp
 
     app.register_blueprint(home_bp)
     app.register_blueprint(search_bp)
@@ -46,3 +48,5 @@ def register_blueprints(app):
     app.register_blueprint(proxy_bp)
     app.register_blueprint(jikan_bp)
     app.register_blueprint(admin_bp)
+    app.register_blueprint(reviews_bp)
+    app.register_blueprint(recommendations_bp)
