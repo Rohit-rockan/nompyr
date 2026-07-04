@@ -230,14 +230,6 @@ def api_episodes(ani_id):
 
     if isinstance(res, tuple):
         res = []
-        for i in range(1, 13):
-            res.append({
-                "id": f"{stripped_id}-ep-{i}",
-                "number": i,
-                "title": f"Episode {i}",
-                "released": True,
-                "duration": "24m",
-            })
 
     if isinstance(res, list):
         prefixed_eps = []

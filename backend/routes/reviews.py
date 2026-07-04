@@ -3,6 +3,7 @@ from flask import Blueprint, jsonify, request
 from config import Config
 from core.cache import cache
 from core.http_client import http_client
+from core.database import get_db
 from routes.anime import api_anime_info
 
 reviews_bp = Blueprint("reviews", __name__)
@@ -60,6 +61,25 @@ def api_reviews(slug):
                     "date": item.get("date"),
                     "tags": item.get("tags", [])
                 })
+                
+            # Fetch local reviews
+            try:
+                conn = get_db()
+                cursor = conn.cursor()
+                cursor.execute("SELECT * FROM reviews WHERE ani_id = ? ORDER BY created_at DESC", (slug,))
+                for row in cursor.fetchall():
+                    reviews.append({
+                        "id": f"local_{row['id']}",
+                        "author": row["username"],
+                        "avatar": None,
+                        "score": row["rating"],
+                        "content": row["comment"],
+                        "date": row["created_at"],
+                        "tags": ["Local User"]
+                    })
+            except Exception as db_e:
+                print("Error fetching local reviews:", db_e)
+                
             res_data = {"success": True, "reviews": reviews}
             cache.set(cache_key, res_data, timeout=Config.CACHE_TTL_DETAILS)
             return jsonify(res_data)

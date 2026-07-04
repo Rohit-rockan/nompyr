@@ -13,10 +13,13 @@
 
 from urllib.parse import unquote, quote
 
+import json
+import time
 from flask import Blueprint, jsonify, request
 
 from config import Config
 from core import cache
+from core.database import get_db
 from core.helpers import get_base_origin
 from scrapers import (
     resolve_source,
@@ -52,6 +55,20 @@ def api_source(link_id):
     """
     link_id = unquote(link_id)
     cache_key = f"source:{link_id}"
+    
+    # Check SQLite stream_cache first
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT stream_data FROM stream_cache WHERE cache_key = ? AND expires_at > ?", (cache_key, time.time()))
+    row = cursor.fetchone()
+    if row:
+        try:
+            cached_data = json.loads(row['stream_data'])
+            return jsonify(cached_data)
+        except:
+            pass
+            
+    # Fallback to in-memory cache (just in case)
     cached = cache.get(cache_key)
     if cached is not None:
         return jsonify(cached)
@@ -100,30 +117,43 @@ def api_source(link_id):
         else:
             source = "animekai"
 
-    if source == "hanime":
-        res = resolve_hanime_source(link_id)
-    elif source == "aniwatch":
-        res = resolve_source(stripped_link)
-    elif source == "miruro":
-        res = resolve_miruro_source(stripped_link)
-    elif source == "animenexus":
-        res = resolve_animenexus_source(stripped_link)
-    elif source == "anikototv":
-        res = resolve_anikototv_source(stripped_link)
-    elif source == "allanime":
-        res = resolve_allanime_source(stripped_link)
-    elif source == "anineko":
-        res = resolve_anineko_source(stripped_link)
-    elif source == "anidb":
-        res = resolve_anidb_source(stripped_link)
-    elif source == "senshi":
-        res = resolve_senshi_source(stripped_link)
-    elif source == "animotvslash":
-        res = resolve_animotvslash_source(stripped_link)
-    elif source == "animedekho":
-        res = resolve_animedekho_source(stripped_link)
-    else:
-        res = resolve_source(stripped_link)
+    def attempt_resolve(src, s_link):
+        if src == "hanime":
+            return resolve_hanime_source(s_link)
+        elif src == "aniwatch":
+            return resolve_source(s_link)
+        elif src == "miruro":
+            return resolve_miruro_source(s_link)
+        elif src == "animenexus":
+            return resolve_animenexus_source(s_link)
+        elif src == "anikototv":
+            return resolve_anikototv_source(s_link)
+        elif src == "allanime":
+            return resolve_allanime_source(s_link)
+        elif src == "anineko":
+            return resolve_anineko_source(s_link)
+        elif src == "anidb":
+            return resolve_anidb_source(s_link)
+        elif src == "senshi":
+            return resolve_senshi_source(s_link)
+        elif src == "animotvslash":
+            return resolve_animotvslash_source(s_link)
+        elif src == "animedekho":
+            return resolve_animedekho_source(s_link)
+        else:
+            return resolve_source(s_link)
+
+    res = attempt_resolve(source, stripped_link)
+
+    if isinstance(res, tuple) or (isinstance(res, dict) and ("error" in res or not res.get("sources"))):
+        FALLBACK_PROVIDERS = ["animekai", "miruro", "animenexus", "allanime"]
+        for fb_source in FALLBACK_PROVIDERS:
+            if fb_source == source:
+                continue
+            fb_res = attempt_resolve(fb_source, stripped_link)
+            if not isinstance(fb_res, tuple) and not (isinstance(fb_res, dict) and ("error" in fb_res or not fb_res.get("sources"))):
+                res = fb_res
+                break
 
     if isinstance(res, tuple):
         res = {
@@ -167,5 +197,19 @@ def api_source(link_id):
 
     final_res = {"success": True, **res}
     if "error" not in final_res:
+        # Cache in memory
         cache.set(cache_key, final_res, timeout=Config.CACHE_TTL_SOURCE)
+        
+        # Cache in SQLite (30 mins = 1800s)
+        try:
+            expires_at = time.time() + 1800
+            conn = get_db()
+            conn.cursor().execute(
+                "INSERT OR REPLACE INTO stream_cache (cache_key, stream_data, expires_at) VALUES (?, ?, ?)",
+                (cache_key, json.dumps(final_res), expires_at)
+            )
+            conn.commit()
+        except Exception as e:
+            print("Error saving to stream_cache:", e)
+            
     return jsonify(final_res)

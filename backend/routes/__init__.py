@@ -40,6 +40,7 @@ def register_blueprints(app):
     from routes.admin import admin_bp
     from routes.reviews import reviews_bp
     from routes.recommendations import recommendations_bp
+    from routes.history import history_bp
 
     app.register_blueprint(home_bp)
     app.register_blueprint(search_bp)
@@ -50,3 +51,4 @@ def register_blueprints(app):
     app.register_blueprint(admin_bp)
     app.register_blueprint(reviews_bp)
     app.register_blueprint(recommendations_bp)
+    app.register_blueprint(history_bp)

@@ -84,6 +84,8 @@ def init_db():
     """
     conn = sqlite3.connect(Config.DB_PATH)
     cursor = conn.cursor()
+    
+    # Reviews Table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS reviews (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -94,6 +96,29 @@ def init_db():
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
+    
+    # Stream Cache Table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS stream_cache (
+            cache_key TEXT PRIMARY KEY,
+            stream_data TEXT NOT NULL,
+            expires_at REAL NOT NULL
+        )
+    ''')
+    
+    # Watch History Table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS watch_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            session_id TEXT NOT NULL,
+            ani_id TEXT NOT NULL,
+            episode_id TEXT NOT NULL,
+            timestamp_seconds INTEGER DEFAULT 0,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(session_id, ani_id)
+        )
+    ''')
+    
     conn.commit()
     conn.close()
 

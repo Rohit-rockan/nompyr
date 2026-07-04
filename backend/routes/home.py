@@ -161,7 +161,14 @@ def api_home():
         animedekho = clean_res(res_animedekho)
 
         def prefix_list(lst, prefix):
-            return [prefix_item(item, prefix) for item in lst] if lst else []
+            if not lst:
+                return []
+            filtered = []
+            for item in lst:
+                if not item.get("title") or not item.get("poster") or not item.get("ani_id"):
+                    continue
+                filtered.append(prefix_item(item, prefix))
+            return filtered
 
         banners = merge_lists(
             prefix_list(kai.get("banner", []), "animekai"),
