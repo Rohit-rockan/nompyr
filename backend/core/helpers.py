@@ -418,7 +418,7 @@ def get_proxy_session(url, headers):
     session = _requests.Session()
     if "anime.nexus" in url or "anime.delivery" in url:
         try:
-            import scrapers.animenexus as animenexus
+            import scraper_service.sources.animenexus as animenexus
             headers["User-Agent"] = animenexus.CF_USER_AGENT
             if animenexus.CF_COOKIES:
                 for c in animenexus.CF_COOKIES:

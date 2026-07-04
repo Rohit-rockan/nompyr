@@ -21,7 +21,7 @@ from flask_cors import CORS
 
 from config import Config
 from core.database import init_db
-from routes import register_blueprints
+from registry import register_blueprints
 
 
 def create_app():
