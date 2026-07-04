@@ -146,3 +146,27 @@ def admin_cache_clear():
 
     cache.clear()
     return jsonify({"success": True, "message": "Cache cleared by admin."})
+
+
+@admin_bp.route("/api/test-crash", methods=["GET", "POST"])
+def test_crash():
+    """
+    Test endpoint designed to intentionally throw a ZeroDivisionError 
+    so the global exception handler can catch it and send a Discord webhook 
+    as 'The Mechanic' bot.
+    """
+    # Intentional crash for testing purposes
+    x = 1 / 0
+    return jsonify({"success": True})
+
+
+@admin_bp.route("/api/test-librarian", methods=["GET", "POST"])
+def test_librarian():
+    """
+    Test endpoint to manually trigger the Librarian Bot's cleanup task
+    without waiting 24 hours.
+    """
+    from background_workers.librarian import run_librarian_cleanup
+    # Run it synchronously for testing
+    run_librarian_cleanup()
+    return jsonify({"success": True, "message": "Librarian cleanup triggered successfully!"})

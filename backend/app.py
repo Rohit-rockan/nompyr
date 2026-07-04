@@ -19,10 +19,15 @@
 from flask import Flask, jsonify
 from flask_cors import CORS
 
+from flask_apscheduler import APScheduler
+
 from config import Config
 from core.database import init_db
 from registry import register_blueprints
 from shared.logger import logger
+from shared.discord_notifier import mechanic_alert
+
+scheduler = APScheduler()
 
 
 def create_app():
@@ -47,9 +52,34 @@ def create_app():
     init_db()
     register_blueprints(app)
     
+    # Initialize APScheduler for The Librarian Bot
+    scheduler.init_app(app)
+    scheduler.start()
+    
+    # Register the Librarian Database Cleanup Task
+    # Runs every 24 hours
+    from background_workers.librarian import run_librarian_cleanup
+    scheduler.add_job(
+        id='librarian_db_cleanup',
+        func=run_librarian_cleanup,
+        trigger='interval',
+        hours=24
+    )
+    
     @app.errorhandler(Exception)
     def handle_global_exception(e):
         logger.error(f"Unhandled exception: {str(e)}", exc_info=True)
+        
+        # The Mechanic Bot sends an alert to Discord
+        mechanic_alert(
+            content=f"🚨 **Unhandled Exception Detected!**\n`{str(e)}`",
+            embeds=[{
+                "title": "Stack Trace",
+                "description": f"```python\n{str(e)}\n```",
+                "color": 16711680 # Red
+            }]
+        )
+        
         return jsonify({
             "success": False,
             "error": "Internal Server Error",

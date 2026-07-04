@@ -59,6 +59,10 @@ class Config:
     CACHE_TTL_PREDICTIONS = 1800    # Search predictions: 30 minutes
     CACHE_TTL_RECOMMENDATIONS = 1800  # Recommendations: 30 minutes
     CACHE_TTL_MOST_SEARCHED = 1800  # Trending keywords: 30 minutes
+    
+    # AI Bots Webhook
+    DISCORD_WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK_URL", "")
+    
     CACHE_TTL_METADATA_HIT = 604800   # AniList metadata hit: 7 days
     CACHE_TTL_METADATA_MISS = 86400   # AniList metadata miss: 1 day
     CACHE_TTL_JIKAN_DETAILS = 86400   # Jikan detail pages: 1 day
@@ -86,8 +90,13 @@ class Config:
     # --------------------------------------------------------------------------
     # Database
     # --------------------------------------------------------------------------
-    DB_PATH = os.path.join("/tmp", "nompyr_reviews.db") if os.environ.get("VERCEL") else os.path.join(os.path.dirname(os.path.abspath(__file__)), "nompyr_reviews.db")
-    
+    _render_disk = os.environ.get("RENDER_DISK_PATH")
+    if _render_disk:
+        DB_PATH = os.path.join(_render_disk, "nompyr_reviews.db")
+    elif os.environ.get("VERCEL"):
+        DB_PATH = os.path.join("/tmp", "nompyr_reviews.db")
+    else:
+        DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "nompyr_reviews.db")
     # --------------------------------------------------------------------------
     # Content Filtering
     # --------------------------------------------------------------------------
@@ -119,7 +128,11 @@ class Config:
     # --------------------------------------------------------------------------
     # CORS
     # --------------------------------------------------------------------------
-    CORS_ORIGINS = "*"  # Allow all origins (tighten for production)
+    CORS_ORIGINS = [
+        "https://nompyr.vercel.app",
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    ]
 
     # --------------------------------------------------------------------------
     # AniList API
