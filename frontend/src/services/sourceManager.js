@@ -1051,6 +1051,50 @@ export class SourceManager {
     return this.trySources("recommendations", title);
   }
 
+  async historySync(payload) {
+    try {
+      const api = store.getState().api || {};
+      if (!api.enabled || !api.baseUrl) return;
+      
+      const url = new URL(`${api.baseUrl}/api/history`);
+      const headers = { "Content-Type": "application/json", Accept: "application/json" };
+      if (api.key) {
+        headers["x-api-key"] = api.key;
+        headers.Authorization = `Bearer ${api.key}`;
+      }
+      
+      await fetch(url, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(payload)
+      });
+    } catch (error) {
+      console.warn("Failed to sync history to backend:", error);
+    }
+  }
+
+  async getHistory(sessionId) {
+    try {
+      const api = store.getState().api || {};
+      if (!api.enabled || !api.baseUrl) return [];
+      
+      const url = new URL(`${api.baseUrl}/api/history?session_id=${sessionId}`);
+      const headers = { Accept: "application/json" };
+      if (api.key) {
+        headers["x-api-key"] = api.key;
+        headers.Authorization = `Bearer ${api.key}`;
+      }
+      
+      const response = await fetch(url, { headers });
+      if (!response.ok) return [];
+      const data = await response.json();
+      return data.success ? (data.history || []) : [];
+    } catch (error) {
+      console.warn("Failed to fetch history from backend:", error);
+      return [];
+    }
+  }
+
   listSources() {
     return KNOWN_SOURCES;
   }

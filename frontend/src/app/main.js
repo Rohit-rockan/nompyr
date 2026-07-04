@@ -981,28 +981,35 @@ const renderAnime = async (slug) => {
     reviewUser.value = currentUserState.profile.username;
   }
 
-  const loadReviews = () => {
+  const loadReviews = async () => {
     if (!reviewsList) return;
-    const key = `nompyr-reviews-${anime.id}`;
-    let list = JSON.parse(localStorage.getItem(key)) || [];
-    if (list.length === 0) {
-      list = [
-        { user: "OtakuSensei", rating: 9, text: "Absolutely phenomenal! The character development in this show is top notch. Visuals are amazing and the story is incredibly engaging.", date: "3 days ago" },
-        { user: "Hina_chan", rating: 8, text: "A really solid watch! The pacing is a bit fast in the beginning but it settles down. Definitely worth watching if you love this genre.", date: "1 week ago" }
-      ];
-      localStorage.setItem(key, JSON.stringify(list));
+    reviewsList.innerHTML = `<p class="muted" style="font-size:0.85rem; text-align:center; padding:1.5rem 0;">Loading reviews...</p>`;
+    
+    const list = await getCommentsForAnime(anime.id);
+    if (!list || list.length === 0) {
+      reviewsList.innerHTML = `<p class="muted" style="font-size:0.85rem; text-align:center; padding:1.5rem 0;">No reviews yet. Be the first to post a review!</p>`;
+      return;
     }
     
-    reviewsList.innerHTML = list.map(r => `
+    reviewsList.innerHTML = list.map(r => {
+      const isLocal = r.tags && r.tags.includes("Local User");
+      const tagBadge = isLocal ? `<span style="background:var(--accent); color:#fff; font-size:0.6rem; padding:0.1rem 0.4rem; border-radius:4px; margin-left:0.5rem; vertical-align:middle;">LOCAL</span>` : '';
+      
+      return `
       <div class="review-item" style="padding:1rem; background:var(--item-bg); border:1px solid var(--border); border-radius:0.5rem; display:flex; flex-direction:column; gap:0.5rem; box-shadow: var(--shadow);">
         <div style="display:flex; justify-content:space-between; align-items:center;">
-          <strong style="color:var(--text); font-size:0.9rem;">${r.user}</strong>
-          <span style="color:var(--accent); font-weight:bold; font-size:0.85rem;">⭐ ${r.rating}/10</span>
+          <div>
+            ${r.avatar ? `<img src="${r.avatar}" style="width:24px; height:24px; border-radius:50%; vertical-align:middle; margin-right:0.5rem;" />` : `<span style="display:inline-block; width:24px; height:24px; border-radius:50%; background:#e76f51; color:#fff; text-align:center; line-height:24px; font-weight:bold; vertical-align:middle; margin-right:0.5rem;">${(r.author || "U")[0].toUpperCase()}</span>`}
+            <strong style="color:var(--text); font-size:0.9rem;">${r.author || "Anonymous"}</strong>
+            ${tagBadge}
+          </div>
+          <span style="color:var(--accent); font-weight:bold; font-size:0.85rem;">⭐ ${r.score || "?"}/10</span>
         </div>
-        <p style="font-size:0.85rem; color:var(--text); margin:0; line-height:1.4; opacity:0.85;">${r.text}</p>
-        <span style="font-size:0.75rem; color:var(--muted); align-self:flex-end;">${r.date || "Just now"}</span>
+        <p style="font-size:0.85rem; color:var(--text); margin:0; line-height:1.4; opacity:0.85; white-space:pre-wrap; max-height:200px; overflow-y:auto;">${r.content || ""}</p>
+        <span style="font-size:0.75rem; color:var(--muted); align-self:flex-end;">${r.date ? new Date(r.date).toLocaleDateString() : "Just now"}</span>
       </div>
-    `).join("");
+      `;
+    }).join("");
   };
 
   loadReviews();
@@ -1028,21 +1035,23 @@ const renderAnime = async (slug) => {
       const text = document.getElementById("reviewText").value;
       const user = reviewUser.value;
       
-      const key = `nompyr-reviews-${anime.id}`;
-      const list = JSON.parse(localStorage.getItem(key)) || [];
-      list.unshift({
-        user,
-        rating: Number(rating),
-        text,
-        date: "Just now"
-      });
-      localStorage.setItem(key, JSON.stringify(list));
+      const newReview = {
+        username: user,
+        comment: text,
+        rating: Number(rating)
+      };
       
-      showToast("Review submitted successfully!");
-      reviewForm.classList.add("hidden");
-      writeReviewBtn.classList.remove("hidden");
-      document.getElementById("reviewText").value = "";
-      loadReviews();
+      saveComment(anime.id, newReview).then((success) => {
+        if (success) {
+          showToast("Review submitted successfully!");
+          reviewForm.classList.add("hidden");
+          writeReviewBtn.classList.remove("hidden");
+          document.getElementById("reviewText").value = "";
+          loadReviews();
+        } else {
+          showToast("Failed to submit review.");
+        }
+      });
     });
   }
 };
@@ -1541,23 +1550,24 @@ const renderWatch = async (slug, episodeNo = "1") => {
       return;
     }
 
-    commentsList.innerHTML = list.map(c => `
+    commentsList.innerHTML = list.map(c => {
+      const isLocal = c.tags && c.tags.includes("Local User");
+      const tagBadge = isLocal ? `<span style="background:var(--accent); color:#fff; font-size:0.6rem; padding:0.1rem 0.4rem; border-radius:4px; margin-left:0.5rem;">LOCAL</span>` : '';
+      return `
       <div class="comment-item" style="padding: 0.75rem 1rem; background: var(--item-bg); border: 1px solid var(--border); border-radius: 0.5rem; display: flex; gap: 0.75rem; align-items: flex-start; box-shadow: var(--shadow);">
-        <div style="width: 32px; height: 32px; border-radius: 50%; background: #e76f51; color: #fff; font-size: 0.95rem; font-weight: bold; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-          ${(c.username || "G").charAt(0).toUpperCase()}
-        </div>
+        ${c.avatar ? `<img src="${c.avatar}" style="width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;" />` : `<div style="width: 32px; height: 32px; border-radius: 50%; background: #e76f51; color: #fff; font-size: 0.95rem; font-weight: bold; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">${(c.author || "G").charAt(0).toUpperCase()}</div>`}
         <div style="flex-grow: 1; min-width: 0;">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.25rem;">
             <div style="display:flex; gap: 0.5rem; align-items:center;">
-              <strong style="color:#e76f51; font-size:0.85rem;">${c.username}</strong>
-              <span style="font-size:0.75rem;">${"⭐".repeat(c.rating || 5)}</span>
+              <strong style="color:#e76f51; font-size:0.85rem;">${c.author}</strong>${tagBadge}
+              <span style="font-size:0.75rem;">${"⭐".repeat(c.score || 5)}</span>
             </div>
-            <span style="font-size:0.75rem; color:var(--muted);">${new Date(c.created_at).toLocaleDateString()}</span>
+            <span style="font-size:0.75rem; color:var(--muted);">${c.date ? new Date(c.date).toLocaleDateString() : 'Just now'}</span>
           </div>
-          <p style="margin:0; font-size:0.85rem; line-height:1.4; color:var(--text);">${c.comment}</p>
+          <p style="margin:0; font-size:0.85rem; line-height:1.4; color:var(--text); white-space:pre-wrap; max-height:150px; overflow-y:auto;">${c.content}</p>
         </div>
       </div>
-    `).join("");
+    `}).join("");
   };
 
   renderComments();
@@ -1798,12 +1808,34 @@ const renderWatch = async (slug, episodeNo = "1") => {
       video.src = stream.hls;
     }
 
-    video.addEventListener("loadedmetadata", () => {
+    video.addEventListener("loadedmetadata", async () => {
+      // 1. Check local progress
       const savedProgress = store.getState().progress[episode.id];
+      let resumeTime = 0;
       if (savedProgress && savedProgress > 0 && savedProgress < 98) {
-        const resumeTime = (savedProgress / 100) * video.duration;
+        resumeTime = (savedProgress / 100) * video.duration;
+      }
+      
+      // 2. Check remote progress
+      const sessionId = store.getState().sessionId || localStorage.getItem("nompyr_session_id");
+      if (sessionId) {
+        try {
+          const remoteHistory = await sourceManager.getHistory(sessionId);
+          const remoteItem = remoteHistory.find(h => h.ani_id === anime.id && h.episode_id === episode.id);
+          if (remoteItem && remoteItem.timestamp_seconds > 0) {
+            // Prefer remote if it's further along or same (could be more accurate)
+            if (remoteItem.timestamp_seconds > resumeTime) {
+              resumeTime = remoteItem.timestamp_seconds;
+            }
+          }
+        } catch (err) {
+          console.warn("Failed fetching remote history for metadata:", err);
+        }
+      }
+
+      if (resumeTime > 0 && resumeTime < video.duration * 0.98) {
         video.currentTime = resumeTime;
-        showToast(`Resumed from ${Math.floor(savedProgress)}% (${formatTime(resumeTime)})`);
+        showToast(`Resumed from ${formatTime(resumeTime)}`);
       }
       if (autoplay) {
         video.play().catch(e => console.log("Autoplay blocked:", e));
@@ -1818,13 +1850,30 @@ const renderWatch = async (slug, episodeNo = "1") => {
       // History Progress Saving
       if (Math.abs(currentTime - lastSaveTime) > 5) {
         lastSaveTime = currentTime;
+        const progressPct = Math.min(100, Math.floor((currentTime / duration) * 100));
+        
         store.addHistory({
           animeId: anime.id,
           episodeId: episode.id,
           title: anime.title,
           episode: episode.number,
-          progress: Math.min(100, Math.floor((currentTime / duration) * 100)),
+          progress: progressPct,
           date: new Date().toISOString()
+        });
+        
+        // Ensure a session ID exists
+        let sessionId = store.getState().sessionId || localStorage.getItem("nompyr_session_id");
+        if (!sessionId) {
+          sessionId = "anon_" + Math.random().toString(36).substring(2, 11);
+          store.setState({ ...store.getState(), sessionId });
+          localStorage.setItem("nompyr_session_id", sessionId);
+        }
+        
+        sourceManager.historySync({
+          session_id: sessionId,
+          ani_id: anime.id,
+          episode_id: episode.id,
+          timestamp_seconds: Math.floor(currentTime)
         });
       }
 
