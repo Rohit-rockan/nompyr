@@ -16,12 +16,13 @@
 #     └── scrapers/           ← Provider-specific scrapers (unchanged)
 # ==============================================================================
 
-from flask import Flask
+from flask import Flask, jsonify
 from flask_cors import CORS
 
 from config import Config
 from core.database import init_db
 from registry import register_blueprints
+from shared.logger import logger
 
 
 def create_app():
@@ -45,6 +46,16 @@ def create_app():
     CORS(app, origins=Config.CORS_ORIGINS)
     init_db()
     register_blueprints(app)
+    
+    @app.errorhandler(Exception)
+    def handle_global_exception(e):
+        logger.error(f"Unhandled exception: {str(e)}", exc_info=True)
+        return jsonify({
+            "success": False,
+            "error": "Internal Server Error",
+            "message": str(e) if app.debug else "An unexpected error occurred."
+        }), 500
+
     return app
 
 
