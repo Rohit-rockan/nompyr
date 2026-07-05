@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Nompyr is a fast, mobile-first anime discovery and watching prototype with search, watch history, favorites, schedule, and admin views."
+    />
+    <meta property="og:title" content="Nompyr | Your Gateway To Infinite Anime" />
+    <meta property="og:description" content="A polished anime streaming platform prototype inspired by modern discovery and watch experiences." />
+    <meta property="og:type" content="website" />
+    <title>Nompyr | Your Gateway To Infinite Anime</title>
+    <link rel="icon" type="image/svg+xml" href="/assets/favicon-BQYv7Lgw.svg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32-BlubGuEN.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/assets/favicon-192x192-CFRNUpB7.png" />
+    <link rel="apple-touch-icon" href="/assets/logo-tgRs9drG.png" />
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
+    <script>
+      (function() {
+        try {
+          const state = JSON.parse(localStorage.getItem("nompyr-state-v1")) || {};
+          const theme = state.settings?.theme || "dark";
+          document.documentElement.setAttribute("data-theme", theme);
+          document.documentElement.style.colorScheme = theme;
+        } catch (e) {
+          document.documentElement.setAttribute("data-theme", "dark");
+        }
+      })();
+    </script>
+    <script type="module" crossorigin src="/assets/index-BBtlzWay.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-De9lUjtT.css">
+  </head>
+  <body>
+    <div class="app-shell">
+      <main style="margin-left:0;width:100%;">
+        <header class="topbar">
+          <div class="topbar-left" style="display:flex;align-items:center;gap:0.75rem;position:relative;">
+            <button class="icon-button" id="menuToggle" aria-label="Open navigation">☰</button>
+            <a class="brand" href="#/">
+              <span class="brand-nom">Nom</span><span class="brand-pyr">pyr</span>
+            </a>
+            <div id="popupNav" class="popup-nav hidden">
+              <div class="popup-nav-group-label" style="font-size:0.65rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--accent);padding:0.5rem 0.75rem 0.25rem;opacity:0.7;">🌊 Navigate</div>
+              <a href="#/" data-nav="home" class="popup-nav-item">⌂<span>Home</span></a>
+              <a href="#/search" data-nav="search" class="popup-nav-item">⌕<span>Sonar Search</span></a>
+              <a href="#/trending" data-nav="trending" class="popup-nav-item">↗<span>Trending</span></a>
+              <a href="#/latest" data-nav="latest" class="popup-nav-item">◴<span>Latest</span></a>
+              <a href="#/schedule" data-nav="schedule" class="popup-nav-item">▦<span>Schedule</span></a>
+              <div style="height:1px;background:var(--border);margin:0.5rem 0.75rem;"></div>
+              <div class="popup-nav-group-label" style="font-size:0.65rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--accent);padding:0.5rem 0.75rem 0.25rem;opacity:0.7;">🤿 Explore The Depths</div>
+              <a href="#/manga" data-nav="manga" class="popup-nav-item">📖<span>Manga & Manhua</span></a>
+              <a href="#/novels" data-nav="novels" class="popup-nav-item">📚<span>Light Novels</span></a>
+              <a href="#/art" data-nav="art" class="popup-nav-item">🎨<span>Art Gallery</span></a>
+              <a href="#/community" data-nav="community" class="popup-nav-item">🏆<span>Community</span></a>
+              <div style="height:1px;background:var(--border);margin:0.5rem 0.75rem;"></div>
+              <div class="popup-nav-group-label" style="font-size:0.65rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--accent);padding:0.5rem 0.75rem 0.25rem;opacity:0.7;">⚓ My Collection</div>
+              <a href="#/favorites" data-nav="favorites" class="popup-nav-item">♡<span>Favorites</span></a>
+              <a href="#/history" data-nav="history" class="popup-nav-item">↺<span>History</span></a>
+              <div style="height:1px;background:var(--border);margin:0.5rem 0.75rem;"></div>
+              <div class="popup-nav-group-label" style="font-size:0.65rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--accent);padding:0.5rem 0.75rem 0.25rem;opacity:0.7;">🛠️ Equipment</div>
+              <a href="#/tools" data-nav="tools" class="popup-nav-item">🧭<span>Tools & Sources</span></a>
+              <a href="#/profile" data-nav="profile" class="popup-nav-item">👤<span>Profile</span></a>
+              <a href="#/admin" data-nav="admin" class="popup-nav-item hidden">⚙<span>Admin</span></a>
+            </div>
+          </div>
+          <form class="searchbar" id="globalSearch">
+            
+            
+            <div class="search-input-wrap" style="position:relative;flex:1;display:flex;align-items:center;">
+              <input id="searchInput" type="search" placeholder="Sonar search anime, manga, tools, studios..." autocomplete="off" style="width:100%;" />
+              <div id="searchSuggestions" class="search-suggestions-dropdown hidden"></div>
+            </div>
+            
+            <button type="button" class="searchbar-icon-btn" id="searchbarMicBtn" title="Voice Search">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v1a7 7 0 0 1-14 0v-1"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
+            </button>
+            
+
+            <button type="submit" class="search-submit-btn" id="searchSubmitBtn">DIVE</button>
+          </form>
+          <div class="topbar-actions">
+            <button type="button" class="icon-button" id="randomAnimeBtn" title="Random Anime">⇆</button>
+            <div class="theme-toggle-wrap" id="themeToggleWrap">
+              <button type="button" class="theme-btn" id="themeDarkBtn">DEEP</button>
+              <button type="button" class="theme-btn" id="themeLightBtn">SURFACE</button>
+            </div>
+            <a class="profile-chip" href="#/profile" style="padding:0;width:2.65rem;height:2.65rem;border-radius:50%;overflow:hidden;display:grid;place-items:center;">
+              <span class="avatar" style="width:100%;height:100%;border-radius:0;font-size:0.75rem;">AK</span>
+            </a>
+          </div>
+        </header>
+
+        <section id="view" class="view" aria-live="polite"></section>
+        
+        <!-- React App Container -->
+        <div id="react-root"></div>
+
+        <!-- Branded Footer -->
+        <footer class="branded-footer">
+          <div class="footer-top">
+            <a class="brand" href="#/">
+              <span class="brand-nom">Nom</span><span class="brand-pyr">pyr</span>
+            </a>
+            <div class="footer-links">
+              <a href="#/search">Anime</a>
+              <a href="#/manga">Manga</a>
+              <a href="#/novels">Novels</a>
+              <a href="#/art">Art</a>
+              <a href="#/tools">Tools</a>
+              <a href="#/schedule">Schedule</a>
+            </div>
+          </div>
+          <div class="footer-bottom">
+            <p>Nompyr is a demo prototype client. Playback features represent simulation. External provider connectivity requires a configured Data API key in the admin control board.</p>
+            <p style="margin-top:0.5rem;">© 2026 Nompyr. All rights reserved.</p>
+          </div>
+        </footer>
+      </main>
+    </div>
+
+    <div id="toast" class="toast" role="status"></div>
+
+    <!-- Legacy Vanilla JS -->
+    
+    <!-- React Entry Point for Vite -->
+  </body>
+</html>
