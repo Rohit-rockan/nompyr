@@ -91,6 +91,9 @@
         </header>
 
         <section id="view" class="view" aria-live="polite"></section>
+        
+        <!-- React App Container -->
+        <div id="react-root"></div>
 
         <!-- Branded Footer -->
         <footer class="branded-footer">
@@ -117,6 +120,17 @@
 
     <div id="toast" class="toast" role="status"></div>
 
+    <!-- Legacy Vanilla JS -->
     <script type="module" src="./src/app/main.js?v=20"></script>
+    
+    <!-- React Entry Point for Vite -->
+    <script type="module">
+      import { initReactApp } from './src/app/index.jsx';
+      // For now, only render React if there's a URL parameter ?react=true
+      if (window.location.search.includes('react=true')) {
+        document.getElementById('view').style.display = 'none';
+        initReactApp();
+      }
+    </script>
   </body>
 </html>

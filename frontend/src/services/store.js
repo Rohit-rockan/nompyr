@@ -1,8 +1,11 @@
 const KEY = "nompyr-state-v1";
 
 const getDynamicDefaultBaseUrl = () => {
+  if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
   const isLocal = window.location.origin.includes("127.0.0.1") || window.location.origin.includes("localhost") || window.location.origin.includes("4173");
-  return isLocal ? "http://127.0.0.1:5000" : "https://nompyr.vercel.app";
+  return isLocal ? "http://127.0.0.1:5000" : "https://nompyr-backend.onrender.com";
 };
 
 const initialState = {

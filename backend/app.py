@@ -66,6 +66,46 @@ def create_app():
         hours=24
     )
     
+    # Register The Mayor Analytics Report
+    # Runs every 24 hours
+    from background_workers.mayor import run_mayor_tasks
+    scheduler.add_job(
+        id='mayor_analytics_report',
+        func=run_mayor_tasks,
+        trigger='interval',
+        hours=24
+    )
+    
+    # Register The Guard Security Scan
+    # Runs every 10 minutes
+    from background_workers.guard import run_guard_tasks
+    scheduler.add_job(
+        id='guard_security_scan',
+        func=run_guard_tasks,
+        trigger='interval',
+        minutes=10
+    )
+    
+    # Register The Tester QA Checks
+    # Runs every 30 minutes
+    from background_workers.tester import run_tester_tasks
+    scheduler.add_job(
+        id='tester_qa_checks',
+        func=run_tester_tasks,
+        trigger='interval',
+        minutes=30
+    )
+    
+    # Register The Manager Infrastructure Checks
+    # Runs every hour
+    from background_workers.manager import run_manager_tasks
+    scheduler.add_job(
+        id='manager_infra_checks',
+        func=run_manager_tasks,
+        trigger='interval',
+        hours=1
+    )
+    
     @app.errorhandler(Exception)
     def handle_global_exception(e):
         logger.error(f"Unhandled exception: {str(e)}", exc_info=True)

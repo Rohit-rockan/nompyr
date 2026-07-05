@@ -162,3 +162,48 @@ def get_db_stats():
         }
     except Exception as e:
         return {"error": str(e)}
+
+# ------------------------------------------------------------------------------
+# The Mayor Analytics Helpers
+# ------------------------------------------------------------------------------
+
+def get_engagement_metrics():
+    """Returns overall engagement metrics for The Mayor's daily report."""
+    try:
+        conn = sqlite3.connect(Config.DB_PATH)
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT COUNT(*) FROM watch_history")
+        total_watches = cursor.fetchone()[0]
+        
+        cursor.execute("SELECT COUNT(DISTINCT session_id) FROM watch_history")
+        unique_users = cursor.fetchone()[0]
+        
+        conn.close()
+        return {
+            "total_watches": total_watches,
+            "unique_users": unique_users
+        }
+    except Exception:
+        return {"total_watches": 0, "unique_users": 0}
+
+def get_trending_anime(limit=5):
+    """Returns the most frequently watched anime recently for The Mayor."""
+    try:
+        conn = sqlite3.connect(Config.DB_PATH)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT ani_id, COUNT(*) as watch_count 
+            FROM watch_history 
+            GROUP BY ani_id 
+            ORDER BY watch_count DESC 
+            LIMIT ?
+        ''', (limit,))
+        
+        results = [dict(row) for row in cursor.fetchall()]
+        conn.close()
+        return results
+    except Exception:
+        return []
