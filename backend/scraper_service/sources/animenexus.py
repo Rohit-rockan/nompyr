@@ -416,7 +416,6 @@ def fetch_servers_animenexus(ep_token):
         return {"error": str(e)}, 500
 
 def refresh_cf_cookies(show_id, episode_id, episode_slug):
-    global CF_COOKIES
     if not sync_playwright:
         print("Playwright is not installed/available in this environment (running on serverless/cloud environment).")
         return False
