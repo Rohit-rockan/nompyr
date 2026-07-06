@@ -106,6 +106,17 @@ def create_app():
         hours=1
     )
     
+    from werkzeug.exceptions import HTTPException
+
+    @app.errorhandler(HTTPException)
+    def handle_http_exception(e):
+        """Return JSON instead of HTML for HTTP errors, prevents global Exception catch."""
+        return jsonify({
+            "success": False,
+            "error": e.name,
+            "message": e.description
+        }), e.code
+
     @app.errorhandler(Exception)
     def handle_global_exception(e):
         logger.error(f"Unhandled exception: {str(e)}", exc_info=True)
