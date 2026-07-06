@@ -59,7 +59,7 @@ def api_source(link_id):
     # Check SQLite stream_cache first
     conn = get_db()
     cursor = conn.cursor()
-    cursor.execute("SELECT stream_data FROM stream_cache WHERE cache_key = ? AND expires_at > ?", (cache_key, time.time()))
+    cursor.execute("SELECT stream_data FROM stream_cache WHERE cache_key = %s AND expires_at > %s", (cache_key, time.time()))
     row = cursor.fetchone()
     if row:
         try:
@@ -205,7 +205,7 @@ def api_source(link_id):
             expires_at = time.time() + 1800
             conn = get_db()
             conn.cursor().execute(
-                "INSERT OR REPLACE INTO stream_cache (cache_key, stream_data, expires_at) VALUES (?, ?, ?)",
+                "INSERT INTO stream_cache (cache_key, stream_data, expires_at) VALUES (%s, %s, %s) ON CONFLICT (cache_key) DO UPDATE SET stream_data = EXCLUDED.stream_data, expires_at = EXCLUDED.expires_at",
                 (cache_key, json.dumps(final_res), expires_at)
             )
             conn.commit()

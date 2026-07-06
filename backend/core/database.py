@@ -14,7 +14,8 @@
 # ==============================================================================
 
 import os
-import sqlite3
+import psycopg2
+import psycopg2.extras
 import threading
 
 from config import Config
@@ -45,8 +46,10 @@ def get_db():
         sqlite3.Connection: A thread-local SQLite connection.
     """
     if not hasattr(_thread_local, "connection") or _thread_local.connection is None:
-        _thread_local.connection = sqlite3.connect(Config.DB_PATH)
-        _thread_local.connection.row_factory = sqlite3.Row
+        if Config.DATABASE_URL:
+            _thread_local.connection = psycopg2.connect(Config.DATABASE_URL, cursor_factory=psycopg2.extras.DictCursor)
+        else:
+            raise ValueError("DATABASE_URL is not set!")
     return _thread_local.connection
 
 
@@ -82,13 +85,17 @@ def init_db():
         ratings, and comments on specific anime entries. The table is
         created idempotently so restarts don't drop existing data.
     """
-    conn = sqlite3.connect(Config.DB_PATH)
+    if not Config.DATABASE_URL:
+        print("DATABASE_URL not set. Skipping DB init.")
+        return
+        
+    conn = psycopg2.connect(Config.DATABASE_URL)
     cursor = conn.cursor()
     
     # Reviews Table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS reviews (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id SERIAL PRIMARY KEY,
             ani_id TEXT NOT NULL,
             username TEXT NOT NULL,
             rating INTEGER NOT NULL,
@@ -102,14 +109,14 @@ def init_db():
         CREATE TABLE IF NOT EXISTS stream_cache (
             cache_key TEXT PRIMARY KEY,
             stream_data TEXT NOT NULL,
-            expires_at REAL NOT NULL
+            expires_at DOUBLE PRECISION NOT NULL
         )
     ''')
     
     # Watch History Table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS watch_history (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id SERIAL PRIMARY KEY,
             session_id TEXT NOT NULL,
             ani_id TEXT NOT NULL,
             episode_id TEXT NOT NULL,
@@ -140,7 +147,7 @@ def get_db_stats():
               and db_size_kb.
     """
     try:
-        conn = sqlite3.connect(Config.DB_PATH)
+        conn = psycopg2.connect(Config.DATABASE_URL)
         cursor = conn.cursor()
 
         cursor.execute("SELECT COUNT(*) FROM reviews")
@@ -149,11 +156,11 @@ def get_db_stats():
         cursor.execute("SELECT COUNT(DISTINCT ani_id) FROM reviews")
         anime_count = cursor.fetchone()[0]
 
-        conn.close()
+        cursor.execute("SELECT pg_database_size(current_database())")
+        db_size_bytes = cursor.fetchone()[0]
+        db_size = db_size_bytes // 1024  # KB
 
-        db_size = 0
-        if os.path.exists(Config.DB_PATH):
-            db_size = os.path.getsize(Config.DB_PATH) // 1024  # KB
+        conn.close()
 
         return {
             "review_count": review_count,
@@ -170,7 +177,7 @@ def get_db_stats():
 def get_engagement_metrics():
     """Returns overall engagement metrics for The Mayor's daily report."""
     try:
-        conn = sqlite3.connect(Config.DB_PATH)
+        conn = psycopg2.connect(Config.DATABASE_URL)
         cursor = conn.cursor()
         
         cursor.execute("SELECT COUNT(*) FROM watch_history")
@@ -190,8 +197,7 @@ def get_engagement_metrics():
 def get_trending_anime(limit=5):
     """Returns the most frequently watched anime recently for The Mayor."""
     try:
-        conn = sqlite3.connect(Config.DB_PATH)
-        conn.row_factory = sqlite3.Row
+        conn = psycopg2.connect(Config.DATABASE_URL, cursor_factory=psycopg2.extras.DictCursor)
         cursor = conn.cursor()
         
         cursor.execute('''
@@ -199,7 +205,7 @@ def get_trending_anime(limit=5):
             FROM watch_history 
             GROUP BY ani_id 
             ORDER BY watch_count DESC 
-            LIMIT ?
+            LIMIT %s
         ''', (limit,))
         
         results = [dict(row) for row in cursor.fetchall()]

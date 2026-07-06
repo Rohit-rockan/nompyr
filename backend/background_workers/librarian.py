@@ -21,7 +21,7 @@ def run_librarian_cleanup():
             cursor = conn.cursor()
             
             # Example: In a real scenario, you'd run something like:
-            # cursor.execute("DELETE FROM history WHERE last_updated < date('now', '-365 days')")
+            # cursor.execute("DELETE FROM watch_history WHERE updated_at < CURRENT_DATE - INTERVAL '365 days'")
             # deleted_count = cursor.rowcount
             # conn.commit()
             

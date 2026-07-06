@@ -1,5 +1,5 @@
 import requests
-import sqlite3
+import psycopg2
 from config import Config
 from shared.discord_notifier import send_discord_alert
 from shared.logger import get_logger
@@ -24,15 +24,14 @@ def run_health_checks():
 
     # 2. Check Database Integrity
     try:
-        conn = sqlite3.connect(Config.DB_PATH)
+        conn = psycopg2.connect(Config.DATABASE_URL)
         cursor = conn.cursor()
-        cursor.execute("PRAGMA integrity_check")
-        integrity = cursor.fetchone()[0]
-        if integrity != "ok":
-            failures.append(f"SQLite integrity check failed: {integrity}")
+        cursor.execute("SELECT 1")
+        if cursor.fetchone()[0] != 1:
+            failures.append("PostgreSQL connection check failed.")
         
         # Verify core tables exist
-        cursor.execute("SELECT count(name) FROM sqlite_master WHERE type='table' AND name='watch_history'")
+        cursor.execute("SELECT count(table_name) FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'watch_history'")
         if cursor.fetchone()[0] != 1:
             failures.append("Missing critical table: `watch_history`")
             

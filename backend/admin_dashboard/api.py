@@ -102,9 +102,11 @@ def admin_dashboard():
     db_stats = {"reviews_count": 0, "db_size_bytes": 0}
     try:
         db = get_db()
-        cursor = db.execute("SELECT COUNT(*) FROM reviews")
+        cursor = db.cursor()
+        cursor.execute("SELECT COUNT(*) FROM reviews")
         db_stats["reviews_count"] = cursor.fetchone()[0]
-        db_stats["db_size_bytes"] = os.path.getsize(Config.DB_PATH)
+        cursor.execute("SELECT pg_database_size(current_database())")
+        db_stats["db_size_bytes"] = cursor.fetchone()[0]
     except Exception as e:
         db_stats["error"] = str(e)
 

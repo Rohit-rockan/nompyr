@@ -24,7 +24,7 @@ def update_history():
         # INSERT OR REPLACE requires a UNIQUE constraint, which we have on (session_id, ani_id)
         cursor.execute('''
             INSERT INTO watch_history (session_id, ani_id, episode_id, timestamp_seconds, updated_at)
-            VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+            VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP)
             ON CONFLICT(session_id, ani_id) DO UPDATE SET
                 episode_id = excluded.episode_id,
                 timestamp_seconds = excluded.timestamp_seconds,
@@ -49,7 +49,7 @@ def get_history():
         cursor.execute('''
             SELECT ani_id, episode_id, timestamp_seconds, updated_at 
             FROM watch_history 
-            WHERE session_id = ?
+            WHERE session_id = %s
             ORDER BY updated_at DESC
             LIMIT 50
         ''', (session_id,))

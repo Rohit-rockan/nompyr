@@ -3,3 +3,7 @@ Flask-Cors
 requests
 beautifulsoup4
 cloudscraper
+urllib3
+gunicorn
+Flask-APScheduler
+psycopg2-binary

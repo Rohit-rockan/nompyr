@@ -66,7 +66,7 @@ def api_reviews(slug):
             try:
                 conn = get_db()
                 cursor = conn.cursor()
-                cursor.execute("SELECT * FROM reviews WHERE ani_id = ? ORDER BY created_at DESC", (slug,))
+                cursor.execute("SELECT * FROM reviews WHERE ani_id = %s ORDER BY created_at DESC", (slug,))
                 for row in cursor.fetchall():
                     reviews.append({
                         "id": f"local_{row['id']}",

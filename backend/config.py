@@ -90,13 +90,7 @@ class Config:
     # --------------------------------------------------------------------------
     # Database
     # --------------------------------------------------------------------------
-    _render_disk = os.environ.get("RENDER_DISK_PATH")
-    if _render_disk:
-        DB_PATH = os.path.join(_render_disk, "nompyr_reviews.db")
-    elif os.environ.get("VERCEL"):
-        DB_PATH = os.path.join("/tmp", "nompyr_reviews.db")
-    else:
-        DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "nompyr_reviews.db")
+    DATABASE_URL = os.environ.get("DATABASE_URL")
     # --------------------------------------------------------------------------
     # Content Filtering
     # --------------------------------------------------------------------------
