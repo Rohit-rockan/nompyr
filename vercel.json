@@ -1,21 +1,15 @@
 {
   "version": 2,
+  "buildCommand": "cd frontend && npm install && npm run build",
+  "outputDirectory": "frontend/dist",
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://nompyr.onrender.com/api/:path*"
+      "destination": "https://nompyr-1.onrender.com/api/:path*"
     },
     {
-      "source": "/",
-      "destination": "/frontend/index.html"
-    },
-    {
-      "source": "/frontend/:path*",
-      "destination": "/frontend/:path*"
-    },
-    {
-      "source": "/:path*",
-      "destination": "/frontend/:path*"
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
 }
