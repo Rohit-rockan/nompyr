@@ -1,15 +1,9 @@
 {
   "version": 2,
-  "functions": {
-    "api/**/*.py": {
-      "includeFiles": "backend/**",
-      "maxDuration": 60
-    }
-  },
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "/api/index.py"
+      "destination": "https://nompyr.onrender.com/api/:path*"
     },
     {
       "source": "/",

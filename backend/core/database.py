@@ -47,7 +47,7 @@ def get_db():
     """
     if not hasattr(_thread_local, "connection") or _thread_local.connection is None:
         if Config.DATABASE_URL:
-            _thread_local.connection = psycopg2.connect(Config.DATABASE_URL, cursor_factory=psycopg2.extras.DictCursor)
+            _thread_local.connection = psycopg2.connect(Config.DATABASE_URL, cursor_factory=psycopg2.extras.DictCursor, connect_timeout=3)
         else:
             raise ValueError("DATABASE_URL is not set!")
     return _thread_local.connection
@@ -73,61 +73,68 @@ def close_db():
 
 def init_db():
     """
-    Initialize the SQLite database schema.
+    Initialize the PostgreSQL database schema.
 
     Detailed Use:
-        Creates the `reviews` table if it does not already exist. This is
+        Creates the tables if they do not already exist. This is
         called once during application startup (in the app factory) to
         ensure the database is ready for read/write operations.
 
     Need:
         Required to store persistent community interactions: user reviews,
-        ratings, and comments on specific anime entries. The table is
-        created idempotently so restarts don't drop existing data.
+        ratings, and comments on specific anime entries.
     """
     if not Config.DATABASE_URL:
         print("DATABASE_URL not set. Skipping DB init.")
         return
         
-    conn = psycopg2.connect(Config.DATABASE_URL)
-    cursor = conn.cursor()
-    
-    # Reviews Table
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS reviews (
-            id SERIAL PRIMARY KEY,
-            ani_id TEXT NOT NULL,
-            username TEXT NOT NULL,
-            rating INTEGER NOT NULL,
-            comment TEXT NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    ''')
-    
-    # Stream Cache Table
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS stream_cache (
-            cache_key TEXT PRIMARY KEY,
-            stream_data TEXT NOT NULL,
-            expires_at DOUBLE PRECISION NOT NULL
-        )
-    ''')
-    
-    # Watch History Table
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS watch_history (
-            id SERIAL PRIMARY KEY,
-            session_id TEXT NOT NULL,
-            ani_id TEXT NOT NULL,
-            episode_id TEXT NOT NULL,
-            timestamp_seconds INTEGER DEFAULT 0,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            UNIQUE(session_id, ani_id)
-        )
-    ''')
-    
-    conn.commit()
-    conn.close()
+    try:
+        conn = psycopg2.connect(Config.DATABASE_URL, connect_timeout=3)
+        cursor = conn.cursor()
+        
+        # Reviews Table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS reviews (
+                id SERIAL PRIMARY KEY,
+                ani_id TEXT NOT NULL,
+                username TEXT NOT NULL,
+                rating INTEGER NOT NULL,
+                comment TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        
+        # Stream Cache Table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS stream_cache (
+                cache_key TEXT PRIMARY KEY,
+                stream_data TEXT NOT NULL,
+                expires_at DOUBLE PRECISION NOT NULL
+            )
+        ''')
+        
+        # Watch History Table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS watch_history (
+                id SERIAL PRIMARY KEY,
+                session_id TEXT NOT NULL,
+                ani_id TEXT NOT NULL,
+                episode_id TEXT NOT NULL,
+                timestamp_seconds INTEGER DEFAULT 0,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(session_id, ani_id)
+            )
+        ''')
+        
+        conn.commit()
+        conn.close()
+        print("Database initialized successfully.")
+    except Exception as e:
+        print(f"Database initialization failed: {e}")
+        # We don't raise the exception here to prevent the app from crashing on startup
+        # if the database is temporarily unreachable or the DATABASE_URL is invalid.
+
+
 
 
 def get_db_stats():
