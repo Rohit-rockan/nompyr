@@ -9,9 +9,3 @@ services:
         value: 3.11.0
       - key: DISCORD_WEBHOOK_URL
         sync: false
-      - key: RENDER_DISK_PATH
-        value: /data
-    disk:
-      name: sqlite-data
-      mountPath: /data
-      sizeGB: 1
