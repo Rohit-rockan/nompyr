@@ -1,10 +1,8 @@
 import time
-import schedule
-from core.database import get_engagement_metrics, get_trending_anime
-from shared.discord_notifier import send_discord_alert
-from shared.logger import get_logger
 
-logger = get_logger("MayorBot")
+from core.database import get_engagement_metrics, get_trending_anime
+from shared.discord_notifier import mayor_alert
+from shared.logger import logger
 
 def generate_daily_report():
     """
@@ -33,7 +31,7 @@ def generate_daily_report():
         message += "\n*Keep up the good work regulating the city.*"
         
         # Send via Discord Notifier using the MAYOR persona
-        send_discord_alert(message, bot_type="MAYOR")
+        mayor_alert(message)
         logger.info("Mayor successfully broadcasted the daily report.")
         
     except Exception as e:

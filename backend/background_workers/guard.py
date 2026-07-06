@@ -1,9 +1,8 @@
 import os
 import re
-from shared.discord_notifier import send_discord_alert
-from shared.logger import get_logger
+from shared.discord_notifier import guard_alert
+from shared.logger import logger
 
-logger = get_logger("GuardBot")
 
 # In a real environment, this would be the path to Nginx/Apache/Flask access logs
 LOG_FILE_PATH = "nompyr.log" 
@@ -45,7 +44,7 @@ def scan_error_logs():
                 
             message += "\n*Executing temporary rate-limit reinforcement...*"
             
-            send_discord_alert(message, bot_type="GUARD")
+            guard_alert(message)
             logger.info("Guard detected anomalies and dispatched a Discord alert.")
         else:
             logger.info("Guard patrol complete. Perimeter is secure.")

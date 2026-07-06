@@ -1,7 +1,8 @@
 import time
 from shared.logger import logger
 from shared.discord_notifier import librarian_alert
-from core.database import get_db_connection
+import psycopg2
+from config import Config
 
 def run_librarian_cleanup():
     """
@@ -16,7 +17,11 @@ def run_librarian_cleanup():
         # Example Librarian task: 
         # Delete watch history entries that are older than a specific threshold
         # Or clean up orphaned reviews where the user might have been deleted
-        conn = get_db_connection()
+        if Config.DATABASE_URL:
+            conn = psycopg2.connect(Config.DATABASE_URL)
+        else:
+            conn = None
+            
         if conn:
             cursor = conn.cursor()
             

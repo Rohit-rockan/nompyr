@@ -1,10 +1,9 @@
 import os
 import shutil
 from config import Config
-from shared.discord_notifier import send_discord_alert
-from shared.logger import get_logger
+from shared.discord_notifier import manager_alert
+from shared.logger import logger
 
-logger = get_logger("ManagerBot")
 
 def check_resources():
     """
@@ -58,7 +57,7 @@ def check_resources():
             message += f"- {alert}\n"
             
         message += "\n*Consider upgrading instance capacity or triggering an auto-scale event.*"
-        send_discord_alert(message, bot_type="MANAGER")
+        manager_alert(message)
     else:
         logger.info("Manager reports sufficient capacity. No scaling required.")
 

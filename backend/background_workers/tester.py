@@ -1,10 +1,9 @@
 import requests
 import psycopg2
 from config import Config
-from shared.discord_notifier import send_discord_alert
-from shared.logger import get_logger
+from shared.discord_notifier import tester_alert
+from shared.logger import logger
 
-logger = get_logger("TesterBot")
 
 def run_health_checks():
     """
@@ -50,7 +49,7 @@ def run_health_checks():
             message += f"- {fail}\n"
             
         message += "\n*Please investigate immediately.*"
-        send_discord_alert(message, bot_type="TESTER")
+        tester_alert(message)
     else:
         logger.info("Tester reports all systems are GO. Green light!")
 
