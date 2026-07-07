@@ -247,7 +247,7 @@ class RemoteApiSource {
 
   config() {
     const api = store.getState().api || {};
-    if (!api.enabled || !api.baseUrl) {
+    if (!api.enabled || api.baseUrl == null) {
       throw new Error("Remote API is not configured");
     }
     if (api.provider === "generic" && !api.key) {
@@ -258,7 +258,7 @@ class RemoteApiSource {
 
   async request(path, params = {}) {
     const api = this.config();
-    const url = new URL(`${api.baseUrl}${path}`);
+    const url = new URL(`${api.baseUrl}${path}`, window.location.origin);
     if (api.provider && api.provider !== "generic") {
       params.source = api.provider;
     }
@@ -1054,9 +1054,9 @@ export class SourceManager {
   async historySync(payload) {
     try {
       const api = store.getState().api || {};
-      if (!api.enabled || !api.baseUrl) return;
+      if (!api.enabled || api.baseUrl == null) return;
       
-      const url = new URL(`${api.baseUrl}/api/history`);
+      const url = new URL(`${api.baseUrl}/api/history`, window.location.origin);
       const headers = { "Content-Type": "application/json", Accept: "application/json" };
       if (api.key) {
         headers["x-api-key"] = api.key;
@@ -1076,9 +1076,9 @@ export class SourceManager {
   async getHistory(sessionId) {
     try {
       const api = store.getState().api || {};
-      if (!api.enabled || !api.baseUrl) return [];
+      if (!api.enabled || api.baseUrl == null) return [];
       
-      const url = new URL(`${api.baseUrl}/api/history?session_id=${sessionId}`);
+      const url = new URL(`${api.baseUrl}/api/history?session_id=${sessionId}`, window.location.origin);
       const headers = { Accept: "application/json" };
       if (api.key) {
         headers["x-api-key"] = api.key;
