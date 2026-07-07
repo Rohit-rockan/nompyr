@@ -57,9 +57,10 @@ const read = () => {
     const saved = JSON.parse(localStorage.getItem(KEY)) || {};
     const api = saved.api?.baseUrl ? { ...initialState.api, ...saved.api } : { ...initialState.api };
     
-    // Auto-heal base URL if we are on a remote production domain but the loaded configuration is pointing to local host
+    // Auto-heal base URL if the loaded configuration is pointing to a local host on a remote domain,
+    // or if it is stuck on the old dead Render backend URL from previous cache.
     const isLocalDomain = window.location.origin.includes("127.0.0.1") || window.location.origin.includes("localhost") || window.location.origin.includes("4173");
-    if (!isLocalDomain && api.baseUrl === "http://127.0.0.1:5000") {
+    if ((!isLocalDomain && api.baseUrl === "http://127.0.0.1:5000") || api.baseUrl === "https://nompyr-backend.onrender.com") {
       api.baseUrl = "";
     }
 

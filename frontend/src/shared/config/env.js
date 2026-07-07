@@ -8,11 +8,7 @@ export const ENV = {
     if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_URL) {
       return import.meta.env.VITE_API_URL;
     }
-    const isLocal = window.location.origin.includes("127.0.0.1") || 
-                    window.location.origin.includes("localhost") || 
-                    window.location.origin.includes("4173");
-    
-    // Default fallback to Render deployment
-    return isLocal ? "http://127.0.0.1:5000" : "https://nompyr-backend.onrender.com";
+    // Universally use relative paths to leverage Vite/Vercel proxies
+    return "";
   })()
 };
