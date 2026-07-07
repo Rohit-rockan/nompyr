@@ -251,6 +251,14 @@ def api_home():
         res = prefetch_home_metadata(res)
 
     final_res = {"success": True, **res}
-    if "error" not in final_res:
+    
+    # Do not cache if the aggregated result is suspiciously empty
+    is_empty = (
+        not final_res.get("banner") and 
+        not final_res.get("latest_updates") and 
+        not final_res.get("popular")
+    )
+    
+    if "error" not in final_res and not is_empty:
         cache.set(cache_key, final_res, timeout=Config.CACHE_TTL_HOME)
     return jsonify(final_res)
