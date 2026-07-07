@@ -222,6 +222,7 @@ def get_anilist_metadata(title):
                     extraLarge
                     large
                 }}
+                bannerImage
                 averageScore
                 format
                 status
@@ -270,6 +271,7 @@ def get_anilist_metadata(title):
                         or media.get("coverImage", {}).get("large")
                         or ""
                     )
+                    banner = media.get("bannerImage") or cover
                     score = media.get("averageScore")
                     score_str = f"{score/10:.1f}" if score is not None else "N/A"
 
@@ -328,6 +330,7 @@ def get_anilist_metadata(title):
 
                     res = {
                         "poster": cover,
+                        "banner": banner,
                         "score": score_str,
                         "trailer_url": trailer_url,
                         "type": type_val,
@@ -399,6 +402,7 @@ def _fetch_single_batch(batch, batch_idx):
                         extraLarge
                         large
                     }}
+                    bannerImage
                     averageScore
                 }}
             }}
@@ -433,9 +437,10 @@ def _fetch_single_batch(batch, batch_idx):
                             or media.get("coverImage", {}).get("large")
                             or ""
                         )
+                        banner = media.get("bannerImage") or cover
                         score = media.get("averageScore")
                         score_str = f"{score/10:.1f}" if score is not None else "N/A"
-                        resolved_meta = {"poster": cover, "score": score_str}
+                        resolved_meta = {"poster": cover, "banner": banner, "score": score_str}
                         break
                 if resolved_meta:
                     batch_results[title_item] = resolved_meta
@@ -523,7 +528,7 @@ def get_anilist_metadata_batch(titles):
     # Fill remaining uncached entries with defaults
     for title in uncached_titles:
         if title not in results:
-            results[title] = {"poster": "", "score": "N/A"}
+            results[title] = {"poster": "", "banner": "", "score": "N/A"}
 
     return results
 
@@ -615,6 +620,7 @@ def enrich_results(results):
                 or is_orig_hanime
             ):
                 results[idx]["poster"] = meta["poster"]
+                results[idx]["banner"] = meta.get("banner") or meta["poster"]
             if meta.get("score") and meta["score"] != "N/A":
                 results[idx]["score"] = meta["score"]
                 results[idx]["mal_score"] = meta["score"]

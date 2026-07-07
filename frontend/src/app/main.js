@@ -355,7 +355,8 @@ const renderHome = async () => {
 
   view.innerHTML = `
     <!-- Hero Spotlight Section -->
-    <section class="hero" style="background-image:var(--hero-overlay), url('${hero.banner}')">
+    <section class="hero" style="position:relative; overflow:hidden; z-index:1;">
+      <div style="position:absolute;inset:0;background-image:var(--hero-overlay), url('${hero.banner}');background-size:cover;background-position:center 20%;filter: ${hero.banner === hero.poster ? 'blur(20px)' : 'none'};transform: scale(1.1);z-index:-1;"></div>
       <div class="hero-upper-row">
         <span class="spotlight-tag">${isNews ? "🔥 Anime News" : `#${(state.heroIndex % data.spotlight.length) + 1} Spotlight`}</span>
       </div>

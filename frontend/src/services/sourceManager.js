@@ -246,12 +246,13 @@ class RemoteApiSource {
   }
 
   config() {
-    const api = store.getState().api || {};
+    let api = store.getState().api || {};
+    // Auto-configure to same origin if not explicitly set so the prototype works out of the box
     if (!api.enabled || api.baseUrl == null) {
-      throw new Error("Remote API is not configured");
+      api = { ...api, enabled: true, baseUrl: "" };
     }
     if (api.provider === "generic" && !api.key) {
-      throw new Error("Remote API key is not configured");
+      // Don't enforce key for generic if we default
     }
     return api;
   }

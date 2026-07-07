@@ -81,7 +81,7 @@ def enrich_detail_page(res, source):
             or is_orig_hanime
         ):
             res["poster"] = meta["poster"]
-            res["banner"] = meta["poster"]
+            res["banner"] = meta.get("banner") or meta["poster"]
 
         # 2. Enrich score
         if meta.get("score") and meta["score"] != "N/A" and (score == "N/A" or not score):
