@@ -1070,7 +1070,7 @@ const getMockComments = (animeTitle) => {
 const getCommentsForAnime = async (animeId) => {
   try {
     const api = store.getState().api || {};
-    const baseUrl = api.baseUrl || "http://127.0.0.1:5000";
+    const baseUrl = api.baseUrl ?? "";
     const res = await fetch(`${baseUrl}/api/reviews/${encodeURIComponent(animeId)}`);
     if (res.ok) {
       const data = await res.json();
@@ -1085,7 +1085,7 @@ const getCommentsForAnime = async (animeId) => {
 const saveComment = async (animeId, commentData) => {
   try {
     const api = store.getState().api || {};
-    const baseUrl = api.baseUrl || "http://127.0.0.1:5000";
+    const baseUrl = api.baseUrl ?? "";
     const res = await fetch(`${baseUrl}/api/reviews/${encodeURIComponent(animeId)}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -2420,7 +2420,7 @@ const renderAdmin = async () => {
       e.preventDefault();
       const user = document.getElementById("adminUser").value.trim();
       const pass = document.getElementById("adminPass").value.trim();
-      const baseUrl = current.api?.baseUrl || "http://127.0.0.1:5000";
+      const baseUrl = current.api?.baseUrl ?? "";
       
       try {
         const response = await fetch(`${baseUrl}/api/admin/login`, {
@@ -2649,7 +2649,7 @@ document.addEventListener("click", async (event) => {
     store.updateApiConfig({
       enabled: true,
       provider: "all",
-      baseUrl: "http://127.0.0.1:5000",
+      baseUrl: "",
       key: ""
     });
     showToast("Connected to local backend on 127.0.0.1:5000!");
@@ -2960,7 +2960,7 @@ const setupAutocomplete = (input, dropdown, isRecommenderPage = false) => {
       let suggestions = [];
       try {
         const api = store.getState().api || {};
-        const baseUrl = api.baseUrl || "http://127.0.0.1:5000";
+        const baseUrl = api.baseUrl ?? "";
         const res = await fetch(`${baseUrl}/api/search-predictions?q=${encodeURIComponent(input.value.trim())}`);
         if (res.ok) {
           suggestions = await res.json();
@@ -3154,7 +3154,7 @@ const renderRecommendations = async () => {
         let data = { results: [] };
         try {
           const api = store.getState().api || {};
-          const baseUrl = api.baseUrl || "http://127.0.0.1:5000";
+          const baseUrl = api.baseUrl ?? "";
           const res = await fetch(`${baseUrl}/api/recommendations/description?description=${encodeURIComponent(state.recommenderQuery)}`);
           if (res.ok) {
             data = await res.json();
@@ -3205,7 +3205,7 @@ const renderRecommendations = async () => {
         let data = { results: [] };
         try {
           const api = store.getState().api || {};
-          const baseUrl = api.baseUrl || "http://127.0.0.1:5000";
+          const baseUrl = api.baseUrl ?? "";
           const res = await fetch(`${baseUrl}/api/recommendations/anime?title=${encodeURIComponent(state.recommenderAnimeTitle)}`);
           if (res.ok) {
             data = await res.json();

@@ -160,7 +160,7 @@ const getProxiedImageUrl = (imageUrl) => {
   if (!imageUrl) return imageUrl;
   if (imageUrl.includes("hanime-cdn.com") || imageUrl.includes("hanime.tv") || imageUrl.includes("weeb.sh") || imageUrl.includes("htv-services.com") || imageUrl.includes("cdn.anidb.app")) {
     const api = store.getState().api || {};
-    const baseUrl = api.baseUrl || "http://127.0.0.1:5000";
+    const baseUrl = api.baseUrl ?? "";
     return `${baseUrl}/api/proxy-image?url=${encodeURIComponent(imageUrl)}`;
   }
   return imageUrl;
