@@ -165,7 +165,7 @@ def api_home():
                 return []
             filtered = []
             for item in lst:
-                if not item.get("title") or not item.get("poster") or not item.get("ani_id"):
+                if not item.get("title") or not item.get("poster"):
                     continue
                 filtered.append(prefix_item(item, prefix))
             return filtered
