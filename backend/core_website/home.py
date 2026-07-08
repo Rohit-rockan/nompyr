@@ -120,9 +120,7 @@ def api_home():
             fut_miruro = executor.submit(safe_run, scrape_home_miruro)
             fut_nexus = executor.submit(safe_run, scrape_home_animenexus)
             fut_anikototv = executor.submit(safe_run, scrape_home_anikototv)
-            fut_allanime = executor.submit(safe_run, scrape_home_allanime)
             fut_anineko = executor.submit(safe_run, scrape_home_anineko)
-            fut_anidb = executor.submit(safe_run, scrape_home_anidb)
             fut_senshi = executor.submit(safe_run, scrape_home_senshi)
             fut_animotv = executor.submit(safe_run, scrape_home_animotvslash)
             fut_animedekho = executor.submit(safe_run, scrape_home_animedekho)
@@ -133,9 +131,7 @@ def api_home():
             res_miruro = fut_miruro.result()
             res_nexus = fut_nexus.result()
             res_anikototv = fut_anikototv.result()
-            res_allanime = fut_allanime.result()
             res_anineko = fut_anineko.result()
-            res_anidb = fut_anidb.result()
             res_senshi = fut_senshi.result()
             res_animotv = fut_animotv.result()
             res_animedekho = fut_animedekho.result()
@@ -153,9 +149,9 @@ def api_home():
         miruro = clean_res(res_miruro)
         nexus = clean_res(res_nexus)
         anikototv = clean_res(res_anikototv)
-        allanime = clean_res(res_allanime)
+        nexus = clean_res(res_nexus)
+        anikototv = clean_res(res_anikototv)
         anineko = clean_res(res_anineko)
-        anidb = clean_res(res_anidb)
         senshi = clean_res(res_senshi)
         animotvslash = clean_res(res_animotv)
         animedekho = clean_res(res_animedekho)
@@ -177,9 +173,7 @@ def api_home():
             prefix_list(miruro.get("banner", []), "miruro"),
             prefix_list(nexus.get("banner", []), "animenexus"),
             prefix_list(anikototv.get("banner", []), "anikototv"),
-            prefix_list(allanime.get("banner", []), "allanime"),
             prefix_list(anineko.get("banner", []), "anineko"),
-            prefix_list(anidb.get("banner", []), "anidb"),
             prefix_list(senshi.get("banner", []), "senshi"),
             prefix_list(animotvslash.get("banner", []), "animotvslash"),
             prefix_list(animedekho.get("banner", []), "animedekho"),
@@ -192,7 +186,6 @@ def api_home():
             prefix_list(miruro.get("latest_updates", []), "miruro"),
             prefix_list(nexus.get("latest_updates", []), "animenexus"),
             prefix_list(anikototv.get("latest_updates", []), "anikototv"),
-            prefix_list(allanime.get("latest_updates", []), "allanime"),
             prefix_list(anineko.get("latest_updates", []), "anineko"),
         )
 
@@ -201,7 +194,6 @@ def api_home():
         t_hanime = hanime.get("top_trending", {})
         t_miruro = miruro.get("top_trending", {})
         t_nexus = nexus.get("top_trending", {})
-        t_anidb = anidb.get("top_trending", {})
 
         trending = {}
         for key in ["NOW", "DAY", "WEEK", "MONTH"]:
@@ -211,7 +203,6 @@ def api_home():
                 prefix_list(t_hanime.get(key, []), "hanime"),
                 prefix_list(t_miruro.get(key, []), "miruro"),
                 prefix_list(t_nexus.get(key, []), "animenexus"),
-                prefix_list(t_anidb.get(key, []), "anidb"),
             )
 
         popular = merge_lists(
@@ -220,7 +211,6 @@ def api_home():
             prefix_list(hanime.get("popular", []), "hanime"),
             prefix_list(miruro.get("popular", []), "miruro"),
             prefix_list(nexus.get("popular", []), "animenexus"),
-            prefix_list(anidb.get("popular", []), "anidb"),
         )
 
         upcoming = merge_lists(

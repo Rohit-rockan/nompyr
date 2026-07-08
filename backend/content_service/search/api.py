@@ -200,9 +200,7 @@ def api_search():
             fut_miruro = executor.submit(safe_run, search_anime_miruro, kw, page)
             fut_nexus = executor.submit(safe_run, search_anime_animenexus, kw, page)
             fut_anikototv = executor.submit(safe_run, search_anime_anikototv, kw)
-            fut_allanime = executor.submit(safe_run, search_anime_allanime, kw)
-            fut_anineko = executor.submit(safe_run, search_anime_anineko, kw)
-            fut_anidb = executor.submit(safe_run, search_anime_anidb, kw)
+            fut_anineko = executor.submit(safe_run, search_anime_anineko, kw, page)
             fut_senshi = executor.submit(safe_run, search_anime_senshi, kw)
             fut_animotv = executor.submit(safe_run, search_anime_animotvslash, kw)
             fut_animedekho = executor.submit(safe_run, search_anime_animedekho, kw)
@@ -213,9 +211,7 @@ def api_search():
             res_miruro = fut_miruro.result()
             res_nexus = fut_nexus.result()
             res_anikototv = fut_anikototv.result()
-            res_allanime = fut_allanime.result()
             res_anineko = fut_anineko.result()
-            res_anidb = fut_anidb.result()
             res_senshi = fut_senshi.result()
             res_animotv = fut_animotv.result()
             res_animedekho = fut_animedekho.result()
@@ -233,9 +229,7 @@ def api_search():
         miruro = clean_res(res_miruro)
         nexus = clean_res(res_nexus)
         anikototv = clean_res(res_anikototv)
-        allanime = clean_res(res_allanime)
         anineko = clean_res(res_anineko)
-        anidb = clean_res(res_anidb)
         senshi = clean_res(res_senshi)
         animotv = clean_res(res_animotv)
         animedekho = clean_res(res_animedekho)
@@ -257,9 +251,7 @@ def api_search():
             prefix_list(extract_results(miruro), "miruro"),
             prefix_list(extract_results(nexus), "animenexus"),
             prefix_list(extract_results(anikototv), "anikototv"),
-            prefix_list(extract_results(allanime), "allanime"),
             prefix_list(extract_results(anineko), "anineko"),
-            prefix_list(extract_results(anidb), "anidb"),
             prefix_list(extract_results(senshi), "senshi"),
             prefix_list(extract_results(animotv), "animotvslash"),
             prefix_list(extract_results(animedekho), "animedekho"),
