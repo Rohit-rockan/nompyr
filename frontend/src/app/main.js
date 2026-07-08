@@ -228,13 +228,7 @@ const row = (title, items, action = "") => `
 `;
 
 const renderHome = async () => {
-  const [data, lists] = await Promise.all([
-    sourceManager.home(),
-    sourceManager.jikanLists().catch((err) => {
-      console.warn("Failed to load Jikan lists:", err);
-      return null;
-    })
-  ]);
+  const data = await sourceManager.home();
 
   // Limit to top 6 banners by score (global reviews/rating), deduplicating by title
   if (data.spotlight && Array.isArray(data.spotlight)) {
@@ -267,11 +261,6 @@ const renderHome = async () => {
   cacheList(data.popular);
   cacheList(data.upcoming);
   if (data.movies) cacheList(data.movies);
-  if (lists) {
-    cacheList(lists.newReleases);
-    cacheList(lists.upcoming);
-    cacheList(lists.completed);
-  }
 
   state.spotlightLength = data.spotlight.length;
   const hero = data.spotlight[state.heroIndex % data.spotlight.length];
@@ -336,20 +325,15 @@ const renderHome = async () => {
   }
 
   // Generate lists for 3-column list widget (New Releases, Upcoming, Completed)
-  const newReleases = lists?.newReleases?.length
-    ? lists.newReleases.slice(0, 20).map((item) => normalizeAnime(item))
-    : animeCatalog
+  // Since Jikan lists are removed, we rely on the internal animeCatalog.
+  const newReleases = animeCatalog
         .filter(anime => anime.status === "Ongoing")
         .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
         .slice(0, 20);
-  const upcomingAnime = lists?.upcoming?.length
-    ? lists.upcoming.slice(0, 20).map((item) => normalizeAnime(item))
-    : animeCatalog
+  const upcomingAnime = animeCatalog
         .filter(anime => anime.status === "Upcoming")
         .slice(0, 20);
-  const completedAnime = lists?.completed?.length
-    ? lists.completed.slice(0, 20).map((item) => normalizeAnime(item))
-    : animeCatalog
+  const completedAnime = animeCatalog
         .filter(anime => anime.status === "Completed")
         .slice(0, 20);
 

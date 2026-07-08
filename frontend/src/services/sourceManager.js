@@ -287,7 +287,24 @@ class RemoteApiSource {
     if (list.some((item) => item?.error)) {
       throw new Error(list.find((item) => item?.error).error);
     }
-    return list.map((item) => normalizeAnime(item));
+    return list
+      .filter((item) => {
+        // Drop purely metadata or upcoming items with absolutely no uploaded episodes
+        const sub = item.sub_episodes;
+        const dub = item.dub_episodes;
+        const eps = item.episodes || item.total_episodes || item.current_episode;
+        
+        // If the backend explicitly told us there are no episodes (0 or empty string), filter it out
+        if (
+          (sub === 0 || sub === "0" || sub === "") &&
+          (dub === 0 || dub === "0" || dub === "") &&
+          (eps === 0 || eps === "0" || eps === "" || eps === undefined)
+        ) {
+          return false; // No playable sources yet
+        }
+        return true;
+      })
+      .map((item) => normalizeAnime(item));
   }
 
   async home() {
@@ -361,9 +378,18 @@ class RemoteApiSource {
       list = Object.values(list);
     }
     list = list || [];
+    
+    // If no episodes are returned, throw 404 to trigger the graceful fallback UI
     if (list.length === 0) {
-      throw new Error("No episodes returned from API");
+      throw new Error("404: No playable episodes returned from API");
     }
+    
+    // If the episodes are purely metadata (no streaming IDs provided), also throw 404
+    // to prevent routing the user to the Demo Player.
+    if (!list.some(ep => ep.id || ep.token || ep.ep_token)) {
+      throw new Error("404: No streaming sources available for this anime yet");
+    }
+    
     return list.map((episode, index) => ({
       id: episode.id || episode.token || episode.ep_token || `${slug}-ep-${episode.number || index + 1}`,
       animeId: slug,
