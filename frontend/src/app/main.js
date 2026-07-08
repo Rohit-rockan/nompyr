@@ -3387,4 +3387,21 @@ document.addEventListener("change", async (event) => {
   }
 });
 
+document.addEventListener("click", (e) => {
+  const navBtn = e.target.closest("[data-hero-nav]");
+  if (navBtn) {
+    const dir = navBtn.getAttribute("data-hero-nav");
+    const len = state.spotlightLength || 1;
+    if (dir === "prev") {
+      state.heroIndex = (state.heroIndex - 1 + len) % len;
+    } else {
+      state.heroIndex = (state.heroIndex + 1) % len;
+    }
+    const { parts } = route();
+    if (parts.length === 0 || parts[0] === "home") {
+      renderHome();
+    }
+  }
+});
+
 render();
