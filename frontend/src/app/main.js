@@ -1265,7 +1265,7 @@ const renderWatch = async (slug, episodeNo = "1") => {
   const externalUrl = (episode && episode.url) || anime.url || stream.external_url || "";
 
   // Automatically redirect if stream cannot be played natively
-  if (stream.demoOnly || (stream.message && stream.message.includes("server protections"))) {
+  if (stream.message && stream.message.includes("server protections")) {
     if (externalUrl) {
       window.location.href = externalUrl;
       return;
@@ -1300,32 +1300,14 @@ const renderWatch = async (slug, episodeNo = "1") => {
         <!-- 2. Center: Player & Servers -->
         <div class="hianime-player-section">
           <div class="player ${store.getState().settings.theatre ? "theatre" : ""}" style="width:100%; border-radius: 0.65rem; overflow:hidden;">
-            ${stream.hls ? `
-              <div class="player-container" style="width:100%; height:100%;">
-                <video id="videoPlayer" class="video-player" controls playsinline ${isDirectMp4 ? "" : 'crossorigin="anonymous"'} style="width:100%; height:100%;">
-                  ${(stream.tracks || []).map(t => `<track src="${t.file}" label="${t.label}" kind="${t.kind || 'captions'}" srclang="${t.label.toLowerCase()}" ${t.default ? 'default' : ''}>`).join('')}
-                </video>
+            ${stream.hls || stream.type === "mp4" || isDirectMp4 ? `
+              <div class="player-container" style="width:100%; height:100%; background: #000;">
+                <div id="artplayer-app" style="width:100%; height:100%;"></div>
                 <div id="playerOverlay" class="player-overlay"></div>
               </div>
             ` : (stream.embed_url || stream.embedUrl) ? `
               <div class="player-container" style="width:100%; height:100%;">
                 <iframe src="${stream.embed_url || stream.embedUrl}" class="video-player" allow="autoplay; fullscreen" style="width:100%;height:100%;border:none;" allowfullscreen="true" scrolling="no" frameborder="0"></iframe>
-              </div>
-            ` : stream.demoOnly ? `
-              <div class="hianime-video-placeholder">
-                <div class="hianime-demo-overlay">
-                  <span style="font-size: 0.9rem; margin-bottom: 0.5rem;">Demo Player</span>
-                  <h2 style="margin: 0 0 1rem 0; font-size: 2.5rem; text-shadow: 0 2px 10px rgba(0,0,0,0.5);">${anime.title}</h2>
-                  <p style="margin: 0 0 2rem 0; max-width: 80%; line-height: 1.5; color: rgba(255,255,255,0.8);">${stream.message}</p>
-                  <div style="display:flex; gap:1rem;">
-                    <button class="search-submit-btn" id="autoSwitchSourceBtn" style="height: auto; padding: 0.8rem 2rem; font-size: 1rem; border-radius: 2rem;">
-                      Auto-Find Working Source
-                    </button>
-                    <a href="${anime.url || '#'}" target="_blank" rel="noopener noreferrer" class="search-submit-btn" style="height: auto; padding: 0.8rem 2rem; font-size: 1rem; border-radius: 2rem; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);">
-                      <i class="fas fa-external-link-alt"></i> Watch on Original Site
-                    </a>
-                  </div>
-                </div>
               </div>
             ` : stream.message && stream.message.includes("server protections") ? `
               <div class="hianime-video-placeholder">
@@ -1343,7 +1325,7 @@ const renderWatch = async (slug, episodeNo = "1") => {
               <div class="hianime-video-placeholder">
                 <div class="player-art" style="background-image:var(--hero-overlay),url('${anime.banner}')"></div>
                 <div class="player-message">
-                  <span>${stream.demoOnly ? "Demo Player" : "Player Notice"}</span>
+                  <span>Player Notice</span>
                   <h1>${anime.title}</h1>
                   <p>${stream.message || "Streaming is disabled/not resolved for this server."}</p>
                   <div style="display:flex; gap:1rem; justify-content:center; flex-wrap:wrap; margin-top:1rem;">
@@ -1727,19 +1709,23 @@ const renderWatch = async (slug, episodeNo = "1") => {
     }
   }
 
-  // Setup Hls.js or Native Player
-  const video = document.getElementById("videoPlayer");
-  if (video) {
+  // Setup Artplayer or Native Player fallback
+  const artContainer = document.getElementById("artplayer-app");
+  if (artContainer) {
     let lastSaveTime = 0;
     const autoplay = store.getState().settings.autoplay;
     const skipIntroSetting = store.getState().settings.skipIntro;
     const skipOutroSetting = store.getState().settings.skipOutro;
 
     const fallbackToIframe = () => {
-      const playerContainer = video.parentElement;
+      const playerContainer = artContainer.parentElement;
       const embedUrl = stream.embed_url || stream.embedUrl;
       if (playerContainer && embedUrl) {
         cleanupHls();
+        if (state.artPlayerInstance) {
+          state.artPlayerInstance.destroy(false);
+          state.artPlayerInstance = null;
+        }
         if (embedUrl.includes("miruro.tv") || embedUrl.includes("anime.nexus")) {
           playerContainer.innerHTML = `
             <div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text);flex-direction:column;gap:1rem;text-align:center;padding:2rem;">
@@ -1756,193 +1742,250 @@ const renderWatch = async (slug, episodeNo = "1") => {
       }
     };
 
-    // Watchdog timer to detect stalls (e.g. CORS block, 403, or loading hangs)
-    const startWatchdog = () => {
-      if (state.watchdog) clearTimeout(state.watchdog);
-      state.watchdog = setTimeout(() => {
-        if (video && video.currentTime === 0) {
-          console.warn("Watchdog: Playback did not start within 6 seconds. Falling back to iframe.");
-          fallbackToIframe();
-        }
-      }, 6000);
-    };
-
-    video.addEventListener("play", startWatchdog);
-
-    video.addEventListener("playing", () => {
-      if (state.watchdog) {
-        clearTimeout(state.watchdog);
-        state.watchdog = null;
-      }
-    });
-
-    video.addEventListener("error", (e) => {
-      console.error("Native video error:", e);
-      fallbackToIframe();
-    });
-
     const isDirectMp4 = stream.type === "mp4" || (stream.hls && (stream.hls.split('?')[0].toLowerCase().endsWith(".mp4") || stream.hls.toLowerCase().includes(".mp4")));
-    if (isDirectMp4) {
-      video.src = stream.hls;
-    } else if (Hls.isSupported() && stream.hls) {
-      const hls = new Hls();
-      hls.loadSource(stream.hls);
-      hls.attachMedia(video);
-      state.videoHlsInstance = hls;
 
-      hls.on(Hls.Events.ERROR, function (event, data) {
-        console.warn("HLS.js error:", data);
-        if (data.fatal) {
-          switch (data.type) {
-            case Hls.ErrorTypes.NETWORK_ERROR:
-              console.error("Fatal network error in HLS playback. Falling back to iframe.");
-              fallbackToIframe();
-              break;
-            case Hls.ErrorTypes.MEDIA_ERROR:
-              console.warn("Fatal media error, trying to recover...");
-              hls.recoverMediaError();
-              break;
-            default:
-              console.error("Fatal HLS error. Falling back to iframe.");
-              fallbackToIframe();
-              break;
+    try {
+      const art = new Artplayer({
+        container: '#artplayer-app',
+        url: stream.hls,
+        type: isDirectMp4 ? 'mp4' : 'm3u8',
+        customType: isDirectMp4 ? {} : {
+          m3u8: function (video, url, art) {
+            if (Hls.isSupported()) {
+              const hls = new Hls();
+              hls.loadSource(url);
+              hls.attachMedia(video);
+              state.videoHlsInstance = hls;
+
+              hls.on(Hls.Events.ERROR, function (event, data) {
+                if (data.fatal) {
+                  switch (data.type) {
+                    case Hls.ErrorTypes.NETWORK_ERROR:
+                      console.error("Fatal network error in HLS playback. Falling back to iframe.");
+                      fallbackToIframe();
+                      break;
+                    case Hls.ErrorTypes.MEDIA_ERROR:
+                      hls.recoverMediaError();
+                      break;
+                    default:
+                      fallbackToIframe();
+                      break;
+                  }
+                }
+              });
+            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+              video.src = url;
+            } else {
+              art.notice.show = 'Unsupported video format: m3u8';
+            }
+          }
+        },
+        theme: '#e76f51',
+        autoplay: autoplay,
+        fullscreen: true,
+        fullscreenWeb: true,
+        pip: true,
+        setting: true,
+        playbackRate: true,
+        aspectRatio: true,
+        poster: anime.banner || anime.poster,
+        plugins: []
+      });
+
+      state.artPlayerInstance = art;
+
+      // Watchdog timer to detect stalls
+      const startWatchdog = () => {
+        if (state.watchdog) clearTimeout(state.watchdog);
+        state.watchdog = setTimeout(() => {
+          if (art.video && art.video.currentTime === 0) {
+            console.warn("Watchdog: Playback did not start within 6 seconds. Falling back to iframe.");
+            fallbackToIframe();
+          }
+        }, 6000);
+      };
+
+      art.on('play', startWatchdog);
+      art.on('playing', () => {
+        if (state.watchdog) {
+          clearTimeout(state.watchdog);
+          state.watchdog = null;
+        }
+      });
+      art.on('error', () => {
+        console.error("Artplayer video error");
+        fallbackToIframe();
+      });
+
+      art.on('ready', async () => {
+        const video = art.video;
+        // Load subtitle tracks if available
+        if (stream.tracks && stream.tracks.length > 0) {
+          const defaultSub = stream.tracks.find(t => t.default) || stream.tracks.find(t => t.kind === 'captions');
+          if (defaultSub) {
+            art.subtitle.url = defaultSub.file;
+            art.subtitle.style({ color: '#fff', fontSize: '20px' });
+          }
+        }
+
+        // 1. Check local progress
+        const savedProgress = store.getState().progress[episode.id];
+        let resumeTime = 0;
+        if (savedProgress && savedProgress > 0 && savedProgress < 98) {
+          resumeTime = (savedProgress / 100) * video.duration;
+        }
+        
+        // 2. Check remote progress
+        const sessionId = store.getState().sessionId || localStorage.getItem("nompyr_session_id");
+        if (sessionId) {
+          try {
+            const remoteHistory = await sourceManager.getHistory(sessionId);
+            const remoteItem = remoteHistory.find(h => h.ani_id === anime.id && h.episode_id === episode.id);
+            if (remoteItem && remoteItem.timestamp_seconds > 0) {
+              if (remoteItem.timestamp_seconds > resumeTime) {
+                resumeTime = remoteItem.timestamp_seconds;
+              }
+            }
+          } catch (err) {
+            console.warn("Failed fetching remote history for metadata:", err);
+          }
+        }
+
+        if (resumeTime > 0 && resumeTime < video.duration * 0.98) {
+          art.seek = resumeTime;
+          art.notice.show = `Resumed from ${formatTime(resumeTime)}`;
+        }
+      });
+
+      let upNextShown = false;
+
+      art.on('video:timeupdate', () => {
+        const video = art.video;
+        const currentTime = video.currentTime;
+        const duration = video.duration;
+        if (!duration) return;
+
+        // History Progress Saving
+        if (Math.abs(currentTime - lastSaveTime) > 5) {
+          lastSaveTime = currentTime;
+          const progressPct = Math.min(100, Math.floor((currentTime / duration) * 100));
+          
+          store.addHistory({
+            animeId: anime.id,
+            episodeId: episode.id,
+            title: anime.title,
+            episode: episode.number,
+            progress: progressPct,
+            date: new Date().toISOString()
+          });
+          
+          let sessionId = store.getState().sessionId || localStorage.getItem("nompyr_session_id");
+          if (!sessionId) {
+            sessionId = "anon_" + Math.random().toString(36).substring(2, 11);
+            store.setState({ ...store.getState(), sessionId });
+            localStorage.setItem("nompyr_session_id", sessionId);
+          }
+          
+          sourceManager.historySync({
+            session_id: sessionId,
+            ani_id: anime.id,
+            episode_id: episode.id,
+            timestamp_seconds: Math.floor(currentTime)
+          });
+        }
+
+        // Skip Overlay handling
+        const overlay = document.getElementById("playerOverlay");
+        if (overlay) {
+          const intro = stream.intro || [0, 0];
+          const outro = stream.outro || [0, 0];
+          const nextEp = episodes.find((item) => Number(item.number) === Number(episode.number) + 1);
+
+          if (intro[0] > 0 && intro[1] > intro[0] && currentTime >= intro[0] && currentTime <= intro[1]) {
+            if (skipIntroSetting) {
+              art.seek = intro[1];
+              art.notice.show = "Skipped intro automatically";
+              overlay.innerHTML = "";
+              return;
+            }
+            if (!document.getElementById("skipIntroBtn")) {
+              overlay.innerHTML = `<button class="skip-overlay-btn slide-in" id="skipIntroBtn">Skip Intro ›</button>`;
+              document.getElementById("skipIntroBtn")?.addEventListener("click", () => {
+                art.seek = intro[1];
+                overlay.innerHTML = "";
+              });
+            }
+          } else if (outro[0] > 0 && outro[1] > outro[0] && currentTime >= outro[0] && currentTime <= outro[1]) {
+            if (skipOutroSetting) {
+              art.seek = outro[1];
+              art.notice.show = "Skipped outro automatically";
+              overlay.innerHTML = "";
+              return;
+            }
+            
+            // Premium Up Next Overlay
+            if (nextEp && nextEp.released && !upNextShown) {
+              upNextShown = true;
+              const timeRemaining = Math.floor(outro[1] - currentTime);
+              overlay.innerHTML = `
+                <div class="up-next-overlay slide-in">
+                  <div class="up-next-thumb" style="background-image: url('${anime.poster}')"></div>
+                  <div class="up-next-info">
+                    <span class="up-next-label">Up Next: Ep ${nextEp.number}</span>
+                    <strong class="up-next-title">${nextEp.title || "Next Episode"}</strong>
+                    <div class="up-next-actions">
+                      <button id="upNextPlayBtn" class="primary-btn">Play Now</button>
+                      <button id="upNextCancelBtn" class="secondary-btn">Cancel</button>
+                    </div>
+                  </div>
+                </div>
+              `;
+              document.getElementById("upNextPlayBtn")?.addEventListener("click", () => {
+                location.hash = \`#/watch/\${anime.id}/\${nextEp.number}\`;
+              });
+              document.getElementById("upNextCancelBtn")?.addEventListener("click", () => {
+                overlay.innerHTML = "";
+              });
+            } else if (!upNextShown) {
+              if (!document.getElementById("skipOutroBtn")) {
+                overlay.innerHTML = `<button class="skip-overlay-btn slide-in" id="skipOutroBtn">Skip Outro ›</button>`;
+                document.getElementById("skipOutroBtn")?.addEventListener("click", () => {
+                  art.seek = outro[1];
+                  overlay.innerHTML = "";
+                });
+              }
+            }
+          } else {
+            overlay.innerHTML = "";
+            upNextShown = false;
           }
         }
       });
-    } else if (video.canPlayType('application/vnd.apple.mpegurl') && stream.hls) {
-      video.src = stream.hls;
-    }
 
-    video.addEventListener("loadedmetadata", async () => {
-      // 1. Check local progress
-      const savedProgress = store.getState().progress[episode.id];
-      let resumeTime = 0;
-      if (savedProgress && savedProgress > 0 && savedProgress < 98) {
-        resumeTime = (savedProgress / 100) * video.duration;
-      }
-      
-      // 2. Check remote progress
-      const sessionId = store.getState().sessionId || localStorage.getItem("nompyr_session_id");
-      if (sessionId) {
-        try {
-          const remoteHistory = await sourceManager.getHistory(sessionId);
-          const remoteItem = remoteHistory.find(h => h.ani_id === anime.id && h.episode_id === episode.id);
-          if (remoteItem && remoteItem.timestamp_seconds > 0) {
-            // Prefer remote if it's further along or same (could be more accurate)
-            if (remoteItem.timestamp_seconds > resumeTime) {
-              resumeTime = remoteItem.timestamp_seconds;
-            }
-          }
-        } catch (err) {
-          console.warn("Failed fetching remote history for metadata:", err);
-        }
-      }
-
-      if (resumeTime > 0 && resumeTime < video.duration * 0.98) {
-        video.currentTime = resumeTime;
-        showToast(`Resumed from ${formatTime(resumeTime)}`);
-      }
-      if (autoplay) {
-        video.play().catch(e => console.log("Autoplay blocked:", e));
-      }
-    });
-
-    video.addEventListener("timeupdate", () => {
-      const currentTime = video.currentTime;
-      const duration = video.duration;
-      if (!duration) return;
-
-      // History Progress Saving
-      if (Math.abs(currentTime - lastSaveTime) > 5) {
-        lastSaveTime = currentTime;
-        const progressPct = Math.min(100, Math.floor((currentTime / duration) * 100));
-        
+      art.on('video:ended', () => {
         store.addHistory({
           animeId: anime.id,
           episodeId: episode.id,
           title: anime.title,
           episode: episode.number,
-          progress: progressPct,
+          progress: 100,
           date: new Date().toISOString()
         });
-        
-        // Ensure a session ID exists
-        let sessionId = store.getState().sessionId || localStorage.getItem("nompyr_session_id");
-        if (!sessionId) {
-          sessionId = "anon_" + Math.random().toString(36).substring(2, 11);
-          store.setState({ ...store.getState(), sessionId });
-          localStorage.setItem("nompyr_session_id", sessionId);
-        }
-        
-        sourceManager.historySync({
-          session_id: sessionId,
-          ani_id: anime.id,
-          episode_id: episode.id,
-          timestamp_seconds: Math.floor(currentTime)
-        });
-      }
-
-      // Skip Overlay handling
-      const overlay = document.getElementById("playerOverlay");
-      if (overlay) {
-        const intro = stream.intro || [0, 0];
-        const outro = stream.outro || [0, 0];
-
-        if (intro[0] > 0 && intro[1] > intro[0] && currentTime >= intro[0] && currentTime <= intro[1]) {
-          if (skipIntroSetting) {
-            video.currentTime = intro[1];
-            showToast("Skipped intro automatically");
-            overlay.innerHTML = "";
-            return;
-          }
-          if (!document.getElementById("skipIntroBtn")) {
-            overlay.innerHTML = `<button class="skip-overlay-btn" id="skipIntroBtn">Skip Intro ›</button>`;
-            document.getElementById("skipIntroBtn")?.addEventListener("click", () => {
-              video.currentTime = intro[1];
-              showToast("Skipped intro");
-              overlay.innerHTML = "";
-            });
-          }
-        } else if (outro[0] > 0 && outro[1] > outro[0] && currentTime >= outro[0] && currentTime <= outro[1]) {
-          if (skipOutroSetting) {
-            video.currentTime = outro[1];
-            showToast("Skipped outro automatically");
-            overlay.innerHTML = "";
-            return;
-          }
-          if (!document.getElementById("skipOutroBtn")) {
-            overlay.innerHTML = `<button class="skip-overlay-btn" id="skipOutroBtn">Skip Outro ›</button>`;
-            document.getElementById("skipOutroBtn")?.addEventListener("click", () => {
-              video.currentTime = outro[1];
-              showToast("Skipped outro");
-              overlay.innerHTML = "";
-            });
-          }
+        const nextEp = episodes.find((item) => Number(item.number) === Number(episode.number) + 1);
+        if (nextEp && nextEp.released) {
+          art.notice.show = \`Autoplay: Loading Episode \${nextEp.number}...\`;
+          setTimeout(() => {
+            location.hash = \`#/watch/\${anime.id}/\${nextEp.number}\`;
+          }, 1500);
         } else {
-          overlay.innerHTML = "";
+          art.notice.show = "Completed the last available episode!";
         }
-      }
-    });
-
-    video.addEventListener("ended", () => {
-      store.addHistory({
-        animeId: anime.id,
-        episodeId: episode.id,
-        title: anime.title,
-        episode: episode.number,
-        progress: 100,
-        date: new Date().toISOString()
       });
-      const nextEp = episodes.find((item) => Number(item.number) === Number(episode.number) + 1);
-      if (nextEp && nextEp.released) {
-        showToast(`Autoplay: Loading Episode ${nextEp.number}...`);
-        setTimeout(() => {
-          location.hash = `#/watch/${anime.id}/${nextEp.number}`;
-        }, 1500);
-      } else {
-        showToast("Completed the last available episode!");
-      }
-    });
+
+    } catch (err) {
+      console.error("Failed to initialize ArtPlayer:", err);
+      fallbackToIframe();
+    }
   }
 };
 
