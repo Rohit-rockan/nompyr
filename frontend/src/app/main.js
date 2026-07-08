@@ -353,27 +353,29 @@ const renderHome = async () => {
         .filter(anime => anime.status === "Completed")
         .slice(0, 20);
 
+  state.spotlightData = data.spotlight;
+
   view.innerHTML = `
     <!-- Hero Spotlight Section -->
     <section class="hero" style="position:relative; overflow:hidden; z-index:1;">
-      <div style="position:absolute;inset:0;background-image:var(--hero-overlay), url('${hero.banner}');background-size:cover;background-position:center 20%;transform: scale(1.1);z-index:-1;"></div>
+      <div id="heroBgLayer" style="position:absolute;inset:0;background-image:var(--hero-overlay), url('${hero.banner}');background-size:cover;background-position:center 20%;transform: scale(1.1);z-index:-1;transition: background-image 0.3s ease;"></div>
       <div class="hero-upper-row">
-        <span class="spotlight-tag">${isNews ? "🔥 Anime News" : `#${(state.heroIndex % data.spotlight.length) + 1} Spotlight`}</span>
+        <span id="heroSpotlightTag" class="spotlight-tag">${isNews ? "🔥 Anime News" : `#${(state.heroIndex % data.spotlight.length) + 1} Spotlight`}</span>
       </div>
       
       <div class="hero-lower-row">
         <div class="hero-details">
-          <h1 class="hero-title">${hero.title}</h1>
-          <p class="hero-desc">${hero.description}</p>
+          <h1 id="heroTitle" class="hero-title">${hero.title}</h1>
+          <p id="heroDesc" class="hero-desc">${hero.description}</p>
           
           <div class="hero-meta-box">
             <div class="meta-item">
               <span class="meta-label">Category</span>
-              <span class="meta-val">${hero.rating || 'News'}</span>
+              <span id="heroCategory" class="meta-val">${hero.rating || 'News'}</span>
             </div>
             <div class="meta-item">
               <span class="meta-label">Published</span>
-              <span class="meta-val">${hero.year || 'TBA'}</span>
+              <span id="heroPublished" class="meta-val">${hero.year || 'TBA'}</span>
             </div>
             <div class="meta-item">
               <span class="meta-label">Quality</span>
@@ -382,14 +384,16 @@ const renderHome = async () => {
           </div>
           
           <div class="hero-actions-row">
-            <a class="button primary watch-now-btn" href="${heroWatchHref}" ${heroWatchTarget}>${isNews ? "▶ READ ARTICLE" : "▶ WATCH NOW"}</a>
-            ${isNews ? "" : `<button class="bookmark-btn" data-favorite="${hero.id}">${isFavorite ? "♥" : "♡"}</button>`}
+            <a id="heroWatchBtn" class="button primary watch-now-btn" href="${heroWatchHref}" ${heroWatchTarget}>${isNews ? "▶ READ ARTICLE" : "▶ WATCH NOW"}</a>
+            <div id="heroBookmarkContainer" style="display:inline-block;">
+              ${isNews ? "" : `<button class="bookmark-btn" data-favorite="${hero.id}">${isFavorite ? "♥" : "♡"}</button>`}
+            </div>
           </div>
         </div>
         
         <div class="hero-carousel-controls">
           <button class="carousel-btn" data-hero-nav="prev">⟨</button>
-          <span class="carousel-indicator">${(state.heroIndex % data.spotlight.length) + 1} / ${data.spotlight.length}</span>
+          <span id="heroCarouselIndicator" class="carousel-indicator">${(state.heroIndex % data.spotlight.length) + 1} / ${data.spotlight.length}</span>
           <button class="carousel-btn" data-hero-nav="next">⟩</button>
         </div>
       </div>
@@ -3397,9 +3401,59 @@ document.addEventListener("click", (e) => {
     } else {
       state.heroIndex = (state.heroIndex + 1) % len;
     }
-    const { parts } = route();
-    if (parts.length === 0 || parts[0] === "home") {
-      renderHome();
+    
+    // Efficiently update only the hero section DOM
+    if (state.spotlightData && state.spotlightData.length > 0) {
+      const hero = state.spotlightData[state.heroIndex % len];
+      const stateNow = store.getState();
+      const isFavorite = stateNow.favorites.includes(hero.id);
+      const isHeroHanime = String(hero.id).startsWith("hanime:");
+      const isNews = String(hero.id).startsWith("http") || hero.isNews;
+      const heroWatchHref = isNews 
+        ? hero.id 
+        : isHeroHanime 
+          ? `https://hanime.tv/videos/hentai/${hero.id.split("hanime:")[1]}` 
+          : `#/watch/${hero.id}/1`;
+      const heroWatchTarget = (isHeroHanime || isNews) ? 'target="_blank" rel="noopener noreferrer"' : '';
+      
+      const bgLayer = document.getElementById("heroBgLayer");
+      if (bgLayer) bgLayer.style.backgroundImage = `var(--hero-overlay), url('${hero.banner}')`;
+      
+      const tag = document.getElementById("heroSpotlightTag");
+      if (tag) tag.textContent = isNews ? "🔥 Anime News" : `#${(state.heroIndex % len) + 1} Spotlight`;
+      
+      const title = document.getElementById("heroTitle");
+      if (title) title.textContent = hero.title;
+      
+      const desc = document.getElementById("heroDesc");
+      if (desc) desc.textContent = hero.description;
+      
+      const category = document.getElementById("heroCategory");
+      if (category) category.textContent = hero.rating || 'News';
+      
+      const published = document.getElementById("heroPublished");
+      if (published) published.textContent = hero.year || 'TBA';
+      
+      const watchBtn = document.getElementById("heroWatchBtn");
+      if (watchBtn) {
+        watchBtn.href = heroWatchHref;
+        if (heroWatchTarget) {
+          watchBtn.setAttribute("target", "_blank");
+          watchBtn.setAttribute("rel", "noopener noreferrer");
+        } else {
+          watchBtn.removeAttribute("target");
+          watchBtn.removeAttribute("rel");
+        }
+        watchBtn.textContent = isNews ? "▶ READ ARTICLE" : "▶ WATCH NOW";
+      }
+      
+      const bookmarkContainer = document.getElementById("heroBookmarkContainer");
+      if (bookmarkContainer) {
+        bookmarkContainer.innerHTML = isNews ? "" : `<button class="bookmark-btn" data-favorite="${hero.id}">${isFavorite ? "♥" : "♡"}</button>`;
+      }
+      
+      const indicator = document.getElementById("heroCarouselIndicator");
+      if (indicator) indicator.textContent = `${(state.heroIndex % len) + 1} / ${len}`;
     }
   }
 });
