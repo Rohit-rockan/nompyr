@@ -306,10 +306,13 @@ const renderHome = async () => {
   const dayNameToday = today.toLocaleDateString('en-US', { weekday: 'long' });
   state.selectedCalendarDay = state.selectedCalendarDay || dayNameToday;
 
-  // Filter local schedule items
-  const scheduleItems = animeCatalog.filter(anime => 
-    anime.schedule && anime.schedule.toLowerCase() === state.selectedCalendarDay.toLowerCase()
-  );
+  // Filter local schedule items using latest API data (mock day if TBA)
+  const scheduleItems = (data.latest || []).filter(anime => {
+    const day = anime.schedule && anime.schedule !== "TBA" 
+      ? anime.schedule 
+      : ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][(anime.title.length + (anime.episodes || 0)) % 7];
+    return day.toLowerCase() === state.selectedCalendarDay.toLowerCase();
+  }).slice(0, 8);
 
   // Generate 5 days centered on today
   const daysToShow = [];
@@ -325,17 +328,12 @@ const renderHome = async () => {
   }
 
   // Generate lists for 3-column list widget (New Releases, Upcoming, Completed)
-  // Since Jikan lists are removed, we rely on the internal animeCatalog.
-  const newReleases = animeCatalog
-        .filter(anime => anime.status === "Ongoing")
-        .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
-        .slice(0, 20);
-  const upcomingAnime = animeCatalog
-        .filter(anime => anime.status === "Upcoming")
-        .slice(0, 20);
-  const completedAnime = animeCatalog
-        .filter(anime => anime.status === "Completed")
-        .slice(0, 20);
+  // Use real data from the API
+  const newReleases = (data.latest || []).slice(0, 10);
+  const upcomingAnime = (data.upcoming || []).slice(0, 10);
+  const completedAnime = (data.popular || data.movies || [])
+        .filter(anime => anime.status === "Completed" || anime.type === "Movie" || anime.episodes > 1)
+        .slice(0, 10);
 
   state.spotlightData = data.spotlight;
 
