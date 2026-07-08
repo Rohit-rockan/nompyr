@@ -1925,7 +1925,7 @@ const renderWatch = async (slug, episodeNo = "1") => {
                 </div>
               `;
               document.getElementById("upNextPlayBtn")?.addEventListener("click", () => {
-                location.hash = \`#/watch/\${anime.id}/\${nextEp.number}\`;
+                location.hash = `#/watch/${anime.id}/${nextEp.number}`;
               });
               document.getElementById("upNextCancelBtn")?.addEventListener("click", () => {
                 overlay.innerHTML = "";
@@ -1957,9 +1957,9 @@ const renderWatch = async (slug, episodeNo = "1") => {
         });
         const nextEp = episodes.find((item) => Number(item.number) === Number(episode.number) + 1);
         if (nextEp && nextEp.released) {
-          art.notice.show = \`Autoplay: Loading Episode \${nextEp.number}...\`;
+          art.notice.show = `Autoplay: Loading Episode ${nextEp.number}...`;
           setTimeout(() => {
-            location.hash = \`#/watch/\${anime.id}/\${nextEp.number}\`;
+            location.hash = `#/watch/${anime.id}/${nextEp.number}`;
           }, 1500);
         } else {
           art.notice.show = "Completed the last available episode!";
