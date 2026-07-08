@@ -141,6 +141,11 @@ export const store = {
     state.progress = {};
     write(state);
   },
+  setSessionId(id) {
+    const state = read();
+    state.sessionId = id;
+    write(state);
+  },
   updateProfile(username, location, avatarUrl, bannerUrl) {
     const state = read();
     state.profile = {

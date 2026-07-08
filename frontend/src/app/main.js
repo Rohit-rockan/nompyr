@@ -1882,7 +1882,7 @@ const renderWatch = async (slug, episodeNo = "1") => {
           let sessionId = store.getState().sessionId || localStorage.getItem("nompyr_session_id");
           if (!sessionId) {
             sessionId = "anon_" + Math.random().toString(36).substring(2, 11);
-            store.setState({ ...store.getState(), sessionId });
+            store.setSessionId(sessionId);
             localStorage.setItem("nompyr_session_id", sessionId);
           }
           
