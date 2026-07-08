@@ -1008,7 +1008,7 @@ class ConsumetSource {
 }
 
 export class SourceManager {
-  constructor(sources = [new RemoteApiSource(), new ConsumetSource(), new DemoSource()]) {
+  constructor(sources = [new RemoteApiSource(), new ConsumetSource()]) {
     this.sources = sources.sort((a, b) => a.priority - b.priority);
   }
 

@@ -11,6 +11,7 @@ const initialState = {
   favorites: [],
   history: [],
   progress: {},
+  deadAnimeList: [],
   cachedAnime: {},
   api: {
     enabled: true,
@@ -78,6 +79,7 @@ const read = () => {
       favorites: saved.favorites || initialState.favorites || [],
       history: saved.history || initialState.history || [],
       progress: saved.progress || initialState.progress || {},
+      deadAnimeList: saved.deadAnimeList || initialState.deadAnimeList || [],
       cachedAnime: saved.cachedAnime || initialState.cachedAnime || {},
       profile: { ...initialState.profile, ...(saved.profile || {}) },
       friends: saved.friends || initialState.friends || [],
@@ -96,6 +98,17 @@ const write = (state) => {
 
 export const store = {
   getState: read,
+  markDead(animeId) {
+    const state = read();
+    if (!state.deadAnimeList) state.deadAnimeList = [];
+    if (!state.deadAnimeList.includes(animeId)) {
+      state.deadAnimeList.push(animeId);
+      write(state);
+    }
+  },
+  isDead(animeId) {
+    return read().deadAnimeList?.includes(animeId);
+  },
   cacheAnime(anime) {
     if (!anime || !anime.id) return;
     const state = read();

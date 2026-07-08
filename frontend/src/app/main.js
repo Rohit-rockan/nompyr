@@ -1197,7 +1197,13 @@ const renderWatch = async (slug, episodeNo = "1") => {
   }
 
   const episode = episodes.find((item) => String(item.number) === String(episodeNo)) || episodes.at(-1);
-  const servers = await sourceManager.servers(episode.id);
+  let servers = [];
+  try {
+    servers = await sourceManager.servers(episode.id);
+  } catch (err) {
+    store.markDead(slug);
+    throw new Error("404: " + err.message);
+  }
   if (state.currentWatchToken !== currentToken) {
     console.log("Stale watch request aborted: servers");
     return;
@@ -1215,7 +1221,12 @@ const renderWatch = async (slug, episodeNo = "1") => {
 
   let stream = { hls: "", message: "No server available.", intro: [0, 0], outro: [0, 0] };
   if (state.activeServerId) {
-    stream = await sourceManager.stream(state.activeServerId);
+    try {
+      stream = await sourceManager.stream(state.activeServerId);
+    } catch (err) {
+      store.markDead(slug);
+      throw new Error("404: " + err.message);
+    }
   }
   if (state.currentWatchToken !== currentToken) {
     console.log("Stale watch request aborted: stream");

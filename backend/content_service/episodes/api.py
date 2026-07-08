@@ -323,18 +323,9 @@ def api_servers(ep_token):
         res = fetch_servers(stripped_token)
 
     if isinstance(res, tuple):
-        res = {
-            "servers": {
-                "sub": [
-                    {
-                        "id": f"{stripped_token}-sub-primary",
-                        "label": "Nompyr Sub",
-                        "link_id": f"{stripped_token}-primary",
-                        "quality": ["720p"],
-                    }
-                ]
-            }
-        }
+        # The scraper returned an error (e.g. 400 or 500), so just return the error directly
+        return res
+
 
     if isinstance(res, dict) and "servers" in res:
         for lang in res["servers"]:
