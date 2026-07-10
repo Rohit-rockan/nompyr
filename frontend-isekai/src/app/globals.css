@@ -1,0 +1,43 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+:root {
+  --background: #000000;
+  --foreground: #ffffff;
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  /* Prevent overscroll bounce on mac */
+  overscroll-behavior: none;
+}
+
+/* Hide scrollbar for immersive feel */
+::-webkit-scrollbar {
+  width: 0px;
+  background: transparent;
+}
+
+#canvas-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: -1;
+  pointer-events: none; /* Let HTML layers receive clicks if needed, though R3F handles pointer events through canvas normally */
+}
+
+/* Make R3F Canvas interactive while keeping it in background */
+#canvas-container canvas {
+  pointer-events: auto;
+}
