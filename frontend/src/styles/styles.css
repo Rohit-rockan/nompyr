@@ -4637,20 +4637,23 @@ body::before {
          o p a c i t y :   1 ; 
      } 
  } 
-  
  
+ 
+ 
+
+
 
 /* --- NEW REACT HOME HERO BANNER --- */
 .hero-banner {
   position: relative;
-  width: 100%;
-  height: 70vh; /* Big poster */
-  min-height: 500px;
-  max-height: 800px;
+  margin: 20px auto;
+  max-width: 1400px;
+  min-height: 480px;
+  border-radius: 20px;
   display: flex;
-  align-items: flex-end; /* Align content to bottom */
+  align-items: center;
   overflow: hidden;
-  margin-bottom: 2rem;
+  background: #0a0b10;
 }
 
 .hero-backdrop {
@@ -4669,104 +4672,98 @@ body::before {
   left: 0;
   width: 100%;
   height: 100%;
-  /* Transparent shadow from bottom */
-  background: linear-gradient(to top, #0a0b10 0%, rgba(10, 11, 16, 0.8) 30%, transparent 100%);
+  background: linear-gradient(to right, #0a0b10 10%, rgba(10, 11, 16, 0.7) 50%, transparent 100%), linear-gradient(to top, #0a0b10 0%, transparent 30%);
   z-index: 1;
 }
 
 .hero-content {
   position: relative;
   z-index: 2;
-  width: 100%;
-  max-width: 1000px;
-  padding: 3rem 5%;
+  padding: 50px;
+  max-width: 800px;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 16px;
+  align-items: flex-start;
 }
 
 .hero-badge {
-  align-self: flex-start;
   border: 1px solid #7c3aed;
   background: rgba(124, 58, 237, 0.15);
   color: #c4b5fd;
-  font-size: 0.75rem;
+  font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  padding: 0.4rem 1rem;
+  padding: 6px 14px;
   border-radius: 20px;
   letter-spacing: 0.5px;
 }
 
 .hero-content h1 {
-  font-size: clamp(2rem, 5vw, 3.5rem);
+  font-size: 42px;
   font-weight: 800;
+  line-height: 1.1;
   color: #ffffff;
   margin: 0;
-  line-height: 1.1;
-  text-shadow: 0 2px 10px rgba(0,0,0,0.5);
 }
 
 .hero-tags {
   display: flex;
-  gap: 0.75rem;
+  gap: 10px;
   flex-wrap: wrap;
+  margin-top: -5px;
 }
 .hero-tags span {
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
   color: #f3f4f6;
-  padding: 0.4rem 0.8rem;
+  padding: 6px 14px;
   border-radius: 8px;
-  font-size: 0.8rem;
+  font-size: 12px;
   font-weight: 700;
-  backdrop-filter: blur(4px);
 }
 
 .hero-description {
   color: #d1d5db;
-  font-size: 1rem;
+  font-size: 15px;
   line-height: 1.6;
   margin: 0;
-  max-width: 700px;
   display: -webkit-box;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  text-shadow: 0 1px 4px rgba(0,0,0,0.5);
 }
 
 .hero-meta-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 0.5rem 2rem;
+  grid-template-columns: auto auto;
+  gap: 10px 40px;
   color: #d1d5db;
-  font-size: 0.9rem;
-  max-width: 600px;
+  font-size: 14px;
+  margin-top: 5px;
 }
 .hero-meta-grid strong {
   color: #a78bfa;
   font-weight: 700;
-  margin-right: 0.4rem;
+  margin-right: 4px;
 }
 
 .hero-actions {
   display: flex;
-  gap: 1rem;
-  margin-top: 1rem;
+  gap: 15px;
+  margin-top: 15px;
 }
 
 .hero-btn {
-  padding: 0.8rem 2rem;
+  padding: 12px 28px;
   border-radius: 12px;
   font-weight: 700;
-  font-size: 1rem;
+  font-size: 15px;
   text-decoration: none;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   transition: transform 0.2s, background 0.2s;
-  cursor: pointer;
   border: none;
 }
 
@@ -4780,10 +4777,9 @@ body::before {
 }
 
 .hero-btn.secondary-btn {
-  background: rgba(17, 24, 39, 0.6);
+  background: transparent;
   color: #ffffff;
   border: 1px solid rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(8px);
 }
 .hero-btn.secondary-btn:hover {
   background: rgba(255, 255, 255, 0.1);
@@ -4792,8 +4788,15 @@ body::before {
 
 @media (max-width: 768px) {
   .hero-banner {
-    height: 60vh;
-    min-height: 400px;
+    min-height: 380px;
+    margin: 10px;
+    border-radius: 16px;
+  }
+  .hero-content {
+    padding: 20px;
+  }
+  .hero-content h1 {
+    font-size: 28px;
   }
   .hero-actions {
     flex-direction: column;
@@ -4801,5 +4804,9 @@ body::before {
   }
   .hero-btn {
     width: 100%;
+  }
+  .hero-meta-grid {
+    grid-template-columns: 1fr;
+    gap: 5px;
   }
 }
