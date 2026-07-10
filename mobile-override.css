@@ -1,0 +1,218 @@
+/* Custom Mobile Overrides inspired by reference UI */
+@media (max-width: 768px) {
+    /* Header layout */
+    .nv-header {
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+        background: #1c1e22 !important;
+        border-bottom: none !important;
+    }
+    .nv-header-inner {
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        padding: 10px 15px !important;
+        height: auto !important;
+    }
+    
+    /* Logo */
+    .nv-logo {
+        margin-right: auto !important;
+        display: flex !important;
+        align-items: center !important;
+    }
+    .nv-logo img {
+        height: 28px !important; 
+        width: auto !important;
+    }
+
+    /* Hide elements that shouldn't be in the top bar */
+    .nv-mobile-toggle,
+    .nv-theme-toggle,
+    .nv-title-lang-toggle,
+    .nv-search {
+        display: none !important;
+    }
+
+    /* Auth actions (Sign In / Sign Up) */
+    .nv-auth-actions {
+        display: flex !important;
+        gap: 10px !important;
+        align-items: center !important;
+        margin-left: auto !important;
+    }
+    
+    .nv-login-btn, .nv-signup-btn {
+        padding: 8px 16px !important;
+        font-size: 14px !important;
+        border-radius: 8px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        text-decoration: none !important;
+        line-height: 1 !important;
+        height: auto !important;
+    }
+    
+    .nv-login-btn {
+        background: transparent !important;
+        border: 1px solid #4f5359 !important;
+        color: #fff !important;
+    }
+    
+    .nv-signup-btn {
+        background: #14ff00 !important;
+        color: #000 !important;
+        font-weight: 700 !important;
+        border: none !important;
+    }
+    .nv-signup-btn i {
+        display: none !important;
+    }
+
+    /* Bottom Navigation */
+    .nv-nav {
+        position: fixed !important;
+        bottom: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        top: auto !important;
+        background: #1c1e22 !important;
+        display: flex !important;
+        flex-direction: row !important;
+        justify-content: space-around !important;
+        padding: 10px 5px 25px 5px !important;
+        z-index: 9999 !important;
+        border-top: 1px solid #2d3035 !important;
+        transform: none !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        width: 100% !important;
+        height: auto !important;
+        clip-path: none !important;
+        overflow: visible !important;
+        transition: none !important;
+    }
+    
+    .nv-nav a {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+        font-size: 12px !important;
+        color: #99a4b0 !important;
+        gap: 6px !important;
+        text-decoration: none !important;
+        padding: 0 !important;
+        background: transparent !important;
+        border: none !important;
+        width: auto !important;
+        flex: 1 !important;
+    }
+    
+    .nv-nav a i {
+        font-size: 20px !important;
+        margin: 0 !important;
+    }
+
+    .nv-nav a.active {
+        color: #fff !important;
+    }
+
+    /* Adjust main content body to prevent overlap with bottom nav */
+    body {
+        padding-bottom: 80px !important;
+        background-color: #0f1114 !important;
+        color: #fff !important;
+    }
+    
+    /* Hero Slider styling */
+    .nv-hero-slider {
+        margin-top: 15px !important;
+        padding: 0 15px !important;
+    }
+    .nv-hero-slide {
+        border-radius: 12px !important;
+        overflow: hidden !important;
+    }
+    .nv-hero-content {
+        padding: 20px !important;
+    }
+    
+    /* Watchlist & Genre tabs adjustments */
+    .an-watchlist-section {
+        padding: 0 15px !important;
+        margin-top: 15px !important;
+    }
+    .an-watchlist-card {
+        background: #1c1e22 !important;
+        border-radius: 12px !important;
+    }
+    .nv-genre-tabs {
+        padding: 0 15px !important;
+        margin: 15px 0 !important;
+    }
+    .nv-genre-tabs button {
+        background: #2d3035 !important;
+        color: #99a4b0 !important;
+        border: none !important;
+        border-radius: 8px !important;
+    }
+    .nv-genre-tabs button.active {
+        background: #4f5359 !important;
+        color: #fff !important;
+    }
+
+    /* Featured Anime Cards like game thumbnails */
+    .nv-featured-section, .nv-updates-section, .nv-ongoing-section {
+        padding: 0 15px !important;
+    }
+    .nv-featured-grid, .nv-updates-grid, .nv-ongoing-grid {
+        display: grid !important;
+        grid-template-columns: repeat(3, 1fr) !important;
+        gap: 10px !important;
+    }
+    .nv-anime-card {
+        background: transparent !important;
+        border-radius: 8px !important;
+    }
+    .nv-anime-thumb {
+        border-radius: 8px !important;
+        overflow: hidden !important;
+    }
+    .nv-anime-title {
+        font-size: 12px !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        margin-top: 5px !important;
+    }
+    .nv-anime-genres {
+        display: none !important;
+    }
+    .nv-section-title-wrap h2, .nv-section-title {
+        font-size: 18px !important;
+    }
+
+    /* Watch page specific adjustments */
+    .nv-watch-layout {
+        display: flex !important;
+        flex-direction: column !important;
+    }
+    .nv-player-section {
+        padding: 0 !important;
+    }
+    .nv-watch-sidebar {
+        padding: 15px !important;
+        margin-top: 0 !important;
+    }
+    
+    /* Video Player adjustments */
+    .nv-video-wrapper, .nv-player-container {
+        border-radius: 0 !important;
+    }
+    .nv-video-wrapper iframe {
+        height: 250px !important;
+    }
+}
