@@ -35,14 +35,34 @@ export const HomePage = () => {
       {/* Hero Section */}
       {data.trending && data.trending.length > 0 && (
         <section className="hero-banner">
-          <div className="hero-content">
-            <h1>{data.trending[0].title}</h1>
-            <p className="hero-description">{data.trending[0].description || "Trending now on Nompyr!"}</p>
-            <a href={`#/anime/${data.trending[0].id}`} className="primary-btn">
-              ▶ Watch Now
-            </a>
-          </div>
           <img src={data.trending[0].poster} alt="Trending" className="hero-backdrop" />
+          <div className="hero-overlay"></div>
+          <div className="hero-content">
+            <div className="hero-badge">FEATURED</div>
+            <h1>{data.trending[0].title}</h1>
+            
+            <div className="hero-tags">
+              <span>{data.trending[0].type || 'TV'}</span>
+              <span>{data.trending[0].status || 'HD'}</span>
+              <span>Sub/Dub</span>
+            </div>
+            
+            <p className="hero-description">{data.trending[0].description || "Trending now on Nompyr!"}</p>
+            
+            <div className="hero-meta-grid">
+               <div><strong>Genres:</strong> Action, Adventure, Fantasy</div>
+               <div><strong>Studio:</strong> Animation Studio</div>
+            </div>
+
+            <div className="hero-actions">
+                <a href={`#/anime/${data.trending[0].id}`} className="hero-btn primary-btn">
+                  Watch Now
+                </a>
+                <a href={`#/anime/${data.trending[0].id}`} className="hero-btn secondary-btn">
+                  View Details
+                </a>
+            </div>
+          </div>
         </section>
       )}
 
