@@ -4810,3 +4810,25 @@ body::before {
     gap: 5px;
   }
 }
+.hero-carousel-controls {
+  position: absolute;
+  bottom: 25px;
+  right: 25px;
+  display: flex;
+  gap: 8px;
+  z-index: 10;
+  align-items: center;
+}
+.hero-dot {\n  cursor: pointer;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #6b7280;
+  display: inline-block;
+  transition: all 0.3s ease;
+}
+.hero-dot.active {
+  background: #8b5cf6;
+  width: 24px;
+  border-radius: 4px;
+}

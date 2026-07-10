@@ -373,10 +373,8 @@ const renderHome = async () => {
           </div>
         </div>
         
-        <div class="hero-carousel-controls">
-          <button class="carousel-btn" data-hero-nav="prev">⟨</button>
-          <span id="heroCarouselIndicator" class="carousel-indicator">${(state.heroIndex % data.spotlight.length) + 1} / ${data.spotlight.length}</span>
-          <button class="carousel-btn" data-hero-nav="next">⟩</button>
+        <div class="hero-carousel-controls" id="heroCarouselIndicator">
+          ${data.spotlight.map((_, i) => `<span class="hero-dot ${i === state.heroIndex % data.spotlight.length ? 'active' : ''}" data-hero-nav-to="${i}"></span>`).join('')}
         </div>
       </div>
     </section>
@@ -3428,11 +3426,14 @@ document.addEventListener("change", async (event) => {
 });
 
 document.addEventListener("click", (e) => {
-  const navBtn = e.target.closest("[data-hero-nav]");
+  const navBtn = e.target.closest("[data-hero-nav], [data-hero-nav-to]");
   if (navBtn) {
     const dir = navBtn.getAttribute("data-hero-nav");
+    const to = navBtn.getAttribute("data-hero-nav-to");
     const len = state.spotlightLength || 1;
-    if (dir === "prev") {
+    if (to !== null) {
+      state.heroIndex = parseInt(to);
+    } else if (dir === "prev") {
       state.heroIndex = (state.heroIndex - 1 + len) % len;
     } else {
       state.heroIndex = (state.heroIndex + 1) % len;
@@ -3489,7 +3490,11 @@ document.addEventListener("click", (e) => {
       }
       
       const indicator = document.getElementById("heroCarouselIndicator");
-      if (indicator) indicator.textContent = `${(state.heroIndex % len) + 1} / ${len}`;
+      if (indicator) {
+        indicator.innerHTML = Array.from({length: len}).map((_, i) => 
+          `<span class="hero-dot ${i === state.heroIndex % len ? 'active' : ''}" data-hero-nav-to="${i}"></span>`
+        ).join('');
+      }
     }
   }
 });
