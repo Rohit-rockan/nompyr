@@ -4,7 +4,10 @@
   "description": "Your Gateway To Infinite Anime.",
   "main": "index.js",
   "scripts": {
-    "dev:backend": "cd backend && python app.py", "dev:frontend": "cd frontend && npm run dev", "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\""
+    "dev:backend": "cd backend && python app.py",
+    "dev:frontend": "cd frontend-isekai && npm run dev",
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "build": "cd frontend-isekai && npm install && npm run build"
   },
   "keywords": [],
   "author": "",
