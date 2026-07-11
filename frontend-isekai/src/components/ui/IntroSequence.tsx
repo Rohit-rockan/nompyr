@@ -6,18 +6,21 @@ import anime from 'animejs';
 interface IntroSequenceProps {
   onComplete: () => void;
 }
+import { useAudio } from '@/hooks/useAudio';
 
 export default function IntroSequence({ onComplete }: IntroSequenceProps) {
   const [hasStarted, setHasStarted] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const lightRef = useRef<HTMLDivElement>(null);
+  const { initAudio, playClick } = useAudio();
 
   const handleDive = () => {
     setHasStarted(true);
+    initAudio();
+    playClick();
 
     // Note: We don't have the actual audio files, so we simulate them 
     // by using the Web Audio API or just the visual representation.
-    // We could add `new Audio('/sounds/heartbeat.mp3').play()` here if files existed.
     
     // Simulate the sequence described in prompt
     const tl = anime.timeline({

@@ -4,11 +4,17 @@ import { useState, useEffect } from 'react';
 import Scene from '@/components/canvas/Scene';
 import DepthMeter from '@/components/ui/DepthMeter';
 import IntroSequence from '@/components/ui/IntroSequence';
+import { useAudio } from '@/hooks/useAudio';
 
 export default function Home() {
   const [introFinished, setIntroFinished] = useState(false);
   // We'll track depth as a percentage of scroll progress
   const [scrollProgress, setScrollProgress] = useState(0);
+  const { setScrollDepth } = useAudio();
+
+  useEffect(() => {
+    setScrollDepth(scrollProgress);
+  }, [scrollProgress, setScrollDepth]);
 
   useEffect(() => {
     // Drei's ScrollControls creates a wrapper div. We can track its scroll.
