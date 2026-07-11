@@ -7,7 +7,7 @@ import * as THREE from 'three';
 
 export default function PostProcessingEffects() {
   return (
-    <EffectComposer>
+    <EffectComposer multisampling={0}>
       <Bloom 
         luminanceThreshold={0.5} 
         luminanceSmoothing={0.9} 
